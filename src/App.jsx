@@ -577,46 +577,67 @@ export default function App(){
 
   // HOME
   if(scr==="home"){
-    if(mfInfo.macrofase<=1){
-      const rotinas=getRehabForMacrofase(mfInfo.macrofase,mfInfo.semanaIdx,mfInfo.diaAlternado);
-      const rotinaBase=rotinas[0];
-      const cfgSemana=mfInfo.macrofase===1?REHAB_M1[Math.min(mfInfo.semanaIdx,REHAB_M1.length-1)]:null;
-      const rotinaCarga=rotinas[1]||(cfgSemana?cfgSemana.carga:null);
-      return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto"}}><style>{G}</style>
-        <div style={{textAlign:"center",marginBottom:16}}>
-          <div style={{fontSize:12,color:"#94a3b8",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Treino Híbrido</div>
-          <div style={{fontSize:22,fontWeight:800}}>{mfInfo.nome}</div>
-          <div style={{fontSize:12,color:"#64748b",marginTop:4}}>Dia {mfInfo.diasDesdeInicioMacrofase+1} — {isoHoje()}</div>
-        </div>
-        <div style={{padding:14,background:"#f59e0b15",border:"1px solid #f59e0b44",borderRadius:12,marginBottom:16,fontSize:12,color:"#fbbf24",lineHeight:1.5}}>🩹 {textoLiberado(isoHoje())}</div>
-        <div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>Checklist de hoje</div>
-        {["manha","noite"].map(key=>{const feita=doseFeita(key);return<button key={key} onClick={()=>abrirDose(key,rotinaBase)} style={{width:"100%",padding:16,marginBottom:10,borderRadius:14,border:"1px solid "+(feita?"#4ade8044":"#f59e0b44"),background:feita?"#4ade8010":"#f59e0b10",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div><div style={{fontSize:15,fontWeight:700}}>{feita?"✓ ":""}Rotina {key==="manha"?"Manhã":"Noite"}</div><div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{rotinaBase.time}</div></div>
-          <div style={{fontSize:20}}>{feita?"✅":"▶"}</div>
-        </button>;})}
-        {rotinaCarga&&<button onClick={()=>abrirDose("carga",rotinaCarga)} style={{width:"100%",padding:16,marginBottom:10,borderRadius:14,border:"1px solid "+(doseFeita("carga")?"#4ade8044":"#ef444444"),background:doseFeita("carga")?"#4ade8010":"#ef444410",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div><div style={{fontSize:15,fontWeight:700}}>{doseFeita("carga")?"✓ ":""}{rotinaCarga.title}</div><div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{mfInfo.diaAlternado?"Dia sugerido":"Fazer mesmo assim"}</div></div>
-          <div style={{fontSize:20}}>{doseFeita("carga")?"✅":"▶"}</div>
-        </button>}
-        <div style={{marginTop:20,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:16}}>
-          <div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Ajustar data (teste)</div>
-          <div style={{display:"flex",gap:8,alignItems:"center",justifyContent:"center"}}>
-            <button onClick={()=>setDias(-1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>-1 dia</button>
-            <span style={{fontSize:13,color:"#94a3b8",minWidth:110,textAlign:"center"}}>{diasOffset===0?"Hoje":(diasOffset>0?"+":"")+diasOffset+" dias"}</span>
-            <button onClick={()=>setDias(1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>+1 dia</button>
-          </div>
+    const hojeReal=isoHoje();
+    if(hojeReal<INICIO_TREINO){
+      return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center"}}>
+        <div style={{fontSize:40,marginBottom:12}}>⏸️</div>
+        <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Pausado até {INICIO_TREINO}</div>
+        <div style={{fontSize:13,color:"#94a3b8"}}>Reabilitação começa terça a sexta, a partir de 12/08.</div>
+      </div>;
+    }
+    if(mfInfo.macrofase>1){
+      return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center"}}>
+        <div style={{fontSize:40,marginBottom:12}}>🚧</div>
+        <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>{mfInfo.nome} ainda não configurada no app</div>
+        <div style={{fontSize:13,color:"#94a3b8",marginBottom:20}}>Consulte o plano completo no CLAUDE.md do projeto até essa parte ser implementada.</div>
+        <button onClick={()=>setScr("rehab")} style={{padding:"12px 20px",borderRadius:12,border:"1px solid #ef444444",background:"#ef444415",color:"#ef4444",cursor:"pointer",marginBottom:16}}>🦶 Abrir Reabilitação</button>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <button onClick={()=>setDias(-7)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>-7 dias</button>
+          <span style={{fontSize:13,color:"#94a3b8"}}>{hojeReal}</span>
+          <button onClick={()=>setDias(7)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>+7 dias</button>
         </div>
       </div>;
     }
-    return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center"}}>
-      <div style={{fontSize:40,marginBottom:12}}>🚧</div>
-      <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>{mfInfo.nome} ainda não configurada no app</div>
-      <div style={{fontSize:13,color:"#94a3b8",marginBottom:20}}>Consulte o plano completo no CLAUDE.md do projeto até essa parte ser implementada.</div>
-      <button onClick={()=>setScr("rehab")} style={{padding:"12px 20px",borderRadius:12,border:"1px solid #ef444444",background:"#ef444415",color:"#ef4444",cursor:"pointer",marginBottom:16}}>🦶 Abrir Reabilitação</button>
-      <div style={{display:"flex",gap:8,alignItems:"center"}}>
-        <button onClick={()=>setDias(-7)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>-7 dias</button>
-        <span style={{fontSize:13,color:"#94a3b8"}}>{isoHoje()}</span>
-        <button onClick={()=>setDias(7)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>+7 dias</button>
+    const diaCheckList=chaveDiaEfetivo||hojeReal;
+    const completoHoje=diaCompleto(diaCheckList,rehabLog);
+    if(completoHoje&&!isDiaAtivo(hojeReal)){
+      return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center"}}>
+        <div style={{fontSize:40,marginBottom:12}}>😴</div>
+        <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Dia de descanso</div>
+        <div style={{fontSize:13,color:"#94a3b8"}}>Rehab é terça a sexta.</div>
+      </div>;
+    }
+    const mfDia=getMacrofase(new Date(diaCheckList+"T00:00:00"));
+    const rotinas=getRehabForMacrofase(mfDia.macrofase,mfDia.semanaIdx,mfDia.diaAlternado);
+    const rotinaBase=rotinas[0];
+    const cfgSemana=mfDia.macrofase===1?REHAB_M1[Math.min(mfDia.semanaIdx,REHAB_M1.length-1)]:null;
+    const rotinaCarga=rotinas[1]||(cfgSemana?cfgSemana.carga:null);
+    const atrasado=diaCheckList<hojeReal;
+    return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto"}}><style>{G}</style>
+      <div style={{textAlign:"center",marginBottom:16}}>
+        <div style={{fontSize:12,color:"#94a3b8",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Treino Híbrido</div>
+        <div style={{fontSize:22,fontWeight:800}}>{mfDia.nome}</div>
+        <div style={{fontSize:12,color:"#64748b",marginTop:4}}>Dia {mfDia.diasDesdeInicioMacrofase+1} — {diaCheckList}</div>
+        {atrasado&&<div style={{fontSize:11,color:"#ef4444",marginTop:4,fontWeight:700}}>⚠ Atrasado desde {diaCheckList} — hoje é {hojeReal}</div>}
+      </div>
+      <div style={{padding:14,background:"#f59e0b15",border:"1px solid #f59e0b44",borderRadius:12,marginBottom:16,fontSize:12,color:"#fbbf24",lineHeight:1.5}}>🩹 {textoLiberado(hojeReal)}</div>
+      <div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>Checklist de {diaCheckList===hojeReal?"hoje":diaCheckList}</div>
+      {["manha","noite"].map(key=>{const feita=doseFeita(key);return<button key={key} onClick={()=>abrirDose(key,rotinaBase)} style={{width:"100%",padding:16,marginBottom:10,borderRadius:14,border:"1px solid "+(feita?"#4ade8044":"#f59e0b44"),background:feita?"#4ade8010":"#f59e0b10",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div><div style={{fontSize:15,fontWeight:700}}>{feita?"✓ ":""}Rotina {key==="manha"?"Manhã":"Noite"}</div><div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{rotinaBase.time}</div><div style={{fontSize:10,color:"#64748b",marginTop:4,lineHeight:1.4}}>{rotinaBase.exercises.map(e=>e.name).join(" · ")}</div></div>
+        <div style={{fontSize:20}}>{feita?"✅":"▶"}</div>
+      </button>;})}
+      {rotinaCarga&&<button onClick={()=>abrirDose("carga",rotinaCarga)} style={{width:"100%",padding:16,marginBottom:10,borderRadius:14,border:"1px solid "+(doseFeita("carga")?"#4ade8044":"#ef444444"),background:doseFeita("carga")?"#4ade8010":"#ef444410",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div><div style={{fontSize:15,fontWeight:700}}>{doseFeita("carga")?"✓ ":""}{rotinaCarga.title}</div><div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{mfDia.diaAlternado?"Dia sugerido":"Fazer mesmo assim"}</div><div style={{fontSize:10,color:"#64748b",marginTop:4,lineHeight:1.4}}>{rotinaCarga.exercises.map(e=>e.name).join(" · ")}</div></div>
+        <div style={{fontSize:20}}>{doseFeita("carga")?"✅":"▶"}</div>
+      </button>}
+      <button onClick={finalizarDia} style={{width:"100%",padding:14,marginTop:6,marginBottom:10,borderRadius:12,border:"1px solid #334155",background:"transparent",color:"#94a3b8",fontSize:13,fontWeight:600,cursor:"pointer"}}>✓ Dia finalizado</button>
+      <div style={{marginTop:14,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:16}}>
+        <div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Ajustar data (teste)</div>
+        <div style={{display:"flex",gap:8,alignItems:"center",justifyContent:"center"}}>
+          <button onClick={()=>setDias(-1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>-1 dia</button>
+          <span style={{fontSize:13,color:"#94a3b8",minWidth:110,textAlign:"center"}}>{diasOffset===0?"Hoje":(diasOffset>0?"+":"")+diasOffset+" dias"}</span>
+          <button onClick={()=>setDias(1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>+1 dia</button>
+        </div>
       </div>
     </div>;
   }
