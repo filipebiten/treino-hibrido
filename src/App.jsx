@@ -375,7 +375,7 @@ function TabataTimer({work,rest:restT,rounds,onDone,color}){
 }
 
 // ══════════════════════ REHAB SCREEN ══════════════════════
-function RehabScreen({onBack}){
+function RehabScreen({onBack, routines, onRoutineComplete}){
   const[activeRoutine,setActiveRoutine]=useState(null);
   const[sI,setSI]=useState(0);
   const[tmr,setTmr]=useState(0);
@@ -397,7 +397,7 @@ function RehabScreen({onBack}){
         <div style={{fontSize:11,color:"#ef4444",marginTop:8,padding:"6px 12px",background:"#ef444415",borderRadius:8,display:"inline-block"}}>⚠️ Pare de correr até a dor melhorar</div>
       </div>
       <div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>Escolha a rotina do momento</div>
-      {REHAB_ROUTINES.map(r=><button key={r.id} onClick={()=>{setActiveRoutine(r);setSI(0);setCS(1);setTmr(0);setTmrOn(false);setRst(false);const ex=r.exercises[0];if(ex&&ex.duration&&ex.type==="timer")setTmr(ex.duration)}} style={{width:"100%",padding:"16px",marginBottom:10,borderRadius:14,border:"1px solid "+r.color+"44",background:"linear-gradient(135deg,"+r.color+"15,"+r.color+"05)",cursor:"pointer",textAlign:"left"}}>
+      {routines.map(r=><button key={r.id} onClick={()=>{setActiveRoutine(r);setSI(0);setCS(1);setTmr(0);setTmrOn(false);setRst(false);const ex=r.exercises[0];if(ex&&ex.duration&&ex.type==="timer")setTmr(ex.duration)}} style={{width:"100%",padding:"16px",marginBottom:10,borderRadius:14,border:"1px solid "+r.color+"44",background:"linear-gradient(135deg,"+r.color+"15,"+r.color+"05)",cursor:"pointer",textAlign:"left"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div><div style={{fontSize:16,fontWeight:800,color:"white"}}>{r.title}</div><div style={{fontSize:12,color:"#94a3b8",marginTop:2}}>{r.subtitle}</div><div style={{fontSize:11,color:r.color,marginTop:4}}>{r.when}</div></div>
           <div style={{fontSize:12,color:"#64748b",background:"rgba(255,255,255,0.06)",padding:"4px 10px",borderRadius:8}}>{r.time}</div>
@@ -434,7 +434,7 @@ function RehabScreen({onBack}){
   const isT=step.type==="timer"||step.type==="timed_exercise";
   const isE=step.type==="exercise"||step.type==="timed_exercise";
 
-  function nxt(){setTmrOn(false);setRst(false);setCS(1);setShowHow(true);if(sI+1>=tot){setActiveRoutine(null);return;}const n=exercises[sI+1];setSI(sI+1);if(n&&n.duration&&n.type==="timer")setTmr(n.duration);else setTmr(0);}
+  function nxt(){setTmrOn(false);setRst(false);setCS(1);setShowHow(true);if(sI+1>=tot){if(onRoutineComplete)onRoutineComplete();setActiveRoutine(null);return;}const n=exercises[sI+1];setSI(sI+1);if(n&&n.duration&&n.type==="timer")setTmr(n.duration);else setTmr(0);}
   function dn(){if(cS<mx){if(step.rest){setRst(true);setTmr(step.rest);setTmrOn(true);}setCS(cS+1);}else nxt();}
   const bb=(bg,cl)=>({padding:"14px 0",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",background:bg,color:cl,flex:1});
 
@@ -506,7 +506,7 @@ export default function App(){
   const bb=(bg,cl)=>({padding:"14px 0",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",background:bg,color:cl,flex:1});
 
   // REHAB SCREEN
-  if(scr==="rehab") return<RehabScreen onBack={()=>setScr("home")}/>;
+  if(scr==="rehab") return<RehabScreen onBack={()=>setScr("home")} routines={REHAB_ROUTINES}/>;
 
   // PREVIEW
   if(scr==="preview"){const pw=bw(wk,pvS),desc=grd(wk,pvS),isMu=pvS===0||pvS===2||pvS===4;
