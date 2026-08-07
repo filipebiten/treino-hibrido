@@ -219,6 +219,42 @@ export function getRehabForMacrofase(macrofase, semanaIdx, diaAlternado) {
   return REHAB_ROUTINES; // macrofase 2+: fora de escopo deste plano, usa o menu genérico existente
 }
 
+// ══════════════════════ AGENDA (TERÇA-SEXTA) ══════════════════════
+export const INICIO_TREINO = "2026-08-12";
+
+export function isDiaAtivo(iso) {
+  const dw = new Date(iso + "T00:00:00").getDay();
+  return dw >= 2 && dw <= 5;
+}
+
+export function proximoDiaAtivo(iso) {
+  let d = new Date(iso + "T00:00:00");
+  do { d = new Date(d.getTime() + 86400000); } while (!isDiaAtivo(toISO(d)));
+  return toISO(d);
+}
+
+export function ultimoDiaAtivoAte(iso) {
+  let d = iso;
+  while (!isDiaAtivo(d)) { d = toISO(new Date(new Date(d + "T00:00:00").getTime() - 86400000)); }
+  return d;
+}
+
+export function diaCompleto(iso, rehabLog) {
+  const mf = getMacrofase(new Date(iso + "T00:00:00"));
+  const rotinas = getRehabForMacrofase(mf.macrofase, mf.semanaIdx, mf.diaAlternado);
+  const precisaCarga = rotinas.length > 1;
+  const log = rehabLog[iso] || {};
+  return !!log.manha && !!log.noite && (!precisaCarga || !!log.carga);
+}
+
+export function computeChaveDiaEfetivo(chaveDiaBase, rehabLog, hojeReal) {
+  if (!chaveDiaBase) return null;
+  const teto = ultimoDiaAtivoAte(hojeReal);
+  let d = chaveDiaBase;
+  while (d < teto && diaCompleto(d, rehabLog)) { d = proximoDiaAtivo(d); }
+  return d;
+}
+
 // ══════════════════════ FOOT PROTOCOL ══════════════════════
 const FOOT_PRE = [
   { name: "Tibial anterior sentado", detail: "Ponta dos pés para cima", sets: 3, duration: 30, type: "timer", how: "Sentado, pés no chão. Levante a ponta dos pés mantendo calcanhares fixos. 30 segundos." },

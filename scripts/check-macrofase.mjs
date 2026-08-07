@@ -2,7 +2,7 @@ import { createServer } from "vite";
 import assert from "node:assert";
 
 const server = await createServer({ server: { middlewareMode: true }, appType: "custom" });
-const { getMacrofase, hojeEfetivo, getRehabForMacrofase } = await server.ssrLoadModule("/src/App.jsx");
+const { getMacrofase, hojeEfetivo, getRehabForMacrofase, isDiaAtivo, proximoDiaAtivo, ultimoDiaAtivoAte, diaCompleto, computeChaveDiaEfetivo, INICIO_TREINO } = await server.ssrLoadModule("/src/App.jsx");
 
 const d = iso => new Date(iso + "T00:00:00");
 
@@ -62,6 +62,54 @@ assert.strictEqual(mf1s2SemCarga.length, 1);
 const mf1s3ComCarga = getRehabForMacrofase(1, 3, true);
 assert.strictEqual(mf1s3ComCarga[1].id, "m1-s4-carga");
 assert.strictEqual(mf1s3ComCarga[1].exercises.length, 4);
+
+// isDiaAtivo — terça(2) a sexta(5)
+assert.strictEqual(isDiaAtivo("2026-08-11"), true);  // terça
+assert.strictEqual(isDiaAtivo("2026-08-12"), true);  // quarta
+assert.strictEqual(isDiaAtivo("2026-08-14"), true);  // sexta
+assert.strictEqual(isDiaAtivo("2026-08-15"), false); // sábado
+assert.strictEqual(isDiaAtivo("2026-08-16"), false); // domingo
+assert.strictEqual(isDiaAtivo("2026-08-17"), false); // segunda
+
+// proximoDiaAtivo — pula fim de semana + segunda
+assert.strictEqual(proximoDiaAtivo("2026-08-11"), "2026-08-12"); // terça -> quarta
+assert.strictEqual(proximoDiaAtivo("2026-08-14"), "2026-08-18"); // sexta -> terça seguinte
+
+// ultimoDiaAtivoAte
+assert.strictEqual(ultimoDiaAtivoAte("2026-08-12"), "2026-08-12"); // já ativo
+assert.strictEqual(ultimoDiaAtivoAte("2026-08-15"), "2026-08-14"); // sábado -> sexta anterior
+assert.strictEqual(ultimoDiaAtivoAte("2026-08-17"), "2026-08-14"); // segunda -> sexta anterior
+
+// diaCompleto — macrofase 1 semana 0 (08-11..17), dia par (diaAlternado=true) mas semana 0 não tem carga
+assert.strictEqual(diaCompleto("2026-08-12", {}), false);
+assert.strictEqual(diaCompleto("2026-08-12", { "2026-08-12": { manha: true, noite: true } }), true);
+
+// diaCompleto — macrofase 1 semana 2 (08-25..31), dia par exige carga
+assert.strictEqual(diaCompleto("2026-08-27", { "2026-08-27": { manha: true, noite: true } }), false);
+assert.strictEqual(diaCompleto("2026-08-27", { "2026-08-27": { manha: true, noite: true, carga: true } }), true);
+
+// computeChaveDiaEfetivo — sem base
+assert.strictEqual(computeChaveDiaEfetivo(null, {}, "2026-08-13"), null);
+
+// computeChaveDiaEfetivo — caso feliz: dia anterior completo, avança até hoje
+assert.strictEqual(
+  computeChaveDiaEfetivo("2026-08-12", { "2026-08-12": { manha: true, noite: true } }, "2026-08-13"),
+  "2026-08-13"
+);
+
+// computeChaveDiaEfetivo — carryover: dia incompleto trava, mesmo com hoje real adiantado
+assert.strictEqual(
+  computeChaveDiaEfetivo("2026-08-12", {}, "2026-08-14"),
+  "2026-08-12"
+);
+
+// computeChaveDiaEfetivo — avança um passo, trava no próximo incompleto
+assert.strictEqual(
+  computeChaveDiaEfetivo("2026-08-11", { "2026-08-11": { manha: true, noite: true } }, "2026-08-14"),
+  "2026-08-12"
+);
+
+assert.strictEqual(INICIO_TREINO, "2026-08-12");
 
 console.log("OK - getMacrofase: todos os casos passaram");
 await server.close();
