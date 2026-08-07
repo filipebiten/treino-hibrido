@@ -583,6 +583,11 @@ export default function App(){
         <div style={{fontSize:40,marginBottom:12}}>⏸️</div>
         <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Pausado até {INICIO_TREINO}</div>
         <div style={{fontSize:13,color:"#94a3b8"}}>Reabilitação começa terça a sexta, a partir de 12/08.</div>
+        <div style={{display:"flex",gap:8,alignItems:"center",marginTop:20}}>
+          <button onClick={()=>setDias(-1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>-1 dia</button>
+          <span style={{fontSize:13,color:"#94a3b8",minWidth:110,textAlign:"center"}}>{diasOffset===0?"Hoje":(diasOffset>0?"+":"")+diasOffset+" dias"}</span>
+          <button onClick={()=>setDias(1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>+1 dia</button>
+        </div>
       </div>;
     }
     if(mfInfo.macrofase>1){
@@ -600,7 +605,7 @@ export default function App(){
     }
     const diaCheckList=chaveDiaEfetivo||hojeReal;
     const completoHoje=diaCompleto(diaCheckList,rehabLog);
-    if(completoHoje&&!isDiaAtivo(hojeReal)){
+    if(diaCheckList>ultimoDiaAtivoAte(hojeReal)||(completoHoje&&!isDiaAtivo(hojeReal))){
       return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center"}}>
         <div style={{fontSize:40,marginBottom:12}}>😴</div>
         <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Dia de descanso</div>

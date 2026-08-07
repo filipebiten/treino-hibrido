@@ -109,6 +109,13 @@ assert.strictEqual(
   "2026-08-12"
 );
 
+// computeChaveDiaEfetivo — chaveDiaBase empurrado pelo finalizarDia além do teto real (sábado, teto = sexta anterior):
+// a função pura não clampa de volta, retorna a data futura intacta (o fix vive no branch do Home, não aqui).
+assert.strictEqual(
+  computeChaveDiaEfetivo("2026-08-18", {}, "2026-08-15"),
+  "2026-08-18"
+);
+
 assert.strictEqual(INICIO_TREINO, "2026-08-12");
 
 console.log("OK - getMacrofase: todos os casos passaram");
