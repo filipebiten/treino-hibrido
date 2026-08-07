@@ -13,6 +13,64 @@ function playBeep() {
   } catch (e) {}
 }
 
+// ══════════════════════ MACROFASES (CALENDÁRIO) ══════════════════════
+export const MACRO_PHASES = [
+  { id: 0, nome: "Pré-operatório", inicio: "2026-08-04", fim: "2026-08-10", semanas: [
+    { inicio: "2026-08-04", fim: "2026-08-10" },
+  ]},
+  { id: 1, nome: "Pós-operatório + Rehab", inicio: "2026-08-11", fim: "2026-09-07", semanas: [
+    { inicio: "2026-08-11", fim: "2026-08-17" },
+    { inicio: "2026-08-18", fim: "2026-08-24" },
+    { inicio: "2026-08-25", fim: "2026-08-31" },
+    { inicio: "2026-09-01", fim: "2026-09-07" },
+  ]},
+  { id: 2, nome: "Retorno à Força", inicio: "2026-09-08", fim: "2026-10-05", semanas: [
+    { inicio: "2026-09-08", fim: "2026-09-14" },
+    { inicio: "2026-09-15", fim: "2026-09-21" },
+    { inicio: "2026-09-22", fim: "2026-09-28" },
+    { inicio: "2026-09-29", fim: "2026-10-05" },
+  ]},
+  { id: 3, nome: "Retorno à Corrida", inicio: "2026-10-06", fim: "2026-11-02", semanas: [
+    { inicio: "2026-10-06", fim: "2026-10-12" },
+    { inicio: "2026-10-13", fim: "2026-10-19" },
+    { inicio: "2026-10-20", fim: "2026-10-26" },
+    { inicio: "2026-10-27", fim: "2026-11-02" },
+  ]},
+  { id: 4, nome: "Construção", inicio: "2026-11-03", fim: "2026-12-28", semanas: [
+    { inicio: "2026-11-03", fim: "2026-11-09" },
+    { inicio: "2026-11-10", fim: "2026-11-16" },
+    { inicio: "2026-11-17", fim: "2026-11-23" },
+    { inicio: "2026-11-24", fim: "2026-11-30" },
+    { inicio: "2026-12-01", fim: "2026-12-07" },
+    { inicio: "2026-12-08", fim: "2026-12-14" },
+    { inicio: "2026-12-15", fim: "2026-12-21" },
+    { inicio: "2026-12-22", fim: "2026-12-28" },
+  ]},
+];
+
+const CIRURGIA = "2026-08-11";
+function toISO(date) { const y=date.getFullYear(), m=String(date.getMonth()+1).padStart(2,"0"), d=String(date.getDate()).padStart(2,"0"); return y+"-"+m+"-"+d; }
+const dOnly = iso => new Date(iso + "T00:00:00");
+const diffDias = (a, b) => Math.round((dOnly(b) - dOnly(a)) / 86400000);
+
+export function getMacrofase(date) {
+  const iso = toISO(date);
+  const primeira = MACRO_PHASES[0], ultima = MACRO_PHASES[MACRO_PHASES.length - 1];
+  let mf, clampedBefore = false, clampedAfter = false;
+  if (iso < primeira.inicio) { mf = primeira; clampedBefore = true; }
+  else if (iso > ultima.fim) { mf = ultima; clampedAfter = true; }
+  else mf = MACRO_PHASES.find(m => iso >= m.inicio && iso <= m.fim) || primeira;
+
+  let semanaIdx;
+  if (clampedBefore) semanaIdx = 0;
+  else if (clampedAfter) semanaIdx = mf.semanas.length - 1;
+  else semanaIdx = Math.max(0, mf.semanas.findIndex(s => iso >= s.inicio && iso <= s.fim));
+
+  const diasDesdeInicioMacrofase = clampedBefore ? 0 : diffDias(mf.inicio, iso);
+  const diasDesdeCirurgia = diffDias(CIRURGIA, iso);
+  return { macrofase: mf.id, nome: mf.nome, semanaIdx, diasDesdeInicioMacrofase, diasDesdeCirurgia, diaAlternado: diasDesdeInicioMacrofase % 2 === 0 };
+}
+
 // ══════════════════════ REHAB DATA ══════════════════════
 const REHAB_ROUTINES = [
   { id: "matinal", title: "🌅 Matinal", subtitle: "Na cama, antes de levantar", time: "~5 min", when: "Todos os dias ao acordar", color: "#f59e0b",
