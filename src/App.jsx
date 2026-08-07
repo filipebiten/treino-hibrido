@@ -526,10 +526,12 @@ export default function App(){
   const[rehabLog,setRehabLog]=useState({});
   const[activeDoseKey,setActiveDoseKey]=useState(null);
   const[rehabScreenRoutines,setRehabScreenRoutines]=useState(null);
+  const[chaveDiaBase,setChaveDiaBase]=useState(null);
   const iR=useRef(null),cR=useRef(null),bp=useRef(false);
 
-  useEffect(()=>{(async()=>{try{const r=localStorage.getItem("tp7");if(r){const d=JSON.parse(r);setWk(d.w||2);setSes(d.s!==undefined?d.s:2);setDiasOffset(d.o||0);}const rl=localStorage.getItem("tp7rehab");if(rl)setRehabLog(JSON.parse(rl));}catch(e){}setOk(true);})();},[]);
+  useEffect(()=>{(async()=>{try{const r=localStorage.getItem("tp7");if(r){const d=JSON.parse(r);setWk(d.w||2);setSes(d.s!==undefined?d.s:2);setDiasOffset(d.o||0);}const rl=localStorage.getItem("tp7rehab");if(rl)setRehabLog(JSON.parse(rl));const rd=localStorage.getItem("tp7dia");if(rd)setChaveDiaBase(JSON.parse(rd).b||null);}catch(e){}setOk(true);})();},[]);
   const sv=useCallback((w,s)=>{try{localStorage.setItem("tp7",JSON.stringify({w,s}))}catch(e){}},[]);
+  useEffect(()=>{if(ok&&!chaveDiaBase&&isoHoje()>=INICIO_TREINO){setChaveDiaBase(INICIO_TREINO);try{localStorage.setItem("tp7dia",JSON.stringify({b:INICIO_TREINO}))}catch(e){}}},[ok,chaveDiaBase,diasOffset]);
 
   useEffect(()=>{if(tmrOn&&tmr>0){bp.current=false;iR.current=setInterval(()=>setTmr(t=>t-1),1000);}else{clearInterval(iR.current);if(tmr===0&&tmrOn){setTmrOn(false);if(!bp.current){playBeep();bp.current=true;}}}return()=>clearInterval(iR.current);},[tmrOn,tmr]);
   useEffect(()=>{if(cupOn)cR.current=setInterval(()=>setCup(t=>t+1),1000);else clearInterval(cR.current);return()=>clearInterval(cR.current);},[cupOn]);
@@ -542,8 +544,10 @@ export default function App(){
   function dn(){const mx=step.sets||1;if(cS<mx){if(step.rest){setRst(true);setTmr(step.rest);setTmrOn(true);}setCS(cS+1);}else nxt();}
   function setDias(n){const o=diasOffset+n;setDiasOffset(o);try{localStorage.setItem("tp7",JSON.stringify({w:wk,s:ses,o}))}catch(e){}}
   function isoHoje(){const dt=hojeEfetivo(Date.now(),diasOffset);return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");}
-  function markDose(key){const iso=isoHoje();const novo={...rehabLog,[iso]:{...(rehabLog[iso]||{}),[key]:true}};setRehabLog(novo);try{localStorage.setItem("tp7rehab",JSON.stringify(novo))}catch(e){}}
-  function doseFeita(key){const iso=isoHoje();return !!(rehabLog[iso]&&rehabLog[iso][key]);}
+  const chaveDiaEfetivo=computeChaveDiaEfetivo(chaveDiaBase,rehabLog,isoHoje());
+  function markDose(key){const iso=chaveDiaEfetivo;if(!iso)return;const novo={...rehabLog,[iso]:{...(rehabLog[iso]||{}),[key]:true}};setRehabLog(novo);try{localStorage.setItem("tp7rehab",JSON.stringify(novo))}catch(e){}}
+  function doseFeita(key){const iso=chaveDiaEfetivo;return !!(iso&&rehabLog[iso]&&rehabLog[iso][key]);}
+  function finalizarDia(){if(!chaveDiaEfetivo)return;const b=proximoDiaAtivo(chaveDiaEfetivo);setChaveDiaBase(b);try{localStorage.setItem("tp7dia",JSON.stringify({b}))}catch(e){}}
   function abrirDose(key,rotina){setActiveDoseKey(key);setRehabScreenRoutines([rotina]);setScr("rehabDose");}
   const RESTRICOES=[
     {fim:"2026-08-17",texto:"Dias 1-7 pós-op: zero esforço físico. Alongamentos de pé sentado/deitado liberados."},
