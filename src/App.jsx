@@ -127,6 +127,98 @@ const REHAB_ROUTINES = [
     ]},
 ];
 
+// ══════════════════════ REHAB — MACROFASE 0 E 1 ══════════════════════
+const REHAB_PRE_OP = {
+  id: "pre-op", title: "🩹 Pré-operatório", subtitle: "2x/dia — acordar + antes de dormir", time: "~25 min", when: "Todos os dias, 2x", color: "#f59e0b",
+  exercises: [
+    { name: "Bombas de tornozelo", duration: 120, type: "timer",
+      how: "Deitado ou sentado na cama. Aponte a ponta do pé para baixo (como uma bailarina) e depois puxe para cima (direção da canela). Alterne suavemente. NÃO levante da cama antes de fazer isso — a fáscia está encurtada e fria." },
+    { name: "Alongamento DiGiovanni (fáscia)", reps: 10, type: "reps",
+      how: "Sentado, cruze a perna afetada sobre a outra. Com a mão do mesmo lado, segure a BASE DOS DEDOS (não a ponta) e puxe os dedos para CIMA e para TRÁS. Palpe a fáscia com a outra mão para confirmar tensão. Segure 10 segundos cada repetição. Faça 10 vezes." },
+    { name: "Along. gastrocnêmio (joelho RETO)", sets: 3, duration: 30, type: "timer",
+      how: "Em pé, mãos na parede. Perna afetada ATRÁS, perna boa na frente. Calcanhar de trás FIRME no chão. Joelho de trás RETO. Empurre o quadril para frente até sentir o alongamento na panturrilha. 30s. 3x cada perna." },
+    { name: "Along. sóleo (joelho DOBRADO)", sets: 3, duration: 30, type: "timer",
+      how: "MESMA posição, mas dobre levemente o joelho de trás. Alonga o SÓLEO. Calcanhar continua firme no chão. Sentido mais embaixo, perto do calcanhar. 30s x 3 cada perna." },
+    { name: "Bolinha de tênis na sola", detail: "Cada pé", duration: 180, type: "timer",
+      how: "Sentado, bolinha sob a sola do pé. Role do calcanhar à base dos dedos com pressão moderada (≤3/10 de dor). 3 minutos cada pé." },
+    { name: "❄️ GELO NOS PÉS", detail: "OBRIGATÓRIO!", duration: 900, type: "timer", isIce: true,
+      how: "Garrafa congelada com fronha, ou bolsa de gelo com toalha fina entre o gelo e a pele. 15 minutos. É o que faltou no protocolo anterior — não pule." },
+  ],
+};
+
+function rehabSemana1() {
+  return {
+    id: "m1-s1", title: "🛏️ Pós-op — Semana 1", subtitle: "Repouso total — pé sentado/deitado", time: "~20 min", when: "Todos os dias, 2x (acordar + dormir)", color: "#f59e0b",
+    exercises: [
+      { name: "Bombas de tornozelo", duration: 120, type: "timer", how: "Deitado. Aponte e puxe a ponta do pé alternadamente." },
+      { name: "Alongamento com toalha (panturrilha)", sets: 2, duration: 30, type: "timer",
+        how: "Sentado na cama, toalha na planta do pé. Joelho esticado, puxe a toalha trazendo a ponta do pé em direção à canela. 30s. 2x cada perna." },
+      { name: "Alongamento DiGiovanni (fáscia)", reps: 10, type: "reps",
+        how: "Sentado, cruze a perna afetada. Segure a base dos dedos, puxe para cima/trás. Palpe a fáscia. 10s x 10 repetições." },
+      { name: "Bolinha de tênis na sola", detail: "Cada pé", duration: 180, type: "timer", how: "Sentado, role a bolinha do calcanhar à base dos dedos. Pressão ≤3/10." },
+      { name: "Short Foot (encurtamento do pé)", reps: 15, type: "reps",
+        how: "Sentado, pé apoiado, SEM encolher os dedos. Aproxime a base do dedão do calcanhar, 'levante a cúpula' do arco. Segure 5s. Relaxe. 15 repetições." },
+      { name: "❄️ GELO NOS PÉS", detail: "OBRIGATÓRIO!", duration: 900, type: "timer", isIce: true, how: "Sentado ou deitado. Gelo na sola com toalha fina. 15 minutos." },
+    ],
+  };
+}
+
+function rehabSemana2() {
+  const base = rehabSemana1();
+  return { ...base, id: "m1-s2", title: "🛏️ Pós-op — Semana 2", subtitle: "Adiciona fortalecimento sentado", time: "~25 min",
+    exercises: [
+      ...base.exercises,
+      { name: "Toe Yoga (piano com os dedos)", reps: 10, type: "reps",
+        how: "3 movimentos, 10 reps cada: (1) Só o dedão sobe, outros no chão. (2) Dedão desce, outros sobem. (3) Espalhe todos os dedos como um leque e feche." },
+      { name: "Catador de toalha", sets: 2, reps: 15, type: "reps",
+        how: "Toalha estendida no chão. Use apenas os dedos do pé para agarrar e puxar. 2 séries de 15." },
+      { name: "4-vias tornozelo c/ elástico", sets: 3, reps: 10, type: "reps",
+        how: "Sentado, perna esticada. 4 movimentos 3x10 cada: plantiflexão, dorsiflexão, INVERSÃO (mais importante — tibial posterior), eversão." },
+    ]};
+}
+
+const REHAB_CARGA_S3 = {
+  id: "m1-s3-carga", title: "💪 Carga leve — dias alternados", subtitle: "Em pé, sem toalha ainda", time: "~10 min", when: "Dias alternados", color: "#ef4444",
+  exercises: [
+    { name: "Heel Raise bilateral (chão)", sets: 3, reps: 12, type: "exercise", rest: 90,
+      how: "Em pé, suba nos dois pés (sem toalha ainda). Desça lento em 3 segundos. 3 séries de 12." },
+    { name: "Equilíbrio unipodal", sets: 3, duration: 30, type: "timer",
+      how: "Fique em um pé só. Ative o Short Foot (levante o arco sem encolher os dedos). 30s. 3 séries cada pé." },
+  ],
+};
+
+const REHAB_CARGA_S4 = {
+  id: "m1-s4-carga", title: "💪 Carga — Rathleff completo", subtitle: "Unilateral, com toalha", time: "~12 min", when: "Dias alternados", color: "#ef4444",
+  exercises: [
+    { name: "Heel Raise Rathleff (PROTOCOLO PRINCIPAL)", sets: 3, reps: 12, type: "exercise", rest: 120,
+      how: "Toalha enrolada sob os dedos no degrau. Antepé na borda, calcanhar no ar. SUBA em 3s (concêntrico), PAUSE 2s no topo, DESÇA em 3s abaixo do degrau (excêntrico). Unilateral, pé afetado. 3x12." },
+    { name: "Equilíbrio unipodal", sets: 3, duration: 45, type: "timer",
+      how: "Um pé só, Short Foot ativo. 45s. Progressão: olhos abertos → olhos fechados. 3 séries." },
+    { name: "Glute bridge", sets: 3, reps: 12, type: "exercise", rest: 45,
+      how: "Deitado de costas, joelhos dobrados. Eleve o quadril apertando o glúteo no topo. Desça controlado. Glúteo fraco = mais pronação = mais fascite. 3x12." },
+    { name: "Clamshell c/ elástico", sets: 3, reps: 12, type: "exercise", rest: 30,
+      how: "Deitado de lado, joelhos dobrados, elástico acima dos joelhos. Abra o joelho de cima mantendo os pés juntos. Trabalha o glúteo médio. 3x12 cada lado." },
+  ],
+};
+
+const REHAB_M1 = [
+  { base: rehabSemana1, carga: null },
+  { base: rehabSemana2, carga: null },
+  { base: rehabSemana2, carga: REHAB_CARGA_S3 },
+  { base: rehabSemana2, carga: REHAB_CARGA_S4 },
+];
+
+export function getRehabForMacrofase(macrofase, semanaIdx, diaAlternado) {
+  if (macrofase === 0) return [REHAB_PRE_OP];
+  if (macrofase === 1) {
+    const cfg = REHAB_M1[Math.min(semanaIdx, REHAB_M1.length - 1)];
+    const rotinas = [cfg.base()];
+    if (cfg.carga && diaAlternado) rotinas.push(cfg.carga);
+    return rotinas;
+  }
+  return REHAB_ROUTINES; // macrofase 2+: fora de escopo deste plano, usa o menu genérico existente
+}
+
 // ══════════════════════ FOOT PROTOCOL ══════════════════════
 const FOOT_PRE = [
   { name: "Tibial anterior sentado", detail: "Ponta dos pés para cima", sets: 3, duration: 30, type: "timer", how: "Sentado, pés no chão. Levante a ponta dos pés mantendo calcanhares fixos. 30 segundos." },
