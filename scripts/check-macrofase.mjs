@@ -2,7 +2,7 @@ import { createServer } from "vite";
 import assert from "node:assert";
 
 const server = await createServer({ server: { middlewareMode: true }, appType: "custom" });
-const { getMacrofase } = await server.ssrLoadModule("/src/App.jsx");
+const { getMacrofase, hojeEfetivo } = await server.ssrLoadModule("/src/App.jsx");
 
 const d = iso => new Date(iso + "T00:00:00");
 
@@ -37,6 +37,13 @@ assert.strictEqual(getMacrofase(d("2027-01-01")).semanaIdx, 7);
 // Dias desde a cirurgia (11/08)
 assert.strictEqual(getMacrofase(d("2026-08-18")).diasDesdeCirurgia, 7);
 assert.strictEqual(getMacrofase(d("2026-08-11")).diasDesdeCirurgia, 0);
+
+const base = d("2026-08-15").getTime();
+assert.strictEqual(toISOLocal(hojeEfetivo(base, 0)), "2026-08-15");
+assert.strictEqual(toISOLocal(hojeEfetivo(base, 3)), "2026-08-18");
+assert.strictEqual(toISOLocal(hojeEfetivo(base, -5)), "2026-08-10");
+
+function toISOLocal(dt) { const y=dt.getFullYear(), m=String(dt.getMonth()+1).padStart(2,"0"), dd=String(dt.getDate()).padStart(2,"0"); return y+"-"+m+"-"+dd; }
 
 console.log("OK - getMacrofase: todos os casos passaram");
 await server.close();

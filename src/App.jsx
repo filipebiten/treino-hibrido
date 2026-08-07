@@ -71,6 +71,10 @@ export function getMacrofase(date) {
   return { macrofase: mf.id, nome: mf.nome, semanaIdx, diasDesdeInicioMacrofase, diasDesdeCirurgia, diaAlternado: diasDesdeInicioMacrofase % 2 === 0 };
 }
 
+export function hojeEfetivo(nowMs, diasOffset) {
+  return new Date(nowMs + diasOffset * 86400000);
+}
+
 // ══════════════════════ REHAB DATA ══════════════════════
 const REHAB_ROUTINES = [
   { id: "matinal", title: "🌅 Matinal", subtitle: "Na cama, antes de levantar", time: "~5 min", when: "Todos os dias ao acordar", color: "#f59e0b",
