@@ -444,7 +444,7 @@ function RehabScreen({onBack, routines, onRoutineComplete}){
       <button onClick={()=>{setTmrOn(false);setActiveRoutine(null)}} style={{background:"none",border:"none",color:"#94a3b8",fontSize:14,cursor:"pointer",padding:4}}>← Sair</button>
       <div style={{fontSize:12,color:"#64748b"}}>{sI+1}/{tot}</div>
     </div>
-    <div style={{height:4,background:"#1a1a2e",borderRadius:2,marginBottom:12}}><div style={{height:4,borderRadius:2,background:routine.color,width:((sI+1)/tot*100)+"%",transition:"width 0.3s"}}/></div>
+    <div style={{height:4,background:"#1a1a2e",borderRadius:2,marginBottom:12,overflow:"hidden"}}><div style={{height:4,borderRadius:2,background:routine.color,width:"100%",transform:"scaleX("+((sI+1)/tot)+")",transformOrigin:"left",transition:"transform 0.3s"}}/></div>
     <div style={{fontSize:11,color:routine.color,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:8,textAlign:"center"}}>{routine.title}</div>
     <div style={{textAlign:"center",marginBottom:12}}>
       <div style={{fontSize:20,fontWeight:800,marginBottom:4,lineHeight:1.3}}>{step.name}</div>
@@ -475,7 +475,7 @@ function RehabScreen({onBack, routines, onRoutineComplete}){
       {step.type==="reps"&&step.sets&&<button onClick={dn} style={bb("#4ade80","#0f0f1a")}>✓ Série {cS}/{mx}</button>}
     </div>
     <button onClick={nxt} style={{width:"100%",marginTop:10,padding:"10px 0",background:"transparent",color:"#475569",border:"none",fontSize:12,cursor:"pointer"}}>Pular passo →</button>
-    {sI+1<tot&&<div style={{marginTop:16,padding:12,background:"rgba(255,255,255,0.03)",borderRadius:10,borderLeft:"3px solid "+routine.color+"33"}}><div style={{fontSize:10,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>A seguir</div><div style={{fontSize:13,color:"#94a3b8"}}>{exercises[sI+1]&&exercises[sI+1].name}</div></div>}
+    {sI+1<tot&&<div style={{marginTop:16,padding:12,background:"rgba(255,255,255,0.03)",borderRadius:10}}><div style={{fontSize:10,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>A seguir</div><div style={{fontSize:13,color:"#94a3b8"}}>{exercises[sI+1]&&exercises[sI+1].name}</div></div>}
   </div>;
 }
 
@@ -560,7 +560,7 @@ export default function App(){
           <span style={{fontSize:12,color:"#64748b"}}>{sI+1}/{tot}</span>
         </div>
       </div>
-      <div style={{height:4,background:"#1a1a2e",borderRadius:2,marginBottom:12}}><div style={{height:4,borderRadius:2,background:pc,width:((sI+1)/tot*100)+"%",transition:"width 0.3s"}}/></div>
+      <div style={{height:4,background:"#1a1a2e",borderRadius:2,marginBottom:12,overflow:"hidden"}}><div style={{height:4,borderRadius:2,background:pc,width:"100%",transform:"scaleX("+((sI+1)/tot)+")",transformOrigin:"left",transition:"transform 0.3s"}}/></div>
       <div style={{fontSize:12,color:pc,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:8,textAlign:"center"}}>{sec}</div>
       <div style={{textAlign:"center",marginBottom:8}}>
         <div style={{fontSize:20,fontWeight:800,marginBottom:4,lineHeight:1.3,color:step.name&&step.name.startsWith("↑")?"#4ade80":"white"}}>{step.name}</div>
@@ -586,7 +586,7 @@ export default function App(){
         {step.type==="manual"&&<button onClick={()=>{setCupOn(false);nxt()}} style={bb("#4ade80","#0f0f1a")}>✓ Concluído</button>}
       </div>
       <button onClick={nxt} style={{width:"100%",marginTop:10,padding:"10px 0",background:"transparent",color:"#475569",border:"none",fontSize:12,cursor:"pointer"}}>Pular passo →</button>
-      {sI+1<tot&&<div style={{marginTop:16,padding:12,background:"rgba(255,255,255,0.03)",borderRadius:10,borderLeft:"3px solid "+pc+"33"}}><div style={{fontSize:10,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>A seguir</div><div style={{fontSize:13,color:"#94a3b8"}}>{steps[sI+1]&&steps[sI+1].name}</div></div>}
+      {sI+1<tot&&<div style={{marginTop:16,padding:12,background:"rgba(255,255,255,0.03)",borderRadius:10}}><div style={{fontSize:10,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>A seguir</div><div style={{fontSize:13,color:"#94a3b8"}}>{steps[sI+1]&&steps[sI+1].name}</div></div>}
       {step.isTest&&<div style={{marginTop:16,padding:14,background:pc+"15",borderRadius:12,border:"1px solid "+pc+"33",textAlign:"center"}}><div style={{fontSize:24,marginBottom:4}}>🎯</div><div style={{fontSize:13,color:pc,fontWeight:700}}>DIA DE TESTE!</div><div style={{fontSize:12,color:"#94a3b8",marginTop:4}}>Não acelere! COMPLETAR é o objetivo!</div></div>}
     </div>;}
 
