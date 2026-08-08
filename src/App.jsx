@@ -603,9 +603,11 @@ export default function App(){
   const[activeDoseKey,setActiveDoseKey]=useState(null);
   const[rehabScreenRoutines,setRehabScreenRoutines]=useState(null);
   const[chaveDiaBase,setChaveDiaBase]=useState(null);
+  const[testeAtivo,setTesteAtivo]=useState(null);
+  const[testesLog,setTestesLog]=useState({});
   const iR=useRef(null),cR=useRef(null),bp=useRef(false);
 
-  useEffect(()=>{(async()=>{try{const r=localStorage.getItem("tp7");if(r){const d=JSON.parse(r);setWk(d.w||2);setSes(d.s!==undefined?d.s:2);setDiasOffset(d.o||0);}const rl=localStorage.getItem("tp7rehab");if(rl)setRehabLog(JSON.parse(rl));const rd=localStorage.getItem("tp7dia");if(rd)setChaveDiaBase(JSON.parse(rd).b||null);}catch(e){}setOk(true);})();},[]);
+  useEffect(()=>{(async()=>{try{const r=localStorage.getItem("tp7");if(r){const d=JSON.parse(r);setWk(d.w||2);setSes(d.s!==undefined?d.s:2);setDiasOffset(d.o||0);}const rl=localStorage.getItem("tp7rehab");if(rl)setRehabLog(JSON.parse(rl));const rd=localStorage.getItem("tp7dia");if(rd)setChaveDiaBase(JSON.parse(rd).b||null);const rt=localStorage.getItem("tp7testes");if(rt)setTestesLog(JSON.parse(rt));}catch(e){}setOk(true);})();},[]);
   const sv=useCallback((w,s,o)=>{try{localStorage.setItem("tp7",JSON.stringify({w,s,o}))}catch(e){}},[]);
   useEffect(()=>{if(ok&&!chaveDiaBase&&isoHoje()>=INICIO_TREINO){setChaveDiaBase(INICIO_TREINO);try{localStorage.setItem("tp7dia",JSON.stringify({b:INICIO_TREINO}))}catch(e){}}},[ok,chaveDiaBase,diasOffset]);
 
@@ -625,6 +627,7 @@ export default function App(){
   function markDose(key){const iso=chaveDiaEfetivo;if(!iso)return;const novo={...rehabLog,[iso]:{...(rehabLog[iso]||{}),[key]:true}};setRehabLog(novo);try{localStorage.setItem("tp7rehab",JSON.stringify(novo))}catch(e){}}
   function doseFeita(key){const iso=chaveDiaEfetivo;return !!(iso&&rehabLog[iso]&&rehabLog[iso][key]);}
   function finalizarDia(){if(!chaveDiaEfetivo)return;const b=proximoDiaAtivo(chaveDiaEfetivo);setChaveDiaBase(b);try{localStorage.setItem("tp7dia",JSON.stringify({b}))}catch(e){}}
+  function marcarTeste(id,passou){const novo={...testesLog,[id]:{passou,data:isoHoje()}};setTestesLog(novo);try{localStorage.setItem("tp7testes",JSON.stringify(novo))}catch(e){}setScr("home");}
   function abrirDose(key,rotina){setActiveDoseKey(key);setRehabScreenRoutines([rotina]);setScr("rehabDose");}
   const RESTRICOES=[
     {fim:"2026-08-17",texto:"Dias 1-7 pós-op: zero esforço físico. Alongamentos de pé sentado/deitado liberados."},
@@ -641,6 +644,17 @@ export default function App(){
   // REHAB SCREEN
   if(scr==="rehab") return<RehabScreen onBack={()=>setScr("home")} routines={REHAB_ROUTINES}/>;
   if(scr==="rehabDose") return<RehabScreen onBack={()=>{setScr("home");setRehabScreenRoutines(null);}} routines={rehabScreenRoutines} onRoutineComplete={()=>markDose(activeDoseKey)}/>;
+  if(scr==="testeCaminhada"){const t=TESTES_CAMINHADA.find(x=>x.id===testeAtivo);if(!t)return<div style={{background:"#0f0f1a",color:"white",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}><button onClick={()=>setScr("home")} style={{color:"white"}}>← Voltar</button></div>;
+    return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:16,maxWidth:480,margin:"0 auto"}}>
+      <button onClick={()=>setScr("home")} style={{background:"none",border:"none",color:"#94a3b8",fontSize:14,cursor:"pointer",padding:4,marginBottom:20}}>← Voltar</button>
+      <div style={{textAlign:"center",marginBottom:24}}>
+        <div style={{fontSize:40,marginBottom:12}}>🚶</div>
+        <div style={{fontSize:20,fontWeight:800,marginBottom:8}}>{t.nome}</div>
+        <div style={{fontSize:13,color:"#94a3b8"}}>{t.criterio}</div>
+      </div>
+      <button onClick={()=>marcarTeste(t.id,true)} style={{width:"100%",padding:16,marginBottom:10,borderRadius:14,border:"2px solid #4ade8088",background:"#4ade8022",color:"white",fontSize:15,fontWeight:700,cursor:"pointer"}}>✓ Passou</button>
+      <button onClick={()=>marcarTeste(t.id,false)} style={{width:"100%",padding:16,borderRadius:14,border:"2px solid #ef444488",background:"#ef444422",color:"white",fontSize:15,fontWeight:700,cursor:"pointer"}}>✗ Não passou (dor {'>'} 2/10)</button>
+    </div>;}
 
   // PREVIEW
   if(scr==="preview"){const pw=bw(wk,pvS),desc=grd(wk,pvS),isMu=pvS===0||pvS===2||pvS===4;
