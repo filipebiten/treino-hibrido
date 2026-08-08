@@ -2,7 +2,7 @@ import { createServer } from "vite";
 import assert from "node:assert";
 
 const server = await createServer({ server: { middlewareMode: true }, appType: "custom" });
-const { getMacrofase, hojeEfetivo, getRehabForMacrofase, isDiaAtivo, proximoDiaAtivo, ultimoDiaAtivoAte, diaCompleto, computeChaveDiaEfetivo, INICIO_TREINO } = await server.ssrLoadModule("/src/App.jsx");
+const { getMacrofase, hojeEfetivo, getRehabForMacrofase, isDiaAtivo, proximoDiaAtivo, ultimoDiaAtivoAte, diaCompleto, computeChaveDiaEfetivo, INICIO_TREINO, getMuscPhaseIndex, levePeso, buildMuscSession, indicesDisponiveis, sessaoDados, sessaoDesc, MA, MB, MC, bw, grd } = await server.ssrLoadModule("/src/App.jsx");
 
 const d = iso => new Date(iso + "T00:00:00");
 
@@ -117,6 +117,53 @@ assert.strictEqual(
 );
 
 assert.strictEqual(INICIO_TREINO, "2026-08-12");
+
+// getMuscPhaseIndex
+assert.strictEqual(getMuscPhaseIndex(2, 0), 0);
+assert.strictEqual(getMuscPhaseIndex(2, 3), 0);
+assert.strictEqual(getMuscPhaseIndex(3, 0), 0);
+assert.strictEqual(getMuscPhaseIndex(3, 1), 0);
+assert.strictEqual(getMuscPhaseIndex(3, 2), 1);
+assert.strictEqual(getMuscPhaseIndex(3, 3), 1);
+assert.strictEqual(getMuscPhaseIndex(4, 0), 1);
+assert.strictEqual(getMuscPhaseIndex(4, 3), 1);
+assert.strictEqual(getMuscPhaseIndex(4, 4), 2);
+assert.strictEqual(getMuscPhaseIndex(4, 7), 2);
+
+// levePeso — converte pirâmide (reps string) e exercício simples (reps number)
+assert.deepStrictEqual(levePeso({ name: "X", detail: "PIRÂMIDE", sets: 4, reps: "12-10-8-6", rest: 90, type: "exercise" }), { name: "X", sets: 3, reps: 15, rest: 90, type: "exercise" });
+assert.deepStrictEqual(levePeso({ name: "Y", sets: 4, reps: 12, rest: 45, type: "exercise" }), { name: "Y", sets: 3, reps: 15, rest: 45, type: "exercise" });
+
+// buildMuscSession — macrofase 2 semana 0 (leve) vs semana 3 (padrão, = MA[0] literal)
+const m2s0 = buildMuscSession(MA, 2, 0);
+const secaoTreinoS0 = m2s0.find(s => s.section && s.section.startsWith("💪"));
+assert.ok(secaoTreinoS0);
+const primeiroExS0 = m2s0[m2s0.indexOf(secaoTreinoS0) + 1];
+assert.strictEqual(primeiroExS0.sets, 3);
+assert.strictEqual(primeiroExS0.reps, 15);
+
+const m2s3 = buildMuscSession(MA, 2, 3);
+const secaoTreinoS3 = m2s3.find(s => s.section && s.section.startsWith("💪"));
+const primeiroExS3 = m2s3[m2s3.indexOf(secaoTreinoS3) + 1];
+assert.strictEqual(primeiroExS3.sets, MA[0].m[0].sets);
+assert.strictEqual(primeiroExS3.reps, MA[0].m[0].reps);
+
+// indicesDisponiveis
+assert.deepStrictEqual(indicesDisponiveis(2), [0, 2, 4]);
+assert.deepStrictEqual(indicesDisponiveis(3), [0, 1, 2, 3, 4, 5]);
+assert.deepStrictEqual(indicesDisponiveis(4), [0, 1, 2, 3, 4, 5]);
+
+// sessaoDados — macrofase 2 usa buildMuscSession, ses ímpar (corrida) retorna vazio
+const sd2_0 = sessaoDados(2, 0, 0, 2);
+assert.ok(sd2_0.some(s => s.section && s.section.startsWith("💪")));
+assert.deepStrictEqual(sessaoDados(2, 0, 1, 2), []);
+
+// sessaoDados — macrofase < 2 continua usando o motor antigo (bw)
+assert.deepStrictEqual(sessaoDados(1, 0, 0, 5), bw(5, 0));
+
+// sessaoDesc — slots de musculação não têm descrição; macrofase < 2 usa grd
+assert.strictEqual(sessaoDesc(2, 0, 0, 2), "");
+assert.strictEqual(sessaoDesc(1, 0, 1, 5), grd(5, 1));
 
 console.log("OK - getMacrofase: todos os casos passaram");
 await server.close();

@@ -300,7 +300,7 @@ const FEET_S = [
 ];
 
 // ══════════════════════ MUSCULATION (4 phases each) ══════════════════════
-const MA = [
+export const MA = [
   { w:[{name:"Esteira/bike",duration:300,type:"timer",how:"5 min cardio leve."},{name:"Rotação ombros",reps:20,type:"reps",how:"20 círculos amplos."},{name:"Rotação braços",reps:20,type:"reps",how:"Braços esticados, 20 círculos."},{name:"Aquec. punhos",reps:20,type:"reps",how:"Gire punhos."},{name:"Polichinelos",duration:30,type:"timer",how:"Jumping jacks leves."}],
     m:[{name:"Supino reto halteres",detail:"PIRÂMIDE",sets:4,reps:"12-10-8-6",rest:90,type:"exercise",how:"Deitado no banco, halteres na altura do peito. Empurre para cima. Desça controlado. Aumente peso a cada série.",startKg:12},{name:"Supino inclinado halteres",detail:"Banco 30-45°",sets:4,reps:12,rest:60,type:"exercise",how:"Banco inclinado. Mesma execução. 2s subindo, 2s descendo.",startKg:10},{name:"Voador/Crossover",detail:"Squeeze peitoral",sets:4,reps:12,rest:45,type:"exercise",how:"Cabos posição alta. Puxe as mãos para baixo e para frente. Aperte o peitoral no final.",startKg:8},{name:"Elevação frontal",sets:4,reps:12,rest:45,type:"exercise",how:"Em pé, halteres. Braços esticados, eleve à frente até ombros. Desça controlado.",startKg:6},{name:"Elevação lateral",sets:4,reps:12,rest:45,type:"exercise",how:"Cotovelo levemente dobrado, eleve para os lados até ombros.",startKg:5},{name:"Rosca bíceps W",detail:"PIRÂMIDE",sets:4,reps:"12-10-8-6",rest:60,type:"exercise",how:"Barra W, flexione cotovelos ao peito. Controle descida 2seg. Aumente peso.",startKg:15},{name:"Bíceps concentrado",detail:"Cada braço",sets:4,reps:12,rest:30,type:"exercise",how:"Sentado, cotovelo na coxa. Flexione trazendo halter ao ombro.",startKg:6}],
     s:[{name:"Along. peitoral",detail:"Cada lado",duration:30,type:"timer",how:"Braço 90° na parede, gire o corpo."},{name:"Along. ombro",detail:"Cada lado",duration:30,type:"timer",how:"Braço cruzado no peito."},{name:"Along. bíceps",detail:"Cada lado",duration:30,type:"timer",how:"Braço para trás, palma fora."},{name:"Along. tríceps",detail:"Cada lado",duration:30,type:"timer",how:"Cotovelo atrás da cabeça."}]},
@@ -315,7 +315,7 @@ const MA = [
     s:[{name:"Along. peitoral",duration:30,type:"timer",how:"Na parede."},{name:"Along. ombro+bíceps",duration:30,type:"timer",how:"Combine."}]},
 ];
 
-const MB = [
+export const MB = [
   { w:[{name:"Esteira/bike",duration:300,type:"timer",how:"5 min cardio."},{name:"Agach. peso corpo",sets:4,reps:15,type:"reps",how:"Agachamento sem peso."},{name:"Rotação quadril",detail:"Cada perna",reps:10,type:"reps",how:"Eleve joelho, faça círculos."},{name:"Balanço pernas",detail:"Cada perna",reps:10,type:"reps",how:"Balance frente e trás."}],
     m:[{name:"Agachamento livre",detail:"PROGRESSÃO PRIORITÁRIA",sets:4,reps:12,rest:90,type:"exercise",how:"Barra nos ombros. Pés largura ombros. Desça até coxas paralelas. Suba explosivo.",startKg:30},{name:"Leg Press 45°",sets:4,reps:12,rest:90,type:"exercise",how:"Pés largura ombros. Desça até 90° nos joelhos.",startKg:60},{name:"Cadeira extensora",detail:"Contrair topo 1seg",sets:4,reps:12,rest:45,type:"exercise",how:"Estenda pernas, contraia quadríceps no topo 1 segundo.",startKg:25},{name:"Stiff halteres",detail:"Costas retas",sets:4,reps:12,rest:60,type:"exercise",how:"Empurre quadril para trás, desça halteres pelas pernas. Costas RETAS!",startKg:10},{name:"Terra Deadlift",detail:"PIRÂMIDE",sets:4,reps:"12-10-8-6",rest:105,type:"exercise",how:"Barra no chão. Costas RETAS. Empurre o chão com os pés.",startKg:40},{name:"Abdutora+Panturrilha BI-SET",sets:4,reps:"12+12",rest:60,type:"exercise",how:"12 abdutora + 12 panturrilha SEM descanso.",startKg:30},{name:"Prancha abdominal",detail:"Core p/ corrida",sets:3,duration:60,rest:30,type:"timed_exercise",how:"Antebraços e ponta dos pés. Corpo reto. Não deixe quadril cair."},{name:"Abdominal Tabata",detail:"20s esforço/10s desc ×8",sets:2,type:"tabata",tabataWork:20,tabataRest:10,tabataRounds:8,rest:60,how:"8 ciclos: 20s abdominais máximos + 10s descanso. Use crunch, bicicleta, elevação pernas."}],
     s:[{name:"Along. quadríceps",detail:"Cada perna",duration:30,type:"timer",how:"Puxe pé atrás."},{name:"Along. posterior",detail:"Cada perna",duration:30,type:"timer",how:"Perna esticada, incline."},{name:"Along. glúteo",detail:"Cada lado",duration:30,type:"timer",how:"Tornozelo sobre joelho."},{name:"Along. adutores",duration:30,type:"timer",how:"Borboleta sentado."},{name:"Along. panturrilha",duration:30,type:"timer",how:"Pé na parede."}]},
@@ -330,7 +330,7 @@ const MB = [
     s:[{name:"Along. quadríceps",duration:30,type:"timer",how:"Puxe pé."},{name:"Along. posterior+glúteo",duration:30,type:"timer",how:"Combine."},{name:"Along. adutores+panturrilha",duration:30,type:"timer",how:"Combine."}]},
 ];
 
-const MC = [
+export const MC = [
   { w:[{name:"Esteira/bike",duration:300,type:"timer",how:"5 min cardio."},{name:"Rotação ombros",reps:20,type:"reps",how:"Círculos."},{name:"Puxada leve",sets:2,reps:10,type:"reps",how:"Peso leve, ativar costas."},{name:"Rotação tronco",reps:20,type:"reps",how:"Braços abertos, gire."}],
     m:[{name:"Puxada alta",detail:"Até peito",sets:4,reps:12,rest:60,type:"exercise",how:"Pegada aberta. Puxe até peito, aperte escápulas.",startKg:35},{name:"Remada baixa cabo",detail:"Escápulas!",sets:4,reps:12,rest:60,type:"exercise",how:"Puxe triângulo até abdômen. Cotovelos junto ao corpo.",startKg:30},{name:"Remada curvada barra",sets:4,reps:12,rest:60,type:"exercise",how:"Inclinado, costas retas. Puxe barra até umbigo.",startKg:25},{name:"Pulldown DROPSET",sets:4,reps:"falha",rest:45,type:"exercise",how:"Puxada até falha. Reduza, continue.",startKg:30},{name:"Remada supinada",sets:4,reps:12,rest:45,type:"exercise",how:"Pegada invertida no cabo.",startKg:25},{name:"Tríceps barra reta DROPSET",sets:4,reps:"falha",rest:45,type:"exercise",how:"Polia alta, empurre para baixo. Falha, reduza.",startKg:20},{name:"Tríceps francês halter",sets:4,reps:12,rest:45,type:"exercise",how:"Halter atrás da cabeça, cotovelos fixos. Estenda.",startKg:10},{name:"Peck deck invertido",detail:"Posterior ombro",sets:4,reps:12,rest:45,type:"exercise",how:"De frente para máquina. Abra braços para trás.",startKg:15}],
     s:[{name:"Along. costas",duration:30,type:"timer",how:"Abraçe joelhos."},{name:"Along. lat",detail:"Cada lado",duration:30,type:"timer",how:"Braço cima, incline."},{name:"Along. tríceps",detail:"Cada braço",duration:30,type:"timer",how:"Cotovelo atrás."},{name:"Along. ombro",detail:"Cada lado",duration:30,type:"timer",how:"Braço cruzado."}]},
@@ -392,9 +392,50 @@ function br(wk,rt){const rd=RD[wk-1];if(!rd)return[];const r=[];
   r.push({section:"🧘 ALONGAMENTO PÓS"});STRETCH.forEach(e=>r.push({...e,ph:"s"}));
   r.push({section:"❄️ GELO NOS PÉS"});ICE.forEach(e=>r.push({...e,ph:"i"}));return r;}
 
-function bw(wk,si){if(si===0)return bm(MA,wk);if(si===1)return br(wk,"q");if(si===2)return bm(MB,wk);if(si===3)return br(wk,"e");if(si===4)return bm(MC,wk);if(si===5)return br(wk,"l");return[];}
+// ══════════════════════ MOTOR DE SESSÃO POR MACROFASE ══════════════════════
+export function getMuscPhaseIndex(macrofase, semanaIdx) {
+  if (macrofase === 2) return 0;
+  if (macrofase === 3) return semanaIdx < 2 ? 0 : 1;
+  if (macrofase === 4) return semanaIdx < 4 ? 1 : 2;
+  return 0;
+}
+
+export function levePeso(ex) {
+  if (typeof ex.reps === "string") { const { detail, ...rest } = ex; return { ...rest, sets: 3, reps: 15 }; }
+  return { ...ex, sets: 3, reps: 15 };
+}
+
+export function buildMuscSession(phases, macrofase, semanaIdx) {
+  const p = getMuscPhaseIndex(macrofase, semanaIdx);
+  const fase = phases[p];
+  const leve = macrofase === 2 && semanaIdx < 2;
+  const m = leve ? fase.m.map(levePeso) : fase.m;
+  const r = [];
+  r.push({ section: "🔥 AQUECIMENTO" }); fase.w.forEach(e => r.push({ ...e, ph: "w" }));
+  r.push({ section: "💪 TREINO — " + PHASE_NAMES[p] }); m.forEach(e => r.push({ ...e, ph: "m" }));
+  r.push({ section: "🧘 ALONGAMENTO" }); fase.s.forEach(e => r.push({ ...e, ph: "s" }));
+  r.push({ section: "🦶 FORTALECIMENTO PÉS" }); (phases === MB ? FEET_B : FEET_S).forEach(e => r.push({ ...e, ph: "f" }));
+  return r;
+}
+
+export function indicesDisponiveis(macrofase) { return macrofase === 2 ? [0, 2, 4] : [0, 1, 2, 3, 4, 5]; }
+
+export function sessaoDados(macrofase, semanaIdx, ses, wk) {
+  if (macrofase < 2) return bw(wk, ses);
+  if (ses === 0) return buildMuscSession(MA, macrofase, semanaIdx);
+  if (ses === 2) return buildMuscSession(MB, macrofase, semanaIdx);
+  if (ses === 4) return buildMuscSession(MC, macrofase, semanaIdx);
+  return [];
+}
+
+export function sessaoDesc(macrofase, semanaIdx, ses, wk) {
+  if (macrofase < 2) return grd(wk, ses);
+  return "";
+}
+
+export function bw(wk,si){if(si===0)return bm(MA,wk);if(si===1)return br(wk,"q");if(si===2)return bm(MB,wk);if(si===3)return br(wk,"e");if(si===4)return bm(MC,wk);if(si===5)return br(wk,"l");return[];}
 function ft(s){if(s==null)return"--:--";return Math.floor(s/60)+":"+(s%60).toString().padStart(2,"0");}
-function grd(wk,si){const r=RD[wk-1];if(!r)return"";if(si===1)return r.q;if(si===3)return r.e?r.e+"km Z2":"";if(si===5)return r.test||(r.l?r.l+"km Longão":"");return"";}
+export function grd(wk,si){const r=RD[wk-1];if(!r)return"";if(si===1)return r.q;if(si===3)return r.e?r.e+"km Z2":"";if(si===5)return r.test||(r.l?r.l+"km Longão":"");return"";}
 
 // ══════════════════════ UI COMPONENTS ══════════════════════
 function CT({time,total,running,color}){const r=70,circ=2*Math.PI*r,off=circ*(1-(total>0?(total-time)/total:0));
