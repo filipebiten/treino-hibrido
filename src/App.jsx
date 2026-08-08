@@ -606,16 +606,17 @@ export default function App(){
   const iR=useRef(null),cR=useRef(null),bp=useRef(false);
 
   useEffect(()=>{(async()=>{try{const r=localStorage.getItem("tp7");if(r){const d=JSON.parse(r);setWk(d.w||2);setSes(d.s!==undefined?d.s:2);setDiasOffset(d.o||0);}const rl=localStorage.getItem("tp7rehab");if(rl)setRehabLog(JSON.parse(rl));const rd=localStorage.getItem("tp7dia");if(rd)setChaveDiaBase(JSON.parse(rd).b||null);}catch(e){}setOk(true);})();},[]);
-  const sv=useCallback((w,s)=>{try{localStorage.setItem("tp7",JSON.stringify({w,s}))}catch(e){}},[]);
+  const sv=useCallback((w,s,o)=>{try{localStorage.setItem("tp7",JSON.stringify({w,s,o}))}catch(e){}},[]);
   useEffect(()=>{if(ok&&!chaveDiaBase&&isoHoje()>=INICIO_TREINO){setChaveDiaBase(INICIO_TREINO);try{localStorage.setItem("tp7dia",JSON.stringify({b:INICIO_TREINO}))}catch(e){}}},[ok,chaveDiaBase,diasOffset]);
 
   useEffect(()=>{if(tmrOn&&tmr>0){bp.current=false;iR.current=setInterval(()=>setTmr(t=>t-1),1000);}else{clearInterval(iR.current);if(tmr===0&&tmrOn){setTmrOn(false);if(!bp.current){playBeep();bp.current=true;}}}return()=>clearInterval(iR.current);},[tmrOn,tmr]);
   useEffect(()=>{if(cupOn)cR.current=setInterval(()=>setCup(t=>t+1),1000);else clearInterval(cR.current);return()=>clearInterval(cR.current);},[cupOn]);
 
-  const all=bw(wk,ses),steps=all.filter(s=>!s.section),step=steps[sI],ph=gp(wk),tot=steps.length,mph=getMPh(wk);
+  const mfInfo=getMacrofase(hojeEfetivo(Date.now(),diasOffset));
+  const all=sessaoDados(mfInfo.macrofase,mfInfo.semanaIdx,ses,wk),steps=all.filter(s=>!s.section),step=steps[sI],ph=gp(wk),tot=steps.length,mph=getMPh(wk);
   function curSec(){let sec="",c=0;for(const s of all){if(s.section){sec=s.section;continue;}if(c===sI)return sec;c++;}return sec;}
-  function startAny(si){setSes(si);sv(wk,si);setSIdx(0);setCS(1);setRst(false);setTmr(0);setTmrOn(false);setCup(0);setCupOn(false);setShowHow(false);const w=bw(wk,si),st=w.filter(x=>!x.section);if(st[0]&&st[0].duration&&st[0].type==="timer")setTmr(st[0].duration);setScr("workout");}
-  function adv(){let ns=ses+1,nw=wk;if(ns>=6){ns=0;nw=Math.min(wk+1,30);}setSes(ns);setWk(nw);sv(nw,ns);setScr("home");}
+  function startAny(si){setSes(si);sv(wk,si,diasOffset);setSIdx(0);setCS(1);setRst(false);setTmr(0);setTmrOn(false);setCup(0);setCupOn(false);setShowHow(false);const w=sessaoDados(mfInfo.macrofase,mfInfo.semanaIdx,si,wk),st=w.filter(x=>!x.section);if(st[0]&&st[0].duration&&st[0].type==="timer")setTmr(st[0].duration);setScr("workout");}
+  function adv(){const idx=indicesDisponiveis(mfInfo.macrofase);const pos=idx.indexOf(ses);const ns=idx[(pos+1)%idx.length];let nw=wk;if(mfInfo.macrofase<2&&pos===idx.length-1)nw=Math.min(wk+1,30);sv(nw,ns,diasOffset);setSes(ns);setWk(nw);setScr("home");}
   function nxt(){setTmrOn(false);setCupOn(false);setRst(false);setCS(1);setCup(0);setShowHow(false);if(sI+1>=tot){adv();return;}const n=steps[sI+1];setSIdx(sI+1);if(n&&n.duration&&n.type==="timer")setTmr(n.duration);else setTmr(0);}
   function dn(){const mx=step.sets||1;if(cS<mx){if(step.rest){setRst(true);setTmr(step.rest);setTmrOn(true);}setCS(cS+1);}else nxt();}
   function setDias(n){const o=diasOffset+n;setDiasOffset(o);try{localStorage.setItem("tp7",JSON.stringify({w:wk,s:ses,o}))}catch(e){}}
@@ -632,7 +633,6 @@ export default function App(){
     {fim:"9999-12-31",texto:"Dia 31+ pós-op: liberado para treino normal."},
   ];
   function textoLiberado(iso){if(iso<"2026-08-11")return"Pré-operatório — foco total na fascite antes da cirurgia.";return RESTRICOES.find(x=>iso<=x.fim).texto;}
-  const mfInfo=getMacrofase(hojeEfetivo(Date.now(),diasOffset));
 
   if(!ok)return<div style={{background:"#0f0f1a",color:"white",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"system-ui"}}><p style={{opacity:.6}}>Carregando...</p></div>;
   const G="@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}";
