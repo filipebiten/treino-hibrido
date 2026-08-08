@@ -2,7 +2,7 @@ import { createServer } from "vite";
 import assert from "node:assert";
 
 const server = await createServer({ server: { middlewareMode: true }, appType: "custom" });
-const { getMacrofase, hojeEfetivo, getRehabForMacrofase, isDiaAtivo, proximoDiaAtivo, ultimoDiaAtivoAte, diaCompleto, computeChaveDiaEfetivo, INICIO_TREINO, getMuscPhaseIndex, levePeso, buildMuscSession, indicesDisponiveis, sessaoDados, sessaoDesc, MA, MB, MC, bw, grd } = await server.ssrLoadModule("/src/App.jsx");
+const { getMacrofase, hojeEfetivo, getRehabForMacrofase, isDiaAtivo, proximoDiaAtivo, ultimoDiaAtivoAte, diaCompleto, computeChaveDiaEfetivo, INICIO_TREINO, getMuscPhaseIndex, levePeso, buildMuscSession, indicesDisponiveis, sessaoDados, sessaoDesc, MA, MB, MC, bw, grd, getRehabM2, TESTES_CAMINHADA } = await server.ssrLoadModule("/src/App.jsx");
 
 const d = iso => new Date(iso + "T00:00:00");
 
@@ -164,6 +164,19 @@ assert.deepStrictEqual(sessaoDados(1, 0, 0, 5), bw(5, 0));
 // sessaoDesc — slots de musculação não têm descrição; macrofase < 2 usa grd
 assert.strictEqual(sessaoDesc(2, 0, 0, 2), "");
 assert.strictEqual(sessaoDesc(1, 0, 1, 5), grd(5, 1));
+
+const m2semCarga = getRehabM2(false);
+assert.strictEqual(m2semCarga.length, 1);
+assert.strictEqual(m2semCarga[0].id, "m2-base");
+
+const m2comCarga = getRehabM2(true);
+assert.strictEqual(m2comCarga.length, 2);
+assert.strictEqual(m2comCarga[1].id, "m2-carga");
+assert.strictEqual(m2comCarga[1].exercises[0].reps, 10);
+
+assert.strictEqual(TESTES_CAMINHADA.length, 3);
+assert.strictEqual(TESTES_CAMINHADA[0].id, "caminhada20");
+assert.strictEqual(TESTES_CAMINHADA[2].id, "caminhada40");
 
 console.log("OK - getMacrofase: todos os casos passaram");
 await server.close();

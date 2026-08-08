@@ -255,6 +255,41 @@ export function computeChaveDiaEfetivo(chaveDiaBase, rehabLog, hojeReal) {
   return d;
 }
 
+// ══════════════════════ REHAB REDUZIDO — MACROFASE 2 ══════════════════════
+const REHAB_M2_BASE = {
+  id: "m2-base", title: "🦶 Manutenção fascite", subtitle: "2x/dia — acordar + antes de dormir", time: "~10 min", when: "Todos os dias, 2x", color: "#f59e0b",
+  exercises: [
+    { name: "Alongamento DiGiovanni (fáscia)", reps: 10, type: "reps",
+      how: "Sentado, cruze a perna afetada sobre a outra. Segure a base dos dedos (não a ponta) e puxe para cima e para trás. Palpe a fáscia com a outra mão. Segure 10 segundos cada repetição. 10 vezes." },
+    { name: "Along. panturrilha (joelho reto + dobrado)", sets: 3, duration: 30, type: "timer",
+      how: "Mãos na parede, perna afetada atrás, calcanhar firme no chão. 30s joelho reto (gastrocnêmio) + 30s joelho dobrado (sóleo). 3x cada." },
+    { name: "Bolinha de tênis na sola", duration: 180, type: "timer",
+      how: "Role a bolinha do calcanhar à base dos dedos. Pressão moderada (≤3/10 de dor). 3 minutos." },
+    { name: "❄️ GELO NOS PÉS", detail: "OBRIGATÓRIO!", duration: 900, type: "timer", isIce: true,
+      how: "Garrafa congelada com fronha ou bolsa de gelo com toalha fina. 15 minutos." },
+  ],
+};
+
+const REHAB_M2_CARGA = {
+  id: "m2-carga", title: "💪 Rathleff — 4×10 com mochila", subtitle: "Unilateral, com carga", time: "~12 min", when: "Dias alternados", color: "#ef4444",
+  exercises: [
+    { name: "Heel Raise Rathleff c/ mochila", sets: 4, reps: 10, type: "exercise", rest: 120,
+      how: "Toalha enrolada sob os dedos no degrau, mochila nas costas com peso adicional. Antepé na borda, calcanhar no ar. Sobe 3s, pausa 2s, desce 3s abaixo do degrau. Unilateral, pé afetado. 4x10." },
+    { name: "Equilíbrio unilateral", sets: 3, duration: 45, type: "timer",
+      how: "Um pé só, Short Foot ativo (arco levantado sem encolher dedos). 45s. Progressão: olhos fechados. 3 séries." },
+    { name: "Glute bridge", sets: 3, reps: 12, type: "exercise", rest: 45,
+      how: "Deitado de costas, joelhos dobrados. Eleve o quadril apertando o glúteo no topo. 3x12." },
+  ],
+};
+
+export function getRehabM2(diaAlternado) { return diaAlternado ? [REHAB_M2_BASE, REHAB_M2_CARGA] : [REHAB_M2_BASE]; }
+
+export const TESTES_CAMINHADA = [
+  { id: "caminhada20", nome: "Caminhar 20min em piso plano", criterio: "Dor ≤ 2/10 durante E no dia seguinte" },
+  { id: "caminhada30", nome: "Caminhar 30min", criterio: "Dor ≤ 2/10 durante E no dia seguinte" },
+  { id: "caminhada40", nome: "Caminhar 40min com trechos em ritmo forte", criterio: "Dor ≤ 2/10 durante E no dia seguinte" },
+];
+
 // ══════════════════════ FOOT PROTOCOL ══════════════════════
 const FOOT_PRE = [
   { name: "Tibial anterior sentado", detail: "Ponta dos pés para cima", sets: 3, duration: 30, type: "timer", how: "Sentado, pés no chão. Levante a ponta dos pés mantendo calcanhares fixos. 30 segundos." },
