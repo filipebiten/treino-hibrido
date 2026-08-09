@@ -134,6 +134,12 @@ assert.strictEqual(getMuscPhaseIndex(4, 7), 2);
 assert.deepStrictEqual(levePeso({ name: "X", detail: "PIRÂMIDE", sets: 4, reps: "12-10-8-6", rest: 90, type: "exercise" }), { name: "X", sets: 3, reps: 15, rest: 90, type: "exercise" });
 assert.deepStrictEqual(levePeso({ name: "Y", sets: 4, reps: 12, rest: 45, type: "exercise" }), { name: "Y", sets: 3, reps: 15, rest: 45, type: "exercise" });
 
+// levePeso — não mexe em exercícios que não são "exercise" (timed_exercise, tabata passam intocados)
+const timedEx = { name: "Prancha", detail: "Core", sets: 3, duration: 60, rest: 30, type: "timed_exercise" };
+assert.deepStrictEqual(levePeso(timedEx), timedEx);
+const tabataEx = { name: "Tabata", sets: 2, type: "tabata", tabataWork: 20, tabataRest: 10, tabataRounds: 8, rest: 60 };
+assert.deepStrictEqual(levePeso(tabataEx), tabataEx);
+
 // buildMuscSession — macrofase 2 semana 0 (leve) vs semana 3 (padrão, = MA[0] literal)
 const m2s0 = buildMuscSession(MA, 2, 0);
 const secaoTreinoS0 = m2s0.find(s => s.section && s.section.startsWith("💪"));
@@ -147,6 +153,14 @@ const secaoTreinoS3 = m2s3.find(s => s.section && s.section.startsWith("💪"));
 const primeiroExS3 = m2s3[m2s3.indexOf(secaoTreinoS3) + 1];
 assert.strictEqual(primeiroExS3.sets, MA[0].m[0].sets);
 assert.strictEqual(primeiroExS3.reps, MA[0].m[0].reps);
+
+// buildMuscSession — semana leve não altera Prancha (timed_exercise) nem Tabata: idênticos entre semana leve e padrão
+const mbLeve = buildMuscSession(MB, 2, 0);
+const mbPadrao = buildMuscSession(MB, 2, 3);
+const acharPrancha = e => e.name === "Prancha abdominal";
+const acharTabata = e => e.name === "Abdominal Tabata";
+assert.deepStrictEqual(mbLeve.find(acharPrancha), mbPadrao.find(acharPrancha));
+assert.deepStrictEqual(mbLeve.find(acharTabata), mbPadrao.find(acharTabata));
 
 // indicesDisponiveis
 assert.deepStrictEqual(indicesDisponiveis(2), [0, 2, 4]);

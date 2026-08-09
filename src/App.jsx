@@ -436,6 +436,7 @@ export function getMuscPhaseIndex(macrofase, semanaIdx) {
 }
 
 export function levePeso(ex) {
+  if (ex.type !== "exercise") return ex;
   if (typeof ex.reps === "string") { const { detail, ...rest } = ex; return { ...rest, sets: 3, reps: 15 }; }
   return { ...ex, sets: 3, reps: 15 };
 }
@@ -615,7 +616,9 @@ export default function App(){
   useEffect(()=>{if(cupOn)cR.current=setInterval(()=>setCup(t=>t+1),1000);else clearInterval(cR.current);return()=>clearInterval(cR.current);},[cupOn]);
 
   const mfInfo=getMacrofase(hojeEfetivo(Date.now(),diasOffset));
-  const all=sessaoDados(mfInfo.macrofase,mfInfo.semanaIdx,ses,wk),steps=all.filter(s=>!s.section),step=steps[sI],ph=gp(wk),tot=steps.length,mph=getMPh(wk);
+  const idxOk=indicesDisponiveis(mfInfo.macrofase);
+  const sesEf=idxOk.includes(ses)?ses:idxOk[0];
+  const all=sessaoDados(mfInfo.macrofase,mfInfo.semanaIdx,sesEf,wk),steps=all.filter(s=>!s.section),step=steps[sI],ph=gp(wk),tot=steps.length,mph=getMPh(wk);
   function curSec(){let sec="",c=0;for(const s of all){if(s.section){sec=s.section;continue;}if(c===sI)return sec;c++;}return sec;}
   function startAny(si){setSes(si);sv(wk,si,diasOffset);setSIdx(0);setCS(1);setRst(false);setTmr(0);setTmrOn(false);setCup(0);setCupOn(false);setShowHow(false);const w=sessaoDados(mfInfo.macrofase,mfInfo.semanaIdx,si,wk),st=w.filter(x=>!x.section);if(st[0]&&st[0].duration&&st[0].type==="timer")setTmr(st[0].duration);setScr("workout");}
   function adv(){const idx=indicesDisponiveis(mfInfo.macrofase);const pos=idx.indexOf(ses);const ns=idx[(pos+1)%idx.length];let nw=wk;if(mfInfo.macrofase<2&&pos===idx.length-1)nw=Math.min(wk+1,30);sv(nw,ns,diasOffset);setSes(ns);setWk(nw);setScr("home");}
@@ -681,7 +684,7 @@ export default function App(){
       </div>;
     }
     if(mfInfo.macrofase===2){
-      const descM2=sessaoDesc(mfInfo.macrofase,mfInfo.semanaIdx,ses,wk);
+      const descM2=sessaoDesc(mfInfo.macrofase,mfInfo.semanaIdx,sesEf,wk);
       const idxM2=indicesDisponiveis(mfInfo.macrofase);
       const rotinasRehabM2=getRehabM2(mfInfo.diaAlternado);
       return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto"}}><style>{G}</style>
@@ -703,18 +706,18 @@ export default function App(){
           </button>;})}
         </div>}
         <div style={{background:"rgba(255,255,255,0.04)",borderRadius:16,padding:4,marginBottom:16}}>
-          <div style={{display:"flex",gap:2}}>{idxM2.map(i=><div key={i} style={{flex:1,height:6,borderRadius:3,background:i<ses?SCO[i]:i===ses?SCO[i]+"99":"#1a1a2e",animation:i===ses?"pulse 2s infinite":"none"}}/>)}</div>
-          <div style={{display:"flex",justifyContent:"space-between",padding:"6px 2px 2px",fontSize:9,color:"#64748b"}}>{idxM2.map(i=><span key={i} style={{flex:1,textAlign:"center",fontWeight:i===ses?700:400,color:i===ses?"white":"#64748b"}}>{SS[i]}</span>)}</div>
+          <div style={{display:"flex",gap:2}}>{idxM2.map(i=><div key={i} style={{flex:1,height:6,borderRadius:3,background:i<sesEf?SCO[i]:i===sesEf?SCO[i]+"99":"#1a1a2e",animation:i===sesEf?"pulse 2s infinite":"none"}}/>)}</div>
+          <div style={{display:"flex",justifyContent:"space-between",padding:"6px 2px 2px",fontSize:9,color:"#64748b"}}>{idxM2.map(i=><span key={i} style={{flex:1,textAlign:"center",fontWeight:i===sesEf?700:400,color:i===sesEf?"white":"#64748b"}}>{SS[i]}</span>)}</div>
         </div>
-        <div style={{background:"linear-gradient(135deg,"+SCO[ses]+"22,"+SCO[ses]+"08)",border:"1px solid "+SCO[ses]+"44",borderRadius:20,padding:28,textAlign:"center",marginBottom:20}}>
-          <div style={{fontSize:56,marginBottom:8}}>{SIC[ses]}</div>
+        <div style={{background:"linear-gradient(135deg,"+SCO[sesEf]+"22,"+SCO[sesEf]+"08)",border:"1px solid "+SCO[sesEf]+"44",borderRadius:20,padding:28,textAlign:"center",marginBottom:20}}>
+          <div style={{fontSize:56,marginBottom:8}}>{SIC[sesEf]}</div>
           <div style={{fontSize:11,color:"#94a3b8",textTransform:"uppercase",letterSpacing:2,marginBottom:4}}>Próximo treino</div>
-          <div style={{fontSize:22,fontWeight:800,marginBottom:6}}>{SL[ses]}</div>
-          {descM2&&<div style={{fontSize:14,color:SCO[ses],fontWeight:600,background:SCO[ses]+"18",borderRadius:8,padding:"6px 14px",display:"inline-block"}}>{descM2}</div>}
+          <div style={{fontSize:22,fontWeight:800,marginBottom:6}}>{SL[sesEf]}</div>
+          {descM2&&<div style={{fontSize:14,color:SCO[sesEf],fontWeight:600,background:SCO[sesEf]+"18",borderRadius:8,padding:"6px 14px",display:"inline-block"}}>{descM2}</div>}
         </div>
-        <button onClick={()=>startAny(ses)} style={{width:"100%",padding:"16px 0",fontSize:17,fontWeight:800,background:"linear-gradient(135deg,"+SCO[ses]+","+SCO[ses]+"cc)",color:"white",border:"none",borderRadius:14,cursor:"pointer",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>INICIAR TREINO</button>
+        <button onClick={()=>startAny(sesEf)} style={{width:"100%",padding:"16px 0",fontSize:17,fontWeight:800,background:"linear-gradient(135deg,"+SCO[sesEf]+","+SCO[sesEf]+"cc)",color:"white",border:"none",borderRadius:14,cursor:"pointer",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>INICIAR TREINO</button>
         <button onClick={adv} style={{width:"100%",padding:"10px 0",fontSize:12,background:"transparent",color:"#475569",border:"none",cursor:"pointer"}}>Pular treino →</button>
-        <div style={{marginTop:24}}><div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>Treinos — toque para ver ou iniciar</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>{idxM2.map(i=><button key={i} onClick={()=>{setPvS(i);setScr("preview")}} style={{padding:"12px 6px",borderRadius:12,border:i===ses?"2px solid "+SCO[i]:"1px solid #1e293b",background:i===ses?SCO[i]+"15":"rgba(255,255,255,0.02)",cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:2}}>{SIC[i]}</div><div style={{fontSize:10,color:i===ses?SCO[i]:"#94a3b8",fontWeight:i===ses?700:500}}>{SL[i].replace("Musculação ","")}</div>{i===ses&&<div style={{fontSize:8,color:SCO[i],marginTop:2,fontWeight:700}}>PRÓXIMO</div>}</button>)}</div></div>
+        <div style={{marginTop:24}}><div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>Treinos — toque para ver ou iniciar</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>{idxM2.map(i=><button key={i} onClick={()=>{setPvS(i);setScr("preview")}} style={{padding:"12px 6px",borderRadius:12,border:i===sesEf?"2px solid "+SCO[i]:"1px solid #1e293b",background:i===sesEf?SCO[i]+"15":"rgba(255,255,255,0.02)",cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:2}}>{SIC[i]}</div><div style={{fontSize:10,color:i===sesEf?SCO[i]:"#94a3b8",fontWeight:i===sesEf?700:500}}>{SL[i].replace("Musculação ","")}</div>{i===sesEf&&<div style={{fontSize:8,color:SCO[i],marginTop:2,fontWeight:700}}>PRÓXIMO</div>}</button>)}</div></div>
         <div style={{marginTop:20,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:16}}>
           <div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Ajustar data (teste)</div>
           <div style={{display:"flex",gap:8,alignItems:"center",justifyContent:"center"}}>
