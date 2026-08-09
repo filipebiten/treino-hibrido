@@ -290,6 +290,31 @@ export const TESTES_CAMINHADA = [
   { id: "caminhada40", nome: "Caminhar 40min com trechos em ritmo forte", criterio: "Dor ≤ 2/10 durante E no dia seguinte" },
 ];
 
+// ══════════════════════ REHAB REDUZIDO — MACROFASE 3 ══════════════════════
+const REHAB_M3_BASE = {
+  id: "m3-base", title: "🦶 Manutenção fascite", subtitle: "1x/dia — ao acordar", time: "~8 min", when: "Todos os dias, 1x", color: "#f59e0b",
+  exercises: [
+    { name: "Alongamento DiGiovanni (fáscia)", reps: 10, type: "reps",
+      how: "Sentado, cruze a perna afetada. Segure a base dos dedos, puxe para cima e para trás. Palpe a fáscia. 10s x 10 repetições." },
+    { name: "Along. panturrilha (joelho reto + dobrado)", sets: 2, duration: 30, type: "timer",
+      how: "Mãos na parede. 2x30s joelho reto (gastrocnêmio) + 2x30s joelho dobrado (sóleo)." },
+    { name: "Bolinha de tênis na sola", duration: 120, type: "timer",
+      how: "Role a bolinha do calcanhar à base dos dedos. Pressão moderada (≤3/10 de dor). 2 minutos." },
+  ],
+};
+
+const REHAB_M3_CARGA = {
+  id: "m3-carga", title: "💪 Rathleff — 5×8 com carga", subtitle: "3x por semana", time: "~12 min", when: "Dias alternados", color: "#ef4444",
+  exercises: [
+    { name: "Heel Raise Rathleff c/ carga", sets: 5, reps: 8, type: "exercise", rest: 120,
+      how: "Toalha sob os dedos no degrau, com carga adicional (mochila). Sobe 3s, pausa 2s, desce 3s abaixo do degrau. Unilateral. 5x8." },
+    { name: "Equilíbrio unilateral", sets: 3, duration: 45, type: "timer",
+      how: "Um pé só, Short Foot ativo. Progressão: olhos fechados. 3x45s." },
+  ],
+};
+
+export function getRehabM3(diaAlternado) { return diaAlternado ? [REHAB_M3_BASE, REHAB_M3_CARGA] : [REHAB_M3_BASE]; }
+
 // ══════════════════════ FOOT PROTOCOL ══════════════════════
 const FOOT_PRE = [
   { name: "Tibial anterior sentado", detail: "Ponta dos pés para cima", sets: 3, duration: 30, type: "timer", how: "Sentado, pés no chão. Levante a ponta dos pés mantendo calcanhares fixos. 30 segundos." },
@@ -456,16 +481,51 @@ export function buildMuscSession(phases, macrofase, semanaIdx) {
 
 export function indicesDisponiveis(macrofase) { return macrofase === 2 ? [0, 2, 4] : [0, 1, 2, 3, 4, 5]; }
 
+// ══════════════════════ MOTOR DE CORRIDA — MACROFASE 3 (WALK/RUN) ══════════════════════
+export function mkWR(ciclos, corridaSeg, caminhadaSeg) {
+  const s = [];
+  for (let i = 1; i <= ciclos; i++) {
+    s.push({ name: "Corrida " + i, duration: corridaSeg, type: "timer", ph: "r", how: "Ritmo Z1-Z2 confortável — consegue conversar sem ofegar." });
+    s.push({ name: "Caminhada " + i, duration: caminhadaSeg, type: "timer", ph: "i", how: "Recuperação ativa, caminhada." });
+  }
+  return s;
+}
+
+const RUN_M3 = [
+  { nome: "1min corrida / 2min caminhada", ciclos: 8, corrida: 60, caminhada: 120, volumeKm: 5 },
+  { nome: "2min corrida / 2min caminhada", ciclos: 6, corrida: 120, caminhada: 120, volumeKm: 6 },
+  { nome: "3min corrida / 1min caminhada", ciclos: 6, corrida: 180, caminhada: 60, volumeKm: 7 },
+  { nome: "5min corrida / 1min caminhada", ciclos: 5, corrida: 300, caminhada: 60, volumeKm: 8 },
+];
+
+export function buildRunM3(semanaIdx) {
+  const cfg = RUN_M3[Math.min(semanaIdx, RUN_M3.length - 1)];
+  const r = [];
+  r.push({ section: "🔥 AQUECIMENTO" });
+  r.push({ name: "Caminhada rápida", duration: 300, type: "timer", ph: "w", how: "5 min pra aquecer antes dos intervalos." });
+  r.push({ section: "🏃 WALK/RUN — " + cfg.nome });
+  mkWR(cfg.ciclos, cfg.corrida, cfg.caminhada).forEach(e => r.push(e));
+  r.push({ section: "🧘 ALONGAMENTO" });
+  r.push({ name: "Along. panturrilha (joelho reto + dobrado)", sets: 2, duration: 30, type: "timer", ph: "s", how: "Pé na parede. 2x30s joelho reto + 2x30s joelho dobrado." });
+  r.push({ section: "❄️ GELO PÓS-CORRIDA" });
+  r.push({ name: "Gelo nos pés", duration: 900, type: "timer", ph: "f", isIce: true, how: "15 minutos, obrigatório pós-corrida nesta fase de retorno." });
+  return r;
+}
+
+export function grdM3(semanaIdx) { const cfg = RUN_M3[Math.min(semanaIdx, RUN_M3.length - 1)]; return "~" + cfg.volumeKm + "km"; }
+
 export function sessaoDados(macrofase, semanaIdx, ses, wk) {
   if (macrofase < 2) return bw(wk, ses);
   if (ses === 0) return buildMuscSession(MA, macrofase, semanaIdx);
   if (ses === 2) return buildMuscSession(MB, macrofase, semanaIdx);
   if (ses === 4) return buildMuscSession(MC, macrofase, semanaIdx);
+  if (macrofase === 3) return buildRunM3(semanaIdx);
   return [];
 }
 
 export function sessaoDesc(macrofase, semanaIdx, ses, wk) {
   if (macrofase < 2) return grd(wk, ses);
+  if (macrofase === 3 && (ses === 1 || ses === 3 || ses === 5)) return grdM3(semanaIdx);
   return "";
 }
 

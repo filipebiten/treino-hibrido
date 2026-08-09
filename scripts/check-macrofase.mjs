@@ -2,7 +2,7 @@ import { createServer } from "vite";
 import assert from "node:assert";
 
 const server = await createServer({ server: { middlewareMode: true }, appType: "custom" });
-const { getMacrofase, hojeEfetivo, getRehabForMacrofase, isDiaAtivo, proximoDiaAtivo, ultimoDiaAtivoAte, diaCompleto, computeChaveDiaEfetivo, INICIO_TREINO, getMuscPhaseIndex, levePeso, buildMuscSession, indicesDisponiveis, sessaoDados, sessaoDesc, MA, MB, MC, bw, grd, getRehabM2, TESTES_CAMINHADA } = await server.ssrLoadModule("/src/App.jsx");
+const { getMacrofase, hojeEfetivo, getRehabForMacrofase, isDiaAtivo, proximoDiaAtivo, ultimoDiaAtivoAte, diaCompleto, computeChaveDiaEfetivo, INICIO_TREINO, getMuscPhaseIndex, levePeso, buildMuscSession, indicesDisponiveis, sessaoDados, sessaoDesc, MA, MB, MC, bw, grd, getRehabM2, TESTES_CAMINHADA, mkWR, buildRunM3, grdM3, getRehabM3 } = await server.ssrLoadModule("/src/App.jsx");
 
 const d = iso => new Date(iso + "T00:00:00");
 
@@ -191,6 +191,43 @@ assert.strictEqual(m2comCarga[1].exercises[0].reps, 10);
 assert.strictEqual(TESTES_CAMINHADA.length, 3);
 assert.strictEqual(TESTES_CAMINHADA[0].id, "caminhada20");
 assert.strictEqual(TESTES_CAMINHADA[2].id, "caminhada40");
+
+// mkWR
+const wr = mkWR(2, 60, 120);
+assert.strictEqual(wr.length, 4); // 2 ciclos = 4 steps (corrida+caminhada cada)
+assert.strictEqual(wr[0].name, "Corrida 1");
+assert.strictEqual(wr[0].duration, 60);
+assert.strictEqual(wr[1].name, "Caminhada 1");
+assert.strictEqual(wr[1].duration, 120);
+
+// buildRunM3 — semana 0 (1min/2min x8) vs semana 3 (5min/1min x5, última entrada — clampada)
+const rm3s0 = buildRunM3(0);
+const secaoWR_s0 = rm3s0.find(s => s.section && s.section.includes("WALK/RUN"));
+assert.ok(secaoWR_s0.section.includes("1min corrida"));
+const rm3s3 = buildRunM3(3);
+const secaoWR_s3 = rm3s3.find(s => s.section && s.section.includes("WALK/RUN"));
+assert.ok(secaoWR_s3.section.includes("5min corrida"));
+assert.strictEqual(buildRunM3(99).length, rm3s3.length); // clamp na última semana
+
+// grdM3
+assert.strictEqual(grdM3(0), "~5km");
+assert.strictEqual(grdM3(3), "~8km");
+
+// getRehabM3
+const m3semCarga = getRehabM3(false);
+assert.strictEqual(m3semCarga.length, 1);
+assert.strictEqual(m3semCarga[0].id, "m3-base");
+const m3comCarga = getRehabM3(true);
+assert.strictEqual(m3comCarga.length, 2);
+assert.strictEqual(m3comCarga[1].id, "m3-carga");
+assert.strictEqual(m3comCarga[1].exercises[0].reps, 8);
+
+// sessaoDados/sessaoDesc — macrofase 3 roteia corrida pros índices ímpares
+const sd3_1 = sessaoDados(3, 0, 1, 2);
+assert.ok(sd3_1.some(s => s.section && s.section.includes("WALK/RUN")));
+assert.strictEqual(sessaoDesc(3, 0, 1, 2), "~5km");
+// musculação continua igual (já coberto pela macrofase 2, só confirma que macrofase 3 não quebrou)
+assert.ok(sessaoDados(3, 0, 0, 2).some(s => s.section && s.section.startsWith("💪")));
 
 console.log("OK - getMacrofase: todos os casos passaram");
 await server.close();
