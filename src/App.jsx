@@ -642,7 +642,7 @@ export default function App(){
   const bb=(bg,cl)=>({padding:"14px 0",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",background:bg,color:cl,flex:1});
 
   // REHAB SCREEN
-  if(scr==="rehab") return<RehabScreen onBack={()=>setScr("home")} routines={REHAB_ROUTINES}/>;
+  if(scr==="rehab") return<RehabScreen onBack={()=>setScr("home")} routines={mfInfo.macrofase===2?getRehabM2(mfInfo.diaAlternado):REHAB_ROUTINES}/>;
   if(scr==="rehabDose") return<RehabScreen onBack={()=>{setScr("home");setRehabScreenRoutines(null);}} routines={rehabScreenRoutines} onRoutineComplete={()=>markDose(activeDoseKey)}/>;
   if(scr==="testeCaminhada"){const t=TESTES_CAMINHADA.find(x=>x.id===testeAtivo);if(!t)return<div style={{background:"#0f0f1a",color:"white",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}><button onClick={()=>setScr("home")} style={{color:"white"}}>← Voltar</button></div>;
     return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:16,maxWidth:480,margin:"0 auto"}}>
