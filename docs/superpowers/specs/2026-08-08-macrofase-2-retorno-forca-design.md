@@ -21,6 +21,7 @@ function getMuscPhaseIndex(macrofase, semanaIdx) {
 }
 
 function levePeso(ex) {
+  if (ex.type !== "exercise") return ex; // preserva timer/timed_exercise/tabata (ex: Prancha, Tabata em MB) intactos
   if (typeof ex.reps === "string") { const { detail, ...rest } = ex; return { ...rest, sets: 3, reps: 15 }; }
   return { ...ex, sets: 3, reps: 15 };
 }
