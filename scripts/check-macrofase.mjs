@@ -229,5 +229,23 @@ assert.strictEqual(sessaoDesc(3, 0, 1, 2), "8min corrida");
 // musculação continua igual (já coberto pela macrofase 2, só confirma que macrofase 3 não quebrou)
 assert.ok(sessaoDados(3, 0, 0, 2).some(s => s.section && s.section.startsWith("💪")));
 
+// macrofase 4 (Construção) — corrida progressiva por km/intervalos
+assert.strictEqual(getMacrofase(d("2026-11-03")).macrofase, 4);
+assert.strictEqual(getMacrofase(d("2026-12-28")).macrofase, 4);
+assert.strictEqual(getMacrofase(d("2027-01-15")).macrofase, 4); // clamp pós-plano, sem macrofase 5
+
+assert.strictEqual(sessaoDesc(4, 0, 1, 2), "Fartlek 15min");
+assert.strictEqual(sessaoDesc(4, 0, 3, 2), "2.5km Z2");
+assert.strictEqual(sessaoDesc(4, 3, 5, 2), "🎯 TESTE 5KM!"); // semana 4 (idx 3): longão vira teste
+assert.strictEqual(sessaoDesc(4, 7, 5, 2), "🎯 TESTE 10KM!"); // semana 8 (idx 7): teste final
+const sd4_q = sessaoDados(4, 1, 1, 2); // semana 2: 4x400m
+assert.ok(sd4_q.some(s => s.name === "Tiro 1 — 400m Z4"));
+assert.ok(sd4_q.some(s => s.section === "🦶 PÉS PRÉ-CORRIDA")); // protocolo pé reaproveitado do br()
+assert.ok(sd4_q.some(s => s.section === "❄️ GELO NOS PÉS"));
+
+// musculação macrofase 4: Fase 2 (nov, semanas 0-3) -> Fase 3 (dez, semanas 4-7)
+assert.ok(sessaoDados(4, 0, 0, 2).some(s => s.section === "💪 TREINO — Fase 2: Hipertrofia (Sem 9-16)"));
+assert.ok(sessaoDados(4, 4, 0, 2).some(s => s.section === "💪 TREINO — Fase 3: Força (Sem 17-24)"));
+
 console.log("OK - getMacrofase: todos os casos passaram");
 await server.close();
