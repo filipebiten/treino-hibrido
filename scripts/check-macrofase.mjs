@@ -210,8 +210,8 @@ assert.ok(secaoWR_s3.section.includes("5min corrida"));
 assert.strictEqual(buildRunM3(99).length, rm3s3.length); // clamp na última semana
 
 // grdM3
-assert.strictEqual(grdM3(0), "~5km");
-assert.strictEqual(grdM3(3), "~8km");
+assert.strictEqual(grdM3(0), "8min corrida");
+assert.strictEqual(grdM3(3), "25min corrida");
 
 // getRehabM3
 const m3semCarga = getRehabM3(false);
@@ -225,7 +225,7 @@ assert.strictEqual(m3comCarga[1].exercises[0].reps, 8);
 // sessaoDados/sessaoDesc — macrofase 3 roteia corrida pros índices ímpares
 const sd3_1 = sessaoDados(3, 0, 1, 2);
 assert.ok(sd3_1.some(s => s.section && s.section.includes("WALK/RUN")));
-assert.strictEqual(sessaoDesc(3, 0, 1, 2), "~5km");
+assert.strictEqual(sessaoDesc(3, 0, 1, 2), "8min corrida");
 // musculação continua igual (já coberto pela macrofase 2, só confirma que macrofase 3 não quebrou)
 assert.ok(sessaoDados(3, 0, 0, 2).some(s => s.section && s.section.startsWith("💪")));
 

@@ -486,16 +486,16 @@ export function mkWR(ciclos, corridaSeg, caminhadaSeg) {
   const s = [];
   for (let i = 1; i <= ciclos; i++) {
     s.push({ name: "Corrida " + i, duration: corridaSeg, type: "timer", ph: "r", how: "Ritmo Z1-Z2 confortável — consegue conversar sem ofegar." });
-    s.push({ name: "Caminhada " + i, duration: caminhadaSeg, type: "timer", ph: "i", how: "Recuperação ativa, caminhada." });
+    s.push({ name: "Caminhada " + i, duration: caminhadaSeg, type: "timer", ph: "r", how: "Recuperação ativa, caminhada." });
   }
   return s;
 }
 
 const RUN_M3 = [
-  { nome: "1min corrida / 2min caminhada", ciclos: 8, corrida: 60, caminhada: 120, volumeKm: 5 },
-  { nome: "2min corrida / 2min caminhada", ciclos: 6, corrida: 120, caminhada: 120, volumeKm: 6 },
-  { nome: "3min corrida / 1min caminhada", ciclos: 6, corrida: 180, caminhada: 60, volumeKm: 7 },
-  { nome: "5min corrida / 1min caminhada", ciclos: 5, corrida: 300, caminhada: 60, volumeKm: 8 },
+  { nome: "1min corrida / 2min caminhada", ciclos: 8, corrida: 60, caminhada: 120 },
+  { nome: "2min corrida / 2min caminhada", ciclos: 6, corrida: 120, caminhada: 120 },
+  { nome: "3min corrida / 1min caminhada", ciclos: 6, corrida: 180, caminhada: 60 },
+  { nome: "5min corrida / 1min caminhada", ciclos: 5, corrida: 300, caminhada: 60 },
 ];
 
 export function buildRunM3(semanaIdx) {
@@ -508,11 +508,11 @@ export function buildRunM3(semanaIdx) {
   r.push({ section: "🧘 ALONGAMENTO" });
   r.push({ name: "Along. panturrilha (joelho reto + dobrado)", sets: 2, duration: 30, type: "timer", ph: "s", how: "Pé na parede. 2x30s joelho reto + 2x30s joelho dobrado." });
   r.push({ section: "❄️ GELO PÓS-CORRIDA" });
-  r.push({ name: "Gelo nos pés", duration: 900, type: "timer", ph: "f", isIce: true, how: "15 minutos, obrigatório pós-corrida nesta fase de retorno." });
+  r.push({ name: "Gelo nos pés", duration: 900, type: "timer", ph: "i", isIce: true, how: "15 minutos, obrigatório pós-corrida nesta fase de retorno." });
   return r;
 }
 
-export function grdM3(semanaIdx) { const cfg = RUN_M3[Math.min(semanaIdx, RUN_M3.length - 1)]; return "~" + cfg.volumeKm + "km"; }
+export function grdM3(semanaIdx) { const cfg = RUN_M3[Math.min(semanaIdx, RUN_M3.length - 1)]; return Math.round(cfg.ciclos * cfg.corrida / 60) + "min corrida"; }
 
 export function sessaoDados(macrofase, semanaIdx, ses, wk) {
   if (macrofase < 2) return bw(wk, ses);
@@ -815,7 +815,6 @@ export default function App(){
           {descM3&&<div style={{fontSize:14,color:SCO[sesEf],fontWeight:600,background:SCO[sesEf]+"18",borderRadius:8,padding:"6px 14px",display:"inline-block"}}>{descM3}</div>}
         </div>
         <button onClick={()=>startAny(sesEf)} style={{width:"100%",padding:"16px 0",fontSize:17,fontWeight:800,background:"linear-gradient(135deg,"+SCO[sesEf]+","+SCO[sesEf]+"cc)",color:"white",border:"none",borderRadius:14,cursor:"pointer",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>INICIAR TREINO</button>
-        {sesEf===3&&<button onClick={adv} style={{width:"100%",padding:"12px 0",fontSize:13,fontWeight:600,background:"transparent",color:"#94a3b8",border:"1px solid #334155",borderRadius:12,cursor:"pointer",marginBottom:6}}>Pular corrida leve</button>}
         <button onClick={adv} style={{width:"100%",padding:"10px 0",fontSize:12,background:"transparent",color:"#475569",border:"none",cursor:"pointer"}}>Pular treino →</button>
         <div style={{marginTop:24}}><div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>Treinos — toque para ver ou iniciar</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>{idxM3.map(i=><button key={i} onClick={()=>{setPvS(i);setScr("preview")}} style={{padding:"12px 6px",borderRadius:12,border:i===sesEf?"2px solid "+SCO[i]:"1px solid #1e293b",background:i===sesEf?SCO[i]+"15":"rgba(255,255,255,0.02)",cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:2}}>{SIC[i]}</div><div style={{fontSize:10,color:i===sesEf?SCO[i]:"#94a3b8",fontWeight:i===sesEf?700:500}}>{SL[i].replace("Musculação ","").replace("Corrida ","")}</div>{i===sesEf&&<div style={{fontSize:8,color:SCO[i],marginTop:2,fontWeight:700}}>PRÓXIMO</div>}</button>)}</div></div>
         <div style={{marginTop:20,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:16}}>
