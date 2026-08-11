@@ -705,7 +705,7 @@ export default function App(){
   const bb=(bg,cl)=>({padding:"14px 0",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",background:bg,color:cl,flex:1});
 
   // REHAB SCREEN
-  if(scr==="rehab") return<RehabScreen onBack={()=>setScr("home")} routines={mfInfo.macrofase===2?getRehabM2(mfInfo.diaAlternado):REHAB_ROUTINES}/>;
+  if(scr==="rehab") return<RehabScreen onBack={()=>setScr("home")} routines={mfInfo.macrofase===2?getRehabM2(mfInfo.diaAlternado):mfInfo.macrofase===3?getRehabM3(mfInfo.diaAlternado):REHAB_ROUTINES}/>;
   if(scr==="rehabDose") return<RehabScreen onBack={()=>{setScr("home");setRehabScreenRoutines(null);}} routines={rehabScreenRoutines} onRoutineComplete={()=>markDose(activeDoseKey)}/>;
   if(scr==="testeCaminhada"){const t=TESTES_CAMINHADA.find(x=>x.id===testeAtivo);if(!t)return<div style={{background:"#0f0f1a",color:"white",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}><button onClick={()=>setScr("home")} style={{color:"white"}}>← Voltar</button></div>;
     return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:16,maxWidth:480,margin:"0 auto"}}>
@@ -788,7 +788,47 @@ export default function App(){
         </div>
       </div>;
     }
-    if(mfInfo.macrofase>2){
+    if(mfInfo.macrofase===3){
+      const descM3=sessaoDesc(mfInfo.macrofase,mfInfo.semanaIdx,sesEf,wk);
+      const idxM3=indicesDisponiveis(mfInfo.macrofase);
+      const rotinasRehabM3=getRehabM3(mfInfo.diaAlternado);
+      return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto"}}><style>{G}</style>
+        <div style={{textAlign:"center",marginBottom:20}}>
+          <div style={{fontSize:12,color:"#94a3b8",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Treino Híbrido</div>
+          <div style={{fontSize:22,fontWeight:800}}>{mfInfo.nome}</div>
+          <div style={{fontSize:12,color:"#64748b",marginTop:4}}>Semana {mfInfo.semanaIdx+1}/4 — {hojeReal}</div>
+          <div style={{fontSize:10,color:"#64748b",marginTop:4}}>🏋️ {PHASE_NAMES[getMuscPhaseIndex(mfInfo.macrofase,mfInfo.semanaIdx)]}</div>
+        </div>
+        <div style={{padding:14,background:"#f59e0b15",border:"1px solid #f59e0b44",borderRadius:12,marginBottom:16,fontSize:12,color:"#fbbf24",lineHeight:1.5}}>⚠️ Regra inegociável: se a dor matinal piorar no dia seguinte à corrida, volte uma etapa. Sem exceção.</div>
+        <button onClick={()=>setScr("rehab")} style={{width:"100%",padding:"14px 16px",marginBottom:16,borderRadius:14,border:"1px solid #ef444444",background:"linear-gradient(135deg,#ef444415,#ef444405)",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12}}>
+          <div style={{fontSize:28}}>🦶</div>
+          <div><div style={{fontSize:14,fontWeight:700,color:"#ef4444"}}>{rotinasRehabM3[0].title}</div><div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>Manutenção — toque a qualquer momento</div></div>
+        </button>
+        <div style={{background:"rgba(255,255,255,0.04)",borderRadius:16,padding:4,marginBottom:16}}>
+          <div style={{display:"flex",gap:2}}>{idxM3.map(i=><div key={i} style={{flex:1,height:6,borderRadius:3,background:i<sesEf?SCO[i]:i===sesEf?SCO[i]+"99":"#1a1a2e",animation:i===sesEf?"pulse 2s infinite":"none"}}/>)}</div>
+          <div style={{display:"flex",justifyContent:"space-between",padding:"6px 2px 2px",fontSize:9,color:"#64748b"}}>{SS.map((l,i)=><span key={i} style={{flex:1,textAlign:"center",fontWeight:i===sesEf?700:400,color:i===sesEf?"white":"#64748b"}}>{l}</span>)}</div>
+        </div>
+        <div style={{background:"linear-gradient(135deg,"+SCO[sesEf]+"22,"+SCO[sesEf]+"08)",border:"1px solid "+SCO[sesEf]+"44",borderRadius:20,padding:28,textAlign:"center",marginBottom:20}}>
+          <div style={{fontSize:56,marginBottom:8}}>{SIC[sesEf]}</div>
+          <div style={{fontSize:11,color:"#94a3b8",textTransform:"uppercase",letterSpacing:2,marginBottom:4}}>Próximo treino</div>
+          <div style={{fontSize:22,fontWeight:800,marginBottom:6}}>{SL[sesEf]}</div>
+          {descM3&&<div style={{fontSize:14,color:SCO[sesEf],fontWeight:600,background:SCO[sesEf]+"18",borderRadius:8,padding:"6px 14px",display:"inline-block"}}>{descM3}</div>}
+        </div>
+        <button onClick={()=>startAny(sesEf)} style={{width:"100%",padding:"16px 0",fontSize:17,fontWeight:800,background:"linear-gradient(135deg,"+SCO[sesEf]+","+SCO[sesEf]+"cc)",color:"white",border:"none",borderRadius:14,cursor:"pointer",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>INICIAR TREINO</button>
+        {sesEf===3&&<button onClick={adv} style={{width:"100%",padding:"12px 0",fontSize:13,fontWeight:600,background:"transparent",color:"#94a3b8",border:"1px solid #334155",borderRadius:12,cursor:"pointer",marginBottom:6}}>Pular corrida leve</button>}
+        <button onClick={adv} style={{width:"100%",padding:"10px 0",fontSize:12,background:"transparent",color:"#475569",border:"none",cursor:"pointer"}}>Pular treino →</button>
+        <div style={{marginTop:24}}><div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>Treinos — toque para ver ou iniciar</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>{idxM3.map(i=><button key={i} onClick={()=>{setPvS(i);setScr("preview")}} style={{padding:"12px 6px",borderRadius:12,border:i===sesEf?"2px solid "+SCO[i]:"1px solid #1e293b",background:i===sesEf?SCO[i]+"15":"rgba(255,255,255,0.02)",cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:2}}>{SIC[i]}</div><div style={{fontSize:10,color:i===sesEf?SCO[i]:"#94a3b8",fontWeight:i===sesEf?700:500}}>{SL[i].replace("Musculação ","").replace("Corrida ","")}</div>{i===sesEf&&<div style={{fontSize:8,color:SCO[i],marginTop:2,fontWeight:700}}>PRÓXIMO</div>}</button>)}</div></div>
+        <div style={{marginTop:20,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:16}}>
+          <div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Ajustar data (teste)</div>
+          <div style={{display:"flex",gap:8,alignItems:"center",justifyContent:"center"}}>
+            <button onClick={()=>setDias(-1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>-1 dia</button>
+            <span style={{fontSize:13,color:"#94a3b8",minWidth:110,textAlign:"center"}}>{diasOffset===0?"Hoje":(diasOffset>0?"+":"")+diasOffset+" dias"}</span>
+            <button onClick={()=>setDias(1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>+1 dia</button>
+          </div>
+        </div>
+      </div>;
+    }
+    if(mfInfo.macrofase>3){
       return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center"}}>
         <div style={{fontSize:40,marginBottom:12}}>🚧</div>
         <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>{mfInfo.nome} ainda não configurada no app</div>
