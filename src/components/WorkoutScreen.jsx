@@ -4,6 +4,7 @@ import Icon from "./Icon.jsx";
 import { avisar } from "../lib/audio.js";
 import { pedirWakeLock, liberarWakeLock } from "../lib/wakelock.js";
 import { sugestaoCarga } from "../lib/treino.js";
+import { getGifUrl } from "../data/gifs.js";
 import { color, space, type as ty, radius, touch } from "../lib/tokens.js";
 
 const backBtn = { background: "none", border: "none", color: color.textDim, fontSize: ty.base, cursor: "pointer", padding: 4, minHeight: touch.min, display: "flex", alignItems: "center", gap: 6 };
@@ -17,12 +18,14 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
   const [rst, setRst] = useState(false);
   const [cup, setCup] = useState(0), [cupOn, setCupOn] = useState(false);
   const [showHow, setShowHow] = useState(false);
+  const [showGif, setShowGif] = useState(false);
   const [kgInput, setKgInput] = useState("");
   const iR = useRef(null), cR = useRef(null);
   const startRef = useRef(null);
   const volumeRef = useRef(0);
 
   const step = list[sI], tot = list.length;
+  const gifUrl = step ? getGifUrl(step.name) : null;
   function curSec() { let sec = "", c = 0; for (const s of all) { if (s.section) { sec = s.section; continue; } if (c === sI) return sec; c++; } return sec; }
 
   useEffect(() => { startRef.current = Date.now(); pedirWakeLock(); return () => liberarWakeLock(); }, []);
@@ -58,7 +61,7 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
   }
 
   function nxt() {
-    setTmrOn(false); setCupOn(false); setRst(false); setCS(1); setCup(0); setShowHow(false);
+    setTmrOn(false); setCupOn(false); setRst(false); setCS(1); setCup(0); setShowHow(false); setShowGif(false);
     if (sI + 1 >= tot) { finalizarTreino(); return; }
     const n = list[sI + 1]; setSI(sI + 1); if (n && n.duration && n.type === "timer") setTmr(n.duration); else setTmr(0);
   }
@@ -90,8 +93,12 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
       <div style={{ textAlign: "center", marginBottom: space.sm }}>
         <div style={{ fontSize: ty.xl, fontWeight: 800, marginBottom: 4, lineHeight: 1.3, color: step.name && step.name.startsWith("↑") ? color.success : color.text }}>{step.name}</div>
         {step.detail && <div style={{ fontSize: ty.base, color: color.textDim }}>{step.detail}</div>}
-        {step.how && <button onClick={() => setShowHow(!showHow)} style={{ marginTop: 6, minHeight: 36, fontSize: ty.xs, padding: "4px 12px", borderRadius: radius.sm, background: color.surface, color: color.textDim, border: "1px solid " + color.border, cursor: "pointer" }}>{showHow ? "Fechar" : "Como fazer"}</button>}
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 6 }}>
+          {step.how && <button onClick={() => setShowHow(!showHow)} style={{ minHeight: 36, fontSize: ty.xs, padding: "4px 12px", borderRadius: radius.sm, background: color.surface, color: color.textDim, border: "1px solid " + color.border, cursor: "pointer" }}>{showHow ? "Fechar" : "Como fazer"}</button>}
+          {gifUrl && <button onClick={() => setShowGif(!showGif)} style={{ minHeight: 36, fontSize: ty.xs, padding: "4px 12px", borderRadius: radius.sm, background: color.surface, color: color.textDim, border: "1px solid " + color.border, cursor: "pointer" }}>{showGif ? "Fechar GIF" : "Ver GIF"}</button>}
+        </div>
         {showHow && step.how && <div style={{ marginTop: 8, padding: space.md, background: color.surface, borderRadius: radius.md, fontSize: ty.sm, color: color.textDim, lineHeight: 1.5, textAlign: "left" }}>{step.how}</div>}
+        {showGif && gifUrl && <img src={gifUrl} alt={step.name} loading="lazy" style={{ marginTop: 8, maxWidth: "100%", maxHeight: 260, borderRadius: radius.md, border: "1px solid " + color.border }} />}
       </div>
 
       {isTab && <TabataTimer work={step.tabataWork} rest={step.tabataRest} rounds={step.tabataRounds} onDone={() => { if (cS < (step.sets || 1)) { if (step.rest) { setRst(true); setTmr(step.rest); setTmrOn(true); } setCS(cS + 1); } else nxt(); }} cor={pc} />}
