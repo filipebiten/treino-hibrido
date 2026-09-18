@@ -115,7 +115,7 @@ export default function RehabScreen({ onBack, rotinas, onRoutineComplete, rathle
         <button onClick={() => { setTmrOn(false); setActiveRoutine(null); }} style={backBtn}><Icon name="chevronLeft" size={16} /> Sair</button>
         <div style={{ fontSize: ty.sm, color: color.textFaint }}>{sI + 1}/{tot}</div>
       </div>
-      <div style={{ height: 4, background: color.surfaceAlt, borderRadius: 2, marginBottom: space.md, overflow: "hidden" }}><div style={{ height: 4, borderRadius: 2, background: routine.color, width: (100 * (sI + 1) / tot) + "%", transition: "width 0.3s" }} /></div>
+      <div style={{ height: 4, background: color.surfaceAlt, borderRadius: 2, marginBottom: space.md, overflow: "hidden" }}><div style={{ height: 4, borderRadius: 2, background: routine.color, width: "100%", transform: "scaleX(" + ((sI + 1) / tot) + ")", transformOrigin: "left", transition: "transform 0.3s" }} /></div>
       <div style={{ fontSize: ty.xs, color: routine.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm, textAlign: "center" }}>{routine.title}</div>
       <div style={{ textAlign: "center", marginBottom: space.md }}>
         <div style={{ fontSize: ty.xl, fontWeight: 800, marginBottom: 4, lineHeight: 1.3 }}>{step.name}</div>

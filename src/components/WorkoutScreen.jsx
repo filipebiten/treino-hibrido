@@ -85,7 +85,7 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
         <button onClick={() => { setTmrOn(false); setCupOn(false); onExit(); }} style={backBtn}><Icon name="chevronLeft" size={16} /> Sair</button>
         <span style={{ fontSize: ty.sm, color: color.textFaint }}>{sI + 1}/{tot}</span>
       </div>
-      <div style={{ height: 4, background: color.surfaceAlt, borderRadius: 2, marginBottom: space.md, overflow: "hidden" }}><div style={{ height: 4, borderRadius: 2, background: pc, width: (100 * (sI + 1) / tot) + "%", transition: "width 0.3s" }} /></div>
+      <div style={{ height: 4, background: color.surfaceAlt, borderRadius: 2, marginBottom: space.md, overflow: "hidden" }}><div style={{ height: 4, borderRadius: 2, background: pc, width: "100%", transform: "scaleX(" + ((sI + 1) / tot) + ")", transformOrigin: "left", transition: "transform 0.3s" }} /></div>
       <div style={{ fontSize: ty.xs, color: pc, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm, textAlign: "center" }}>{sec}</div>
       <div style={{ textAlign: "center", marginBottom: space.sm }}>
         <div style={{ fontSize: ty.xl, fontWeight: 800, marginBottom: 4, lineHeight: 1.3, color: step.name && step.name.startsWith("↑") ? color.success : color.text }}>{step.name}</div>
