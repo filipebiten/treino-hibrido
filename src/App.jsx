@@ -1,981 +1,254 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { toISO, diffDias, MARCO_ZERO, getMacrofaseInfo, totalSemanas, META_OFICIAL } from "./data/plano.js";
+import { MA, MB, MC, buildMuscSession } from "./data/musculacao.js";
+import { getRehabForMacrofase } from "./data/rehab.js";
+import { buildCaminhadaSession, buildWalkRunSession, buildContinuoSession, buildMetaSession } from "./data/corrida.js";
+import { loadState, saveState } from "./lib/storage.js";
+import { calcularPosicao, verificarGate, checkRecuoAutomatico, rathleffStatus, formatarRestante } from "./lib/progressao.js";
+import { registrarCarga, registrarHistoricoTreino, registrarPeso } from "./lib/treino.js";
+import { color } from "./lib/tokens.js";
 
-function playBeep() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    [880, 1100, 1320].forEach((f, i) => {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination); o.frequency.value = f; o.type = "sine";
-      const t = ctx.currentTime + i * 0.18;
-      g.gain.setValueAtTime(0.4, t); g.gain.exponentialRampToValueAtTime(0.01, t + 0.22);
-      o.start(t); o.stop(t + 0.22);
-    });
-  } catch (e) {}
-}
+import Onboarding from "./components/Onboarding.jsx";
+import Home from "./components/Home.jsx";
+import Preview from "./components/Preview.jsx";
+import WorkoutScreen from "./components/WorkoutScreen.jsx";
+import RehabScreen from "./components/RehabScreen.jsx";
+import HistoricoTreinos from "./components/HistoricoTreinos.jsx";
+import TesteScreen from "./components/TesteScreen.jsx";
+import Icon from "./components/Icon.jsx";
 
-// ══════════════════════ MACROFASES (CALENDÁRIO) ══════════════════════
-export const MACRO_PHASES = [
-  { id: 0, nome: "Pré-operatório", inicio: "2026-08-04", fim: "2026-08-10", semanas: [
-    { inicio: "2026-08-04", fim: "2026-08-10" },
-  ]},
-  { id: 1, nome: "Pós-operatório + Rehab", inicio: "2026-08-11", fim: "2026-09-07", semanas: [
-    { inicio: "2026-08-11", fim: "2026-08-17" },
-    { inicio: "2026-08-18", fim: "2026-08-24" },
-    { inicio: "2026-08-25", fim: "2026-08-31" },
-    { inicio: "2026-09-01", fim: "2026-09-07" },
-  ]},
-  { id: 2, nome: "Retorno à Força", inicio: "2026-09-08", fim: "2026-10-05", semanas: [
-    { inicio: "2026-09-08", fim: "2026-09-14" },
-    { inicio: "2026-09-15", fim: "2026-09-21" },
-    { inicio: "2026-09-22", fim: "2026-09-28" },
-    { inicio: "2026-09-29", fim: "2026-10-05" },
-  ]},
-  { id: 3, nome: "Retorno à Corrida", inicio: "2026-10-06", fim: "2026-11-02", semanas: [
-    { inicio: "2026-10-06", fim: "2026-10-12" },
-    { inicio: "2026-10-13", fim: "2026-10-19" },
-    { inicio: "2026-10-20", fim: "2026-10-26" },
-    { inicio: "2026-10-27", fim: "2026-11-02" },
-  ]},
-  { id: 4, nome: "Construção", inicio: "2026-11-03", fim: "2026-12-28", semanas: [
-    { inicio: "2026-11-03", fim: "2026-11-09" },
-    { inicio: "2026-11-10", fim: "2026-11-16" },
-    { inicio: "2026-11-17", fim: "2026-11-23" },
-    { inicio: "2026-11-24", fim: "2026-11-30" },
-    { inicio: "2026-12-01", fim: "2026-12-07" },
-    { inicio: "2026-12-08", fim: "2026-12-14" },
-    { inicio: "2026-12-15", fim: "2026-12-21" },
-    { inicio: "2026-12-22", fim: "2026-12-28" },
-  ]},
-];
-
-const CIRURGIA = "2026-08-11";
-function toISO(date) { const y=date.getFullYear(), m=String(date.getMonth()+1).padStart(2,"0"), d=String(date.getDate()).padStart(2,"0"); return y+"-"+m+"-"+d; }
-const dOnly = iso => new Date(iso + "T00:00:00");
-const diffDias = (a, b) => Math.round((dOnly(b) - dOnly(a)) / 86400000);
-
-export function getMacrofase(date) {
-  const iso = toISO(date);
-  const primeira = MACRO_PHASES[0], ultima = MACRO_PHASES[MACRO_PHASES.length - 1];
-  let mf, clampedBefore = false, clampedAfter = false;
-  if (iso < primeira.inicio) { mf = primeira; clampedBefore = true; }
-  else if (iso > ultima.fim) { mf = ultima; clampedAfter = true; }
-  else mf = MACRO_PHASES.find(m => iso >= m.inicio && iso <= m.fim) || primeira;
-
-  let semanaIdx;
-  if (clampedBefore) semanaIdx = 0;
-  else if (clampedAfter) semanaIdx = mf.semanas.length - 1;
-  else semanaIdx = Math.max(0, mf.semanas.findIndex(s => iso >= s.inicio && iso <= s.fim));
-
-  const diasDesdeInicioMacrofase = clampedBefore ? 0 : diffDias(mf.inicio, iso);
-  const diasDesdeCirurgia = diffDias(CIRURGIA, iso);
-  return { macrofase: mf.id, nome: mf.nome, semanaIdx, diasDesdeInicioMacrofase, diasDesdeCirurgia, diaAlternado: diasDesdeInicioMacrofase % 2 === 0 };
-}
-
-export function hojeEfetivo(nowMs, diasOffset) {
-  return new Date(nowMs + diasOffset * 86400000);
-}
-
-// ══════════════════════ REHAB DATA ══════════════════════
-const REHAB_ROUTINES = [
-  { id: "matinal", title: "🌅 Matinal", subtitle: "Na cama, antes de levantar", time: "~5 min", when: "Todos os dias ao acordar", color: "#f59e0b",
-    exercises: [
-      { name: "Bombas de tornozelo", duration: 120, type: "timer",
-        how: "Deitado ou sentado na cama. Aponte a ponta do pé para baixo (como uma bailarina) e depois puxe para cima (direção da canela). Alterne suavemente. NÃO levante da cama antes de fazer isso — a fáscia está encurtada e fria." },
-      { name: "Alongamento com toalha (panturrilha)", sets: 2, duration: 30, type: "timer",
-        how: "Ainda sentado na cama, passe uma toalha pela planta do pé. Com o joelho esticado, puxe a toalha trazendo a ponta do pé em direção à canela. Segure 30 segundos. Faça 2x cada perna. Deve sentir alongamento na panturrilha, NÃO dor." },
-      { name: "Alongamento DiGiovanni (fáscia)", reps: 10, type: "reps",
-        how: "Sentado, cruze a perna afetada sobre a outra. Com a mão do mesmo lado, segure a BASE DOS DEDOS (não a ponta) e puxe os dedos para CIMA e para TRÁS. Você deve sentir a fáscia (banda firme na sola do pé) esticando — palpe com a outra mão para confirmar. Segure 10 segundos cada repetição. Faça 10 vezes. Este é o exercício MAIS importante segundo a pesquisa — 92% dos pacientes melhoraram em 2 anos." },
-    ]},
-  { id: "manha", title: "🌞 Manhã / Meio-dia", subtitle: "Rotina principal de reabilitação", time: "~15 min", when: "Todos os dias, 1x", color: "#10b981",
-    exercises: [
-      { name: "Bolinha de tênis na sola", duration: 120, type: "timer",
-        how: "Sentado numa cadeira, coloque a bolinha sob a sola do pé. Role do calcanhar até a base dos dedos com pressão MODERADA (não deve doer forte, nota ≤3/10). Cubra toda a sola. Se uma área estiver muito sensível, passe mais devagar mas NÃO force." },
-      { name: "Garrafa congelada (se dor aguda)", duration: 300, type: "timer",
-        how: "OPCIONAL na fase aguda. Congele uma garrafa PET com 75% de água. Coloque uma fronha/toalha fina por cima. Role a garrafa sob a sola do pé com pressão leve. Combina massagem + gelo em um só exercício. Máximo 10 min." },
-      { name: "Along. gastrocnêmio (joelho RETO)", sets: 3, duration: 30, type: "timer",
-        how: "Em pé, mãos na parede. Perna afetada ATRÁS, perna boa na frente. Calcanhar de trás FIRME no chão. Joelho de trás RETO. Empurre o quadril para frente até sentir o alongamento na panturrilha. Pés apontados para frente. Segure 30s. 3x cada perna." },
-      { name: "Along. sóleo (joelho DOBRADO)", sets: 3, duration: 30, type: "timer",
-        how: "MESMA posição, mas agora DOBRE levemente o joelho de trás. Isso alonga o SÓLEO (músculo mais profundo da panturrilha). Calcanhar continua firme no chão. O alongamento é sentido mais embaixo, perto do calcanhar. 30s x 3 cada perna." },
-      { name: "Alongamento DiGiovanni", reps: 10, type: "reps",
-        how: "Sentado, cruze a perna afetada. Segure a base dos dedos e puxe para cima/trás. Palpe a fáscia para confirmar tensão. 10 segundos x 10 repetições. Esta é a 2ª dose do dia." },
-      { name: "Short Foot (encurtamento do pé)", reps: 15, type: "reps",
-        how: "O MAIS IMPORTANTE para pé plano. Sentado, pé totalmente apoiado no chão. SEM encolher os dedos (eles ficam esticados e relaxados), tente ENCURTAR o pé aproximando a base do dedão do calcanhar — como se quisesse 'levantar a cúpula' do arco. Imagine que está tentando agarrar o chão com o meio do pé, mas os dedos NÃO se movem. Segure 5 segundos. Relaxe. 15 repetições. Progressão: sentado → em pé nos dois pés → em pé num pé só." },
-      { name: "Toe Yoga (piano com os dedos)", reps: 10, type: "reps",
-        how: "3 movimentos, 10 reps cada: (1) Levante SÓ o dedão, mantendo os outros 4 no chão. (2) Baixe o dedão e levante os outros 4. (3) Espalhe todos os dedos como um leque e feche. Parece fácil mas é difícil! O cérebro precisa reaprender a controlar os dedos individualmente." },
-      { name: "Catador de toalha", sets: 2, reps: 15, type: "reps",
-        how: "Toalha estendida no chão. Sentado, use APENAS os dedos do pé para agarrar e puxar a toalha em sua direção. Cada 'puxada' é 1 rep. 2 séries de 15. Progressão: coloque um livro ou lata na ponta da toalha para adicionar resistência." },
-      { name: "4-vias tornozelo c/ elástico", sets: 3, reps: 10, type: "reps",
-        how: "Sentado, perna esticada. Execute 4 movimentos com elástico, 3x10 cada: (1) PLANTIFLEXÃO: aponte o pé contra o elástico segurado pelas mãos. (2) DORSIFLEXÃO: puxe o pé para cima contra elástico ancorado. (3) INVERSÃO (o mais importante!): elástico na face interna do pé, puxe para DENTRO — trabalha o tibial posterior que sustenta seu arco. (4) EVERSÃO: elástico na face externa, empurre para FORA." },
-    ]},
-  { id: "tarde", title: "🌆 Tarde", subtitle: "Dose rápida de manutenção", time: "~5 min", when: "Todos os dias, 1x", color: "#8b5cf6",
-    exercises: [
-      { name: "Bolinha de tênis", duration: 120, type: "timer",
-        how: "Role a bolinha sob a sola do pé. Pressão moderada, do calcanhar à base dos dedos. 2 minutos." },
-      { name: "Alongamento DiGiovanni", reps: 10, type: "reps",
-        how: "3ª dose do dia. Cruze a perna, segure base dos dedos, puxe para cima/trás. Palpe a fáscia. 10 segundos x 10 repetições." },
-      { name: "Along. panturrilha (joelho reto + dobrado)", sets: 2, duration: 30, type: "timer",
-        how: "Na parede: 2x30s joelho reto (gastrocnêmio) + 2x30s joelho dobrado (sóleo). Calcanhar firme no chão." },
-    ]},
-  { id: "carga", title: "💪 Carga (Rathleff)", subtitle: "Dias ALTERNADOS — o mais importante!", time: "~10 min", when: "Dias alternados (seg/qua/sex)", color: "#ef4444",
-    exercises: [
-      { name: "Aquecimento: bolinha + along.", duration: 90, type: "timer",
-        how: "1 minuto de bolinha de tênis rolando na sola + 30 segundos de alongamento de panturrilha na parede. Preparar o tecido antes da carga." },
-      { name: "Heel Raise Rathleff (PROTOCOLO PRINCIPAL)", sets: 3, reps: 12, type: "exercise", rest: 120,
-        how: "O EXERCÍCIO MAIS IMPORTANTE do protocolo. (1) Enrole uma toalha e coloque sob os DEDOS do pé afetado no degrau — isso ativa o mecanismo de Windlass que tensiona a fáscia. (2) Posicione o ANTEPÉ na borda do degrau, calcanhar para fora (no ar). (3) Apoie as mãos na parede para equilíbrio. (4) SUBA em 3 segundos no pé afetado (fase concêntrica). (5) PAUSE no topo 2 segundos com dedos em hiperextensão máxima. (6) DESÇA em 3 segundos, com o calcanhar indo ABAIXO do nível do degrau (fase excêntrica). PROGRESSÃO: Semanas 1-2: 3x12 (peso corporal). Semanas 3-4: 4x10 (mochila com livros). Semanas 5+: 5x8 (mais peso). REGRA DE DOR: se a dor no dia SEGUINTE estiver pior que antes, reduza peso/reps." },
-      { name: "Equilíbrio unilateral c/ Short Foot", sets: 3, duration: 60, type: "timer",
-        how: "Fique em UM PÉ SÓ (o afetado). Enquanto equilibra, ATIVE o short foot (levante o arco sem encolher os dedos). Mantenha 60 segundos. 3 séries. Progressão: olhos abertos → olhos fechados → sobre travesseiro/almofada." },
-    ]},
-];
-
-// ══════════════════════ REHAB — MACROFASE 0 E 1 ══════════════════════
-const REHAB_PRE_OP = {
-  id: "pre-op", title: "🩹 Pré-operatório", subtitle: "2x/dia — acordar + antes de dormir", time: "~25 min", when: "Todos os dias, 2x", color: "#f59e0b",
-  exercises: [
-    { name: "Bombas de tornozelo", duration: 120, type: "timer",
-      how: "Deitado ou sentado na cama. Aponte a ponta do pé para baixo (como uma bailarina) e depois puxe para cima (direção da canela). Alterne suavemente. NÃO levante da cama antes de fazer isso — a fáscia está encurtada e fria." },
-    { name: "Alongamento DiGiovanni (fáscia)", reps: 10, type: "reps",
-      how: "Sentado, cruze a perna afetada sobre a outra. Com a mão do mesmo lado, segure a BASE DOS DEDOS (não a ponta) e puxe os dedos para CIMA e para TRÁS. Palpe a fáscia com a outra mão para confirmar tensão. Segure 10 segundos cada repetição. Faça 10 vezes." },
-    { name: "Along. gastrocnêmio (joelho RETO)", sets: 3, duration: 30, type: "timer",
-      how: "Em pé, mãos na parede. Perna afetada ATRÁS, perna boa na frente. Calcanhar de trás FIRME no chão. Joelho de trás RETO. Empurre o quadril para frente até sentir o alongamento na panturrilha. 30s. 3x cada perna." },
-    { name: "Along. sóleo (joelho DOBRADO)", sets: 3, duration: 30, type: "timer",
-      how: "MESMA posição, mas dobre levemente o joelho de trás. Alonga o SÓLEO. Calcanhar continua firme no chão. Sentido mais embaixo, perto do calcanhar. 30s x 3 cada perna." },
-    { name: "Bolinha de tênis na sola", detail: "Cada pé", duration: 180, type: "timer",
-      how: "Sentado, bolinha sob a sola do pé. Role do calcanhar à base dos dedos com pressão moderada (≤3/10 de dor). 3 minutos cada pé." },
-    { name: "❄️ GELO NOS PÉS", detail: "OBRIGATÓRIO!", duration: 900, type: "timer", isIce: true,
-      how: "Garrafa congelada com fronha, ou bolsa de gelo com toalha fina entre o gelo e a pele. 15 minutos. É o que faltou no protocolo anterior — não pule." },
-  ],
+const SESSOES_MF = {
+  1: ["muscA", "caminhada", "muscB", "muscC"],
+  2: ["muscA", "walkrun", "muscB", "walkrun", "muscC", "walkrun"],
+  3: ["muscA", "qualidade", "muscB", "muscC", "longao"],
+  4: ["muscA", "qualidade", "muscB", "muscC", "longao"],
 };
 
-function rehabSemana1() {
-  return {
-    id: "m1-s1", title: "🛏️ Pós-op — Semana 1", subtitle: "Repouso total — pé sentado/deitado", time: "~20 min", when: "Todos os dias, 2x (acordar + dormir)", color: "#f59e0b",
-    exercises: [
-      { name: "Bombas de tornozelo", duration: 120, type: "timer", how: "Deitado. Aponte e puxe a ponta do pé alternadamente." },
-      { name: "Alongamento com toalha (panturrilha)", sets: 2, duration: 30, type: "timer",
-        how: "Sentado na cama, toalha na planta do pé. Joelho esticado, puxe a toalha trazendo a ponta do pé em direção à canela. 30s. 2x cada perna." },
-      { name: "Alongamento DiGiovanni (fáscia)", reps: 10, type: "reps",
-        how: "Sentado, cruze a perna afetada. Segure a base dos dedos, puxe para cima/trás. Palpe a fáscia. 10s x 10 repetições." },
-      { name: "Bolinha de tênis na sola", detail: "Cada pé", duration: 180, type: "timer", how: "Sentado, role a bolinha do calcanhar à base dos dedos. Pressão ≤3/10." },
-      { name: "Short Foot (encurtamento do pé)", reps: 15, type: "reps",
-        how: "Sentado, pé apoiado, SEM encolher os dedos. Aproxime a base do dedão do calcanhar, 'levante a cúpula' do arco. Segure 5s. Relaxe. 15 repetições." },
-      { name: "❄️ GELO NOS PÉS", detail: "OBRIGATÓRIO!", duration: 900, type: "timer", isIce: true, how: "Sentado ou deitado. Gelo na sola com toalha fina. 15 minutos." },
-    ],
-  };
-}
-
-function rehabSemana2() {
-  const base = rehabSemana1();
-  return { ...base, id: "m1-s2", title: "🛏️ Pós-op — Semana 2", subtitle: "Adiciona fortalecimento sentado", time: "~25 min",
-    exercises: [
-      ...base.exercises,
-      { name: "Toe Yoga (piano com os dedos)", reps: 10, type: "reps",
-        how: "3 movimentos, 10 reps cada: (1) Só o dedão sobe, outros no chão. (2) Dedão desce, outros sobem. (3) Espalhe todos os dedos como um leque e feche." },
-      { name: "Catador de toalha", sets: 2, reps: 15, type: "reps",
-        how: "Toalha estendida no chão. Use apenas os dedos do pé para agarrar e puxar. 2 séries de 15." },
-      { name: "4-vias tornozelo c/ elástico", sets: 3, reps: 10, type: "reps",
-        how: "Sentado, perna esticada. 4 movimentos 3x10 cada: plantiflexão, dorsiflexão, INVERSÃO (mais importante — tibial posterior), eversão." },
-    ]};
-}
-
-const REHAB_CARGA_S3 = {
-  id: "m1-s3-carga", title: "💪 Carga leve — dias alternados", subtitle: "Em pé, sem toalha ainda", time: "~10 min", when: "Dias alternados", color: "#ef4444",
-  exercises: [
-    { name: "Heel Raise bilateral (chão)", sets: 3, reps: 12, type: "exercise", rest: 90,
-      how: "Em pé, suba nos dois pés (sem toalha ainda). Desça lento em 3 segundos. 3 séries de 12." },
-    { name: "Equilíbrio unipodal", sets: 3, duration: 30, type: "timer",
-      how: "Fique em um pé só. Ative o Short Foot (levante o arco sem encolher os dedos). 30s. 3 séries cada pé." },
-  ],
-};
-
-const REHAB_CARGA_S4 = {
-  id: "m1-s4-carga", title: "💪 Carga — Rathleff completo", subtitle: "Unilateral, com toalha", time: "~12 min", when: "Dias alternados", color: "#ef4444",
-  exercises: [
-    { name: "Heel Raise Rathleff (PROTOCOLO PRINCIPAL)", sets: 3, reps: 12, type: "exercise", rest: 120,
-      how: "Toalha enrolada sob os dedos no degrau. Antepé na borda, calcanhar no ar. SUBA em 3s (concêntrico), PAUSE 2s no topo, DESÇA em 3s abaixo do degrau (excêntrico). Unilateral, pé afetado. 3x12." },
-    { name: "Equilíbrio unipodal", sets: 3, duration: 45, type: "timer",
-      how: "Um pé só, Short Foot ativo. 45s. Progressão: olhos abertos → olhos fechados. 3 séries." },
-    { name: "Glute bridge", sets: 3, reps: 12, type: "exercise", rest: 45,
-      how: "Deitado de costas, joelhos dobrados. Eleve o quadril apertando o glúteo no topo. Desça controlado. Glúteo fraco = mais pronação = mais fascite. 3x12." },
-    { name: "Clamshell c/ elástico", sets: 3, reps: 12, type: "exercise", rest: 30,
-      how: "Deitado de lado, joelhos dobrados, elástico acima dos joelhos. Abra o joelho de cima mantendo os pés juntos. Trabalha o glúteo médio. 3x12 cada lado." },
-  ],
-};
-
-const REHAB_M1 = [
-  { base: rehabSemana1, carga: null },
-  { base: rehabSemana2, carga: null },
-  { base: rehabSemana2, carga: REHAB_CARGA_S3 },
-  { base: rehabSemana2, carga: REHAB_CARGA_S4 },
-];
-
-export function getRehabForMacrofase(macrofase, semanaIdx, diaAlternado) {
-  if (macrofase === 0) return [REHAB_PRE_OP];
-  if (macrofase === 1) {
-    const cfg = REHAB_M1[Math.min(semanaIdx, REHAB_M1.length - 1)];
-    const rotinas = [cfg.base()];
-    if (cfg.carga && diaAlternado) rotinas.push(cfg.carga);
-    return rotinas;
+function tipoInfo(tipo) {
+  const m = { icon: "dumbbell", cor: color.musc };
+  const r = { icon: "run", cor: color.corrida };
+  switch (tipo) {
+    case "muscA": return { label: "Musculação A", grupo: "superior", ...m };
+    case "muscB": return { label: "Musculação B", grupo: "inferior", ...m };
+    case "muscC": return { label: "Musculação C", grupo: "superior", ...m };
+    case "caminhada": return { label: "Caminhada", grupo: null, ...r };
+    case "walkrun": return { label: "Walk/Run", grupo: null, ...r };
+    case "qualidade": return { label: "Qualidade", grupo: null, icon: "flame", cor: color.corrida };
+    case "longao": return { label: "Longão", grupo: null, ...r };
+    default: return { label: tipo, grupo: null, icon: "run", cor: color.corrida };
   }
-  return REHAB_ROUTINES; // macrofase 2+: fora de escopo deste plano, usa o menu genérico existente
 }
 
-// ══════════════════════ AGENDA (TERÇA-SEXTA) ══════════════════════
-export const INICIO_TREINO = "2026-08-12";
-
-export function isDiaAtivo(iso) {
-  const dw = new Date(iso + "T00:00:00").getDay();
-  return dw >= 2 && dw <= 5;
-}
-
-export function proximoDiaAtivo(iso) {
-  let d = new Date(iso + "T00:00:00");
-  do { d = new Date(d.getTime() + 86400000); } while (!isDiaAtivo(toISO(d)));
-  return toISO(d);
-}
-
-export function ultimoDiaAtivoAte(iso) {
-  let d = iso;
-  while (!isDiaAtivo(d)) { d = toISO(new Date(new Date(d + "T00:00:00").getTime() - 86400000)); }
-  return d;
-}
-
-export function diaCompleto(iso, rehabLog) {
-  const mf = getMacrofase(new Date(iso + "T00:00:00"));
-  const rotinas = getRehabForMacrofase(mf.macrofase, mf.semanaIdx, mf.diaAlternado);
-  const precisaCarga = rotinas.length > 1;
-  const log = rehabLog[iso] || {};
-  return !!log.manha && !!log.noite && (!precisaCarga || !!log.carga);
-}
-
-export function computeChaveDiaEfetivo(chaveDiaBase, rehabLog, hojeReal) {
-  if (!chaveDiaBase) return null;
-  const teto = ultimoDiaAtivoAte(hojeReal);
-  let d = chaveDiaBase;
-  while (d < teto && diaCompleto(d, rehabLog)) { d = proximoDiaAtivo(d); }
-  return d;
-}
-
-// ══════════════════════ REHAB REDUZIDO — MACROFASE 2 ══════════════════════
-const REHAB_M2_BASE = {
-  id: "m2-base", title: "🦶 Manutenção fascite", subtitle: "2x/dia — acordar + antes de dormir", time: "~10 min", when: "Todos os dias, 2x", color: "#f59e0b",
-  exercises: [
-    { name: "Alongamento DiGiovanni (fáscia)", reps: 10, type: "reps",
-      how: "Sentado, cruze a perna afetada sobre a outra. Segure a base dos dedos (não a ponta) e puxe para cima e para trás. Palpe a fáscia com a outra mão. Segure 10 segundos cada repetição. 10 vezes." },
-    { name: "Along. panturrilha (joelho reto + dobrado)", sets: 3, duration: 30, type: "timer",
-      how: "Mãos na parede, perna afetada atrás, calcanhar firme no chão. 30s joelho reto (gastrocnêmio) + 30s joelho dobrado (sóleo). 3x cada." },
-    { name: "Bolinha de tênis na sola", duration: 180, type: "timer",
-      how: "Role a bolinha do calcanhar à base dos dedos. Pressão moderada (≤3/10 de dor). 3 minutos." },
-    { name: "❄️ GELO NOS PÉS", detail: "OBRIGATÓRIO!", duration: 900, type: "timer", isIce: true,
-      how: "Garrafa congelada com fronha ou bolsa de gelo com toalha fina. 15 minutos." },
-  ],
-};
-
-const REHAB_M2_CARGA = {
-  id: "m2-carga", title: "💪 Rathleff — 4×10 com mochila", subtitle: "Unilateral, com carga", time: "~12 min", when: "Dias alternados", color: "#ef4444",
-  exercises: [
-    { name: "Heel Raise Rathleff c/ mochila", sets: 4, reps: 10, type: "exercise", rest: 120,
-      how: "Toalha enrolada sob os dedos no degrau, mochila nas costas com peso adicional. Antepé na borda, calcanhar no ar. Sobe 3s, pausa 2s, desce 3s abaixo do degrau. Unilateral, pé afetado. 4x10." },
-    { name: "Equilíbrio unilateral", sets: 3, duration: 45, type: "timer",
-      how: "Um pé só, Short Foot ativo (arco levantado sem encolher dedos). 45s. Progressão: olhos fechados. 3 séries." },
-    { name: "Glute bridge", sets: 3, reps: 12, type: "exercise", rest: 45,
-      how: "Deitado de costas, joelhos dobrados. Eleve o quadril apertando o glúteo no topo. 3x12." },
-  ],
-};
-
-export function getRehabM2(diaAlternado) { return diaAlternado ? [REHAB_M2_BASE, REHAB_M2_CARGA] : [REHAB_M2_BASE]; }
-
-export const TESTES_CAMINHADA = [
-  { id: "caminhada20", nome: "Caminhar 20min em piso plano", criterio: "Dor ≤ 2/10 durante E no dia seguinte" },
-  { id: "caminhada30", nome: "Caminhar 30min", criterio: "Dor ≤ 2/10 durante E no dia seguinte" },
-  { id: "caminhada40", nome: "Caminhar 40min com trechos em ritmo forte", criterio: "Dor ≤ 2/10 durante E no dia seguinte" },
-];
-
-// ══════════════════════ REHAB REDUZIDO — MACROFASE 3 ══════════════════════
-const REHAB_M3_BASE = {
-  id: "m3-base", title: "🦶 Manutenção fascite", subtitle: "1x/dia — ao acordar", time: "~8 min", when: "Todos os dias, 1x", color: "#f59e0b",
-  exercises: [
-    { name: "Alongamento DiGiovanni (fáscia)", reps: 10, type: "reps",
-      how: "Sentado, cruze a perna afetada. Segure a base dos dedos, puxe para cima e para trás. Palpe a fáscia. 10s x 10 repetições." },
-    { name: "Along. panturrilha (joelho reto + dobrado)", sets: 2, duration: 30, type: "timer",
-      how: "Mãos na parede. 2x30s joelho reto (gastrocnêmio) + 2x30s joelho dobrado (sóleo)." },
-    { name: "Bolinha de tênis na sola", duration: 120, type: "timer",
-      how: "Role a bolinha do calcanhar à base dos dedos. Pressão moderada (≤3/10 de dor). 2 minutos." },
-  ],
-};
-
-const REHAB_M3_CARGA = {
-  id: "m3-carga", title: "💪 Rathleff — 5×8 com carga", subtitle: "3x por semana", time: "~12 min", when: "Dias alternados", color: "#ef4444",
-  exercises: [
-    { name: "Heel Raise Rathleff c/ carga", sets: 5, reps: 8, type: "exercise", rest: 120,
-      how: "Toalha sob os dedos no degrau, com carga adicional (mochila). Sobe 3s, pausa 2s, desce 3s abaixo do degrau. Unilateral. 5x8." },
-    { name: "Equilíbrio unilateral", sets: 3, duration: 45, type: "timer",
-      how: "Um pé só, Short Foot ativo. Progressão: olhos fechados. 3x45s." },
-  ],
-};
-
-export function getRehabM3(diaAlternado) { return diaAlternado ? [REHAB_M3_BASE, REHAB_M3_CARGA] : [REHAB_M3_BASE]; }
-
-// ══════════════════════ FOOT PROTOCOL ══════════════════════
-const FOOT_PRE = [
-  { name: "Tibial anterior sentado", detail: "Ponta dos pés para cima", sets: 3, duration: 30, type: "timer", how: "Sentado, pés no chão. Levante a ponta dos pés mantendo calcanhares fixos. 30 segundos." },
-  { name: "Elev. panturrilha unilateral", detail: "Descer lento 3seg", sets: 3, reps: 12, type: "reps", how: "Em pé num pé só. Suba na ponta e desça contando 3 segundos." },
-  { name: "Tibial posterior elástico", detail: "Para dentro/baixo", sets: 3, reps: 12, type: "reps", how: "Elástico no pé, puxe para dentro e para baixo." },
-  { name: "Fibulares elástico", detail: "Para fora", sets: 3, reps: 12, type: "reps", how: "Elástico no pé, empurre para fora." },
-  { name: "Massagem bolinha", detail: "Rolar na sola", duration: 150, type: "timer", how: "Bolinha de tênis sob a sola, role com pressão média." },
-  { name: "Catador de toalha", detail: "Dedos dos pés", sets: 3, reps: 10, type: "reps", how: "Toalha no chão, agarre com os dedos." },
-  { name: "Equilíbrio unipodal", detail: "Cada pé", sets: 3, duration: 30, type: "timer", how: "Fique num pé só, olhar fixo, 30 segundos cada." },
-];
-const WARMUP_RUN = [
-  { name: "Caminhada leve", duration: 120, type: "timer", how: "Caminhe com passos largos." },
-  { name: "Elevação joelhos", duration: 30, type: "timer", how: "Eleve joelhos alternados até a cintura." },
-  { name: "Chutes glúteo", duration: 30, type: "timer", how: "Chute calcanhares ao bumbum." },
-  { name: "Rotação quadril", detail: "Cada perna", reps: 10, type: "reps", how: "Eleve joelho e faça círculos." },
-  { name: "Rotação tornozelos", detail: "Cada pé", reps: 10, type: "reps", how: "Gire tornozelo em círculos." },
-  { name: "Saltitos leves", duration: 30, type: "timer", how: "Pule leve na ponta dos pés." },
-];
-const STRETCH = [
-  { name: "Along. panturrilha", detail: "Cada lado", duration: 30, type: "timer", how: "Perna atrás, calcanhar no chão, empurre quadril." },
-  { name: "Along. quadríceps", detail: "Cada lado", duration: 30, type: "timer", how: "Puxe pé atrás, joelhos juntos." },
-  { name: "Along. posterior coxa", detail: "Cada lado", duration: 30, type: "timer", how: "Perna esticada, incline tronco." },
-  { name: "Along. fáscia plantar ⚠️", detail: "ESSENCIAL!", duration: 30, type: "timer", how: "Puxe dedos para trás. FUNDAMENTAL!" },
-  { name: "Along. glúteo", detail: "Cada lado", duration: 30, type: "timer", how: "Tornozelo sobre joelho oposto, puxe." },
-  { name: "Respiração profunda", detail: "4s/4s/4s", reps: 5, type: "reps", how: "Inspire 4s, segure 4s, expire 4s." },
-];
-const ICE = [{ name: "❄️ GELO NOS PÉS", detail: "OBRIGATÓRIO!", duration: 900, type: "timer", isIce: true, how: "Gelo na sola dos pés com toalha fina entre o gelo e a pele. 15 minutos." }];
-
-const PHASE_NAMES = ["Fase 1: Adaptação (Sem 1-8)","Fase 2: Hipertrofia (Sem 9-16)","Fase 3: Força (Sem 17-24)","Fase 4: Potência (Sem 25-30)"];
-function getMPh(wk) { if (wk <= 8) return 0; if (wk <= 16) return 1; if (wk <= 24) return 2; return 3; }
-
-const FEET_B = [
-  { name: "Elev. panturrilha UNILATERAL", sets: 3, reps: 12, type: "reps", how: "Um pé só, descer lento 3seg." },
-  { name: "Tibial posterior elástico", detail: "Cada pé", sets: 3, reps: 12, type: "reps", how: "Puxe para dentro e para baixo." },
-  { name: "Fibulares elástico", detail: "Cada pé", sets: 3, reps: 12, type: "reps", how: "Empurre para fora." },
-  { name: "Massagem bolinha", detail: "Cada pé", duration: 180, type: "timer", how: "Role na sola." },
-  { name: "Along. fáscia plantar", detail: "Cada pé", duration: 30, type: "timer", how: "Puxe dedos para trás." },
-];
-const FEET_S = [
-  { name: "Elev. panturrilha bilateral", sets: 3, reps: 15, type: "reps", how: "Suba na ponta dos dois pés, desça controlado." },
-  { name: "Massagem bolinha", detail: "Cada pé", duration: 120, type: "timer", how: "Role na sola." },
-  { name: "Along. panturrilha", duration: 30, type: "timer", how: "Pé na parede, empurre quadril." },
-];
-
-// ══════════════════════ MUSCULATION (4 phases each) ══════════════════════
-export const MA = [
-  { w:[{name:"Esteira/bike",duration:300,type:"timer",how:"5 min cardio leve."},{name:"Rotação ombros",reps:20,type:"reps",how:"20 círculos amplos."},{name:"Rotação braços",reps:20,type:"reps",how:"Braços esticados, 20 círculos."},{name:"Aquec. punhos",reps:20,type:"reps",how:"Gire punhos."},{name:"Polichinelos",duration:30,type:"timer",how:"Jumping jacks leves."}],
-    m:[{name:"Supino reto halteres",detail:"PIRÂMIDE",sets:4,reps:"12-10-8-6",rest:90,type:"exercise",how:"Deitado no banco, halteres na altura do peito. Empurre para cima. Desça controlado. Aumente peso a cada série.",startKg:12},{name:"Supino inclinado halteres",detail:"Banco 30-45°",sets:4,reps:12,rest:60,type:"exercise",how:"Banco inclinado. Mesma execução. 2s subindo, 2s descendo.",startKg:10},{name:"Voador/Crossover",detail:"Squeeze peitoral",sets:4,reps:12,rest:45,type:"exercise",how:"Cabos posição alta. Puxe as mãos para baixo e para frente. Aperte o peitoral no final.",startKg:8},{name:"Elevação frontal",sets:4,reps:12,rest:45,type:"exercise",how:"Em pé, halteres. Braços esticados, eleve à frente até ombros. Desça controlado.",startKg:6},{name:"Elevação lateral",sets:4,reps:12,rest:45,type:"exercise",how:"Cotovelo levemente dobrado, eleve para os lados até ombros.",startKg:5},{name:"Rosca bíceps W",detail:"PIRÂMIDE",sets:4,reps:"12-10-8-6",rest:60,type:"exercise",how:"Barra W, flexione cotovelos ao peito. Controle descida 2seg. Aumente peso.",startKg:15},{name:"Bíceps concentrado",detail:"Cada braço",sets:4,reps:12,rest:30,type:"exercise",how:"Sentado, cotovelo na coxa. Flexione trazendo halter ao ombro.",startKg:6}],
-    s:[{name:"Along. peitoral",detail:"Cada lado",duration:30,type:"timer",how:"Braço 90° na parede, gire o corpo."},{name:"Along. ombro",detail:"Cada lado",duration:30,type:"timer",how:"Braço cruzado no peito."},{name:"Along. bíceps",detail:"Cada lado",duration:30,type:"timer",how:"Braço para trás, palma fora."},{name:"Along. tríceps",detail:"Cada lado",duration:30,type:"timer",how:"Cotovelo atrás da cabeça."}]},
-  { w:[{name:"Esteira/bike",duration:300,type:"timer",how:"5 min cardio."},{name:"Rotação ombros+braços",reps:20,type:"reps",how:"Aquecimento articular."},{name:"Supino leve barra vazia",sets:2,reps:15,type:"reps",how:"Barra vazia para aquecer."},{name:"Polichinelos",duration:30,type:"timer",how:"Ativar corpo."}],
-    m:[{name:"↑ Supino reto BARRA",detail:"UPGRADE barra! Pirâmide",sets:4,reps:"12-10-8-6",rest:90,type:"exercise",how:"Barra na largura dos ombros. Desça até tocar o peito. Empurre. Mais estável = mais carga!",startKg:30},{name:"Supino inclinado halteres",sets:4,reps:10,rest:60,type:"exercise",how:"Banco 30°.",startKg:12},{name:"↑ Crucifixo inclinado",detail:"NOVO — abertura ampla",sets:4,reps:12,rest:45,type:"exercise",how:"Banco 30°, abra os braços em arco amplo com cotovelos levemente flexionados.",startKg:8},{name:"↑ Desenvolvimento ombro",detail:"NOVO — sentado",sets:4,reps:10,rest:60,type:"exercise",how:"Sentado, halteres na altura dos ombros. Empurre para cima.",startKg:10},{name:"Lateral+Frontal BI-SET",detail:"12+12 SEM desc",sets:4,reps:"12+12",rest:45,type:"exercise",how:"12 laterais + 12 frontais SEM descanso.",startKg:5},{name:"↑ Rosca alternada",detail:"NOVO — supinação",sets:4,reps:10,rest:60,type:"exercise",how:"Um braço de cada vez, gire o punho no topo.",startKg:8},{name:"↑ Rosca martelo",detail:"NOVO — pega neutra",sets:4,reps:12,rest:45,type:"exercise",how:"Pegada neutra (palmas uma para outra). Trabalha braquial.",startKg:8},{name:"↑ Bíceps Scott",detail:"NOVO — isolamento",sets:3,reps:12,rest:45,type:"exercise",how:"Braços no banco Scott. Flexione até topo, desça lento.",startKg:12}],
-    s:[{name:"Along. peitoral",detail:"Cada lado",duration:30,type:"timer",how:"Na parede."},{name:"Along. ombro",detail:"Cada lado",duration:30,type:"timer",how:"Braço cruzado."},{name:"Along. bíceps",detail:"Cada lado",duration:30,type:"timer",how:"Braço para trás."},{name:"Along. tríceps",detail:"Cada lado",duration:30,type:"timer",how:"Cotovelo atrás."}]},
-  { w:[{name:"Esteira/bike",duration:300,type:"timer",how:"5 min."},{name:"Rotação ombros",reps:20,type:"reps",how:"Círculos."},{name:"Supino barra vazia",sets:2,reps:15,type:"reps",how:"Aquecer."},{name:"Flexão leve",sets:2,reps:10,type:"reps",how:"Ativar peito."}],
-    m:[{name:"Supino reto barra",detail:"PESADO",sets:5,reps:"10-8-6-6-4",rest:120,type:"exercise",how:"5 séries pesadas. Descanse 2 min. Peça ajuda.",startKg:40},{name:"↑ Supino inclinado BARRA",detail:"UPGRADE",sets:4,reps:8,rest:90,type:"exercise",how:"Banco inclinado com barra. 8 reps pesadas.",startKg:30},{name:"Crossover DROPSET",sets:4,reps:"falha",rest:45,type:"exercise",how:"Até falha, reduza peso, continue.",startKg:15},{name:"↑ Desenvolvimento Arnold",detail:"NOVO — rotação",sets:4,reps:10,rest:60,type:"exercise",how:"Comece palmas para você. Ao empurrar, gire para frente.",startKg:10},{name:"↑ Elevação lateral CABO",detail:"NOVO — tensão constante",sets:4,reps:12,rest:45,type:"exercise",how:"Cabo baixo, puxe lateralmente. Tensão constante.",startKg:5},{name:"Rosca barra reta PIRÂMIDE",sets:4,reps:"10-8-6-4",rest:75,type:"exercise",how:"Pirâmide pesada.",startKg:20},{name:"Concentrada+Martelo BI-SET",detail:"10+10",sets:3,reps:"10+10",rest:60,type:"exercise",how:"10 concentradas + 10 martelo SEM descanso.",startKg:8}],
-    s:[{name:"Along. peitoral",detail:"Cada lado",duration:30,type:"timer",how:"Na parede."},{name:"Along. ombro+bíceps",duration:30,type:"timer",how:"Combine."}]},
-  { w:[{name:"Esteira/bike",duration:300,type:"timer",how:"5 min."},{name:"Rotação ombros",reps:20,type:"reps",how:"Círculos."},{name:"Flexão leve",sets:2,reps:12,type:"reps",how:"Ativar."}],
-    m:[{name:"Supino reto barra",detail:"FORÇA MÁXIMA",sets:4,reps:"8-6-6-4",rest:120,type:"exercise",how:"Carga pesada. Peça ajuda.",startKg:50},{name:"Supino inclinado halteres",detail:"Volume",sets:4,reps:12,rest:60,type:"exercise",how:"Foco contração.",startKg:14},{name:"↑ Fly+Flexão SUPERSET",detail:"12 fly + flexão falha",sets:3,reps:"12+falha",rest:60,type:"exercise",how:"12 fly halteres + flexão até falha.",startKg:10},{name:"↑ Desenv. militar barra",detail:"NOVO — em pé",sets:4,reps:8,rest:90,type:"exercise",how:"Em pé, barra nos ombros. Empurre acima da cabeça.",startKg:25},{name:"Lateral DROPSET",sets:3,reps:"falha",rest:45,type:"exercise",how:"Lateral até falha, reduza, falha de novo.",startKg:8},{name:"↑ Rosca 21s",detail:"NOVO — 7+7+7",sets:3,reps:21,rest:60,type:"exercise",how:"7 metade inferior + 7 metade superior + 7 completas.",startKg:10},{name:"Martelo+Concentrado SUPERSET",detail:"10+10",sets:3,reps:"10+10",rest:45,type:"exercise",how:"10 martelo + 10 concentrada.",startKg:8}],
-    s:[{name:"Along. peitoral",duration:30,type:"timer",how:"Na parede."},{name:"Along. ombro+bíceps",duration:30,type:"timer",how:"Combine."}]},
-];
-
-export const MB = [
-  { w:[{name:"Esteira/bike",duration:300,type:"timer",how:"5 min cardio."},{name:"Agach. peso corpo",sets:4,reps:15,type:"reps",how:"Agachamento sem peso."},{name:"Rotação quadril",detail:"Cada perna",reps:10,type:"reps",how:"Eleve joelho, faça círculos."},{name:"Balanço pernas",detail:"Cada perna",reps:10,type:"reps",how:"Balance frente e trás."}],
-    m:[{name:"Agachamento livre",detail:"PROGRESSÃO PRIORITÁRIA",sets:4,reps:12,rest:90,type:"exercise",how:"Barra nos ombros. Pés largura ombros. Desça até coxas paralelas. Suba explosivo.",startKg:30},{name:"Leg Press 45°",sets:4,reps:12,rest:90,type:"exercise",how:"Pés largura ombros. Desça até 90° nos joelhos.",startKg:60},{name:"Cadeira extensora",detail:"Contrair topo 1seg",sets:4,reps:12,rest:45,type:"exercise",how:"Estenda pernas, contraia quadríceps no topo 1 segundo.",startKg:25},{name:"Stiff halteres",detail:"Costas retas",sets:4,reps:12,rest:60,type:"exercise",how:"Empurre quadril para trás, desça halteres pelas pernas. Costas RETAS!",startKg:10},{name:"Terra Deadlift",detail:"PIRÂMIDE",sets:4,reps:"12-10-8-6",rest:105,type:"exercise",how:"Barra no chão. Costas RETAS. Empurre o chão com os pés.",startKg:40},{name:"Abdutora+Panturrilha BI-SET",sets:4,reps:"12+12",rest:60,type:"exercise",how:"12 abdutora + 12 panturrilha SEM descanso.",startKg:30},{name:"Prancha abdominal",detail:"Core p/ corrida",sets:3,duration:60,rest:30,type:"timed_exercise",how:"Antebraços e ponta dos pés. Corpo reto. Não deixe quadril cair."},{name:"Abdominal Tabata",detail:"20s esforço/10s desc ×8",sets:2,type:"tabata",tabataWork:20,tabataRest:10,tabataRounds:8,rest:60,how:"8 ciclos: 20s abdominais máximos + 10s descanso. Use crunch, bicicleta, elevação pernas."}],
-    s:[{name:"Along. quadríceps",detail:"Cada perna",duration:30,type:"timer",how:"Puxe pé atrás."},{name:"Along. posterior",detail:"Cada perna",duration:30,type:"timer",how:"Perna esticada, incline."},{name:"Along. glúteo",detail:"Cada lado",duration:30,type:"timer",how:"Tornozelo sobre joelho."},{name:"Along. adutores",duration:30,type:"timer",how:"Borboleta sentado."},{name:"Along. panturrilha",duration:30,type:"timer",how:"Pé na parede."}]},
-  { w:[{name:"Esteira/bike",duration:300,type:"timer",how:"5 min."},{name:"Agach. peso corpo",sets:3,reps:15,type:"reps",how:"Aquecimento."},{name:"Avanço dinâmico",detail:"Cada perna",reps:10,type:"reps",how:"Passo à frente, desça joelho."}],
-    m:[{name:"Agachamento PIRÂMIDE",sets:4,reps:"12-10-8-6",rest:90,type:"exercise",how:"Progressão de carga.",startKg:40},{name:"↑ Búlgaro",detail:"NOVO — pé no banco",sets:4,reps:10,rest:60,type:"exercise",how:"Pé traseiro no banco. Desça joelho. Cada perna separada.",startKg:8},{name:"Leg Press 45°",sets:4,reps:10,rest:90,type:"exercise",how:"Mais carga.",startKg:80},{name:"↑ Extensora+Flexora BI-SET",detail:"12+12",sets:4,reps:"12+12",rest:60,type:"exercise",how:"12 extensora + 12 flexora SEM descanso.",startKg:25},{name:"↑ Stiff BARRA",detail:"UPGRADE",sets:4,reps:10,rest:75,type:"exercise",how:"Stiff com barra. Costas RETAS!",startKg:30},{name:"↑ Panturrilha sentado+pé",detail:"15+15",sets:4,reps:"15+15",rest:45,type:"exercise",how:"15 sentado (sóleo) + 15 em pé (gastrocnêmio).",startKg:20},{name:"↑ Prancha lateral",detail:"NOVO — cada lado",sets:3,duration:30,rest:15,type:"timed_exercise",how:"Antebraço de lado, corpo reto. 30s cada lado."},{name:"↑ Abdominal infra+Roda",detail:"15+10",sets:3,reps:"15+10",rest:45,type:"exercise",how:"15 infra (eleve pernas) + 10 roda abdominal."}],
-    s:[{name:"Along. quadríceps",detail:"Cada perna",duration:30,type:"timer",how:"Puxe pé."},{name:"Along. posterior",detail:"Cada perna",duration:30,type:"timer",how:"Incline."},{name:"Along. glúteo+adutores",duration:30,type:"timer",how:"Combine."}]},
-  { w:[{name:"Esteira/bike",duration:300,type:"timer",how:"5 min."},{name:"Agach. peso corpo",sets:3,reps:15,type:"reps",how:"Aquecer."},{name:"Agach. barra vazia",sets:2,reps:10,type:"reps",how:"Barra vazia."}],
-    m:[{name:"Agachamento PESADO",sets:5,reps:"10-8-6-6-4",rest:120,type:"exercise",how:"5 séries pesadas. Peça ajuda.",startKg:60},{name:"↑ Leg Press pé alto+baixo",detail:"2 alto + 2 baixo",sets:4,reps:10,rest:90,type:"exercise",how:"2 séries pés altos (glúteo) + 2 pés baixos (quad).",startKg:100},{name:"↑ Passada halteres",detail:"NOVO — funcional corrida",sets:4,reps:10,rest:60,type:"exercise",how:"Com halteres, passo à frente e desça. Alterne. Funcional!",startKg:10},{name:"↑ Stiff romeno barra",sets:4,reps:8,rest:75,type:"exercise",how:"Amplitude maior. Desça até metade da canela.",startKg:40},{name:"Extensora DROPSET",sets:3,reps:"falha",rest:45,type:"exercise",how:"Até falha, reduza, continue.",startKg:30},{name:"↑ Mesa flexora",detail:"NOVO",sets:4,reps:10,rest:45,type:"exercise",how:"Deitado de bruços, flexione pernas ao glúteo.",startKg:20},{name:"Panturrilha unilateral",sets:4,reps:12,rest:30,type:"exercise",how:"Um pé só, lento."},{name:"↑ Abdominal c/ carga",detail:"Halter no peito",sets:4,reps:12,rest:45,type:"exercise",how:"Crunch segurando halter no peito.",startKg:5}],
-    s:[{name:"Along. quadríceps",duration:30,type:"timer",how:"Puxe pé."},{name:"Along. posterior+glúteo",duration:30,type:"timer",how:"Combine."},{name:"Along. panturrilha",duration:30,type:"timer",how:"Pé parede."}]},
-  { w:[{name:"Esteira/bike",duration:300,type:"timer",how:"5 min."},{name:"Agach. peso corpo",sets:3,reps:15,type:"reps",how:"Aquecer."},{name:"Saltos leves",duration:30,type:"timer",how:"Saltos no lugar."}],
-    m:[{name:"Agachamento FORÇA",sets:4,reps:"8-6-6-4",rest:120,type:"exercise",how:"Carga máxima.",startKg:70},{name:"Búlgaro",detail:"Funcional corrida",sets:3,reps:10,rest:60,type:"exercise",how:"Pé no banco, cada perna.",startKg:12},{name:"↑ Avanço caminhando",detail:"NOVO — específico corrida",sets:3,reps:12,rest:60,type:"exercise",how:"Com halteres, caminhe com passadas longas.",startKg:10},{name:"↑ Terra sumo",detail:"NOVO — pés largos",sets:4,reps:8,rest:90,type:"exercise",how:"Pés bem afastados, pegada entre pernas.",startKg:50},{name:"Cadeira flexora",sets:4,reps:10,rest:45,type:"exercise",how:"Flexione pernas.",startKg:25},{name:"Panturrilha em pé",detail:"Resistência p/ meia",sets:4,reps:20,rest:30,type:"exercise",how:"20 reps para resistência muscular."},{name:"↑ Circuito Core",detail:"Prancha+Bicicleta+Mountain",sets:3,duration:120,rest:45,type:"timed_exercise",how:"Prancha 45s + Bicicleta 20 reps + Mountain climber 20 reps."}],
-    s:[{name:"Along. quadríceps",duration:30,type:"timer",how:"Puxe pé."},{name:"Along. posterior+glúteo",duration:30,type:"timer",how:"Combine."},{name:"Along. adutores+panturrilha",duration:30,type:"timer",how:"Combine."}]},
-];
-
-export const MC = [
-  { w:[{name:"Esteira/bike",duration:300,type:"timer",how:"5 min cardio."},{name:"Rotação ombros",reps:20,type:"reps",how:"Círculos."},{name:"Puxada leve",sets:2,reps:10,type:"reps",how:"Peso leve, ativar costas."},{name:"Rotação tronco",reps:20,type:"reps",how:"Braços abertos, gire."}],
-    m:[{name:"Puxada alta",detail:"Até peito",sets:4,reps:12,rest:60,type:"exercise",how:"Pegada aberta. Puxe até peito, aperte escápulas.",startKg:35},{name:"Remada baixa cabo",detail:"Escápulas!",sets:4,reps:12,rest:60,type:"exercise",how:"Puxe triângulo até abdômen. Cotovelos junto ao corpo.",startKg:30},{name:"Remada curvada barra",sets:4,reps:12,rest:60,type:"exercise",how:"Inclinado, costas retas. Puxe barra até umbigo.",startKg:25},{name:"Pulldown DROPSET",sets:4,reps:"falha",rest:45,type:"exercise",how:"Puxada até falha. Reduza, continue.",startKg:30},{name:"Remada supinada",sets:4,reps:12,rest:45,type:"exercise",how:"Pegada invertida no cabo.",startKg:25},{name:"Tríceps barra reta DROPSET",sets:4,reps:"falha",rest:45,type:"exercise",how:"Polia alta, empurre para baixo. Falha, reduza.",startKg:20},{name:"Tríceps francês halter",sets:4,reps:12,rest:45,type:"exercise",how:"Halter atrás da cabeça, cotovelos fixos. Estenda.",startKg:10},{name:"Peck deck invertido",detail:"Posterior ombro",sets:4,reps:12,rest:45,type:"exercise",how:"De frente para máquina. Abra braços para trás.",startKg:15}],
-    s:[{name:"Along. costas",duration:30,type:"timer",how:"Abraçe joelhos."},{name:"Along. lat",detail:"Cada lado",duration:30,type:"timer",how:"Braço cima, incline."},{name:"Along. tríceps",detail:"Cada braço",duration:30,type:"timer",how:"Cotovelo atrás."},{name:"Along. ombro",detail:"Cada lado",duration:30,type:"timer",how:"Braço cruzado."}]},
-  { w:[{name:"Esteira/bike",duration:300,type:"timer",how:"5 min."},{name:"Rotação ombros+tronco",reps:20,type:"reps",how:"Aquecer."},{name:"Puxada leve",sets:2,reps:10,type:"reps",how:"Ativar."}],
-    m:[{name:"↑ Puxada aberta",detail:"Pegada larga",sets:4,reps:10,rest:60,type:"exercise",how:"Pegada mais larga. Foco dorsal.",startKg:35},{name:"Remada curvada PIRÂMIDE",sets:4,reps:"12-10-8-6",rest:75,type:"exercise",how:"Pirâmide de carga.",startKg:30},{name:"↑ Remada unilateral",detail:"NOVO — cada braço",sets:4,reps:10,rest:60,type:"exercise",how:"Joelho e mão no banco. Puxe halter à cintura.",startKg:12},{name:"↑ Pullover halter",detail:"NOVO",sets:4,reps:12,rest:45,type:"exercise",how:"Deitado, halter acima do peito. Desça atrás da cabeça em arco.",startKg:10},{name:"Puxada supinada",sets:4,reps:10,rest:60,type:"exercise",how:"Pegada fechada invertida.",startKg:30},{name:"↑ Tríceps corda",detail:"Abrir no final",sets:4,reps:12,rest:45,type:"exercise",how:"Polia com corda. Abra as mãos no final.",startKg:15},{name:"↑ Mergulho banco",detail:"NOVO",sets:4,reps:"falha",rest:45,type:"exercise",how:"Mãos no banco atrás, pés em outro banco. Flexione cotovelos."},{name:"↑ Face pull",detail:"NOVO — saúde ombro",sets:3,reps:15,rest:30,type:"exercise",how:"Polia alta com corda. Puxe ao rosto abrindo cotovelos. Essencial para postura!",startKg:10}],
-    s:[{name:"Along. costas",duration:30,type:"timer",how:"Abraçar joelhos."},{name:"Along. lat",detail:"Cada lado",duration:30,type:"timer",how:"Inclinar."},{name:"Along. tríceps",detail:"Cada braço",duration:30,type:"timer",how:"Cotovelo atrás."},{name:"Along. ombro",detail:"Cada lado",duration:30,type:"timer",how:"Braço cruzado."}]},
-  { w:[{name:"Esteira/bike",duration:300,type:"timer",how:"5 min."},{name:"Rotação ombros",reps:20,type:"reps",how:"Círculos."},{name:"Puxada leve",sets:2,reps:10,type:"reps",how:"Ativar."}],
-    m:[{name:"↑ Barra fixa",detail:"NOVO — bodyweight!",sets:4,reps:"máximo",rest:90,type:"exercise",how:"Pegada pronada. Puxe até queixo passar a barra. Use gravitron se precisar."},{name:"↑ Remada T barra",detail:"NOVO — pesado",sets:4,reps:10,rest:75,type:"exercise",how:"Barra em T. Puxe ao peito. Espessura das costas.",startKg:20},{name:"Remada curvada pesada",sets:4,reps:8,rest:75,type:"exercise",how:"4x8 pesada.",startKg:40},{name:"Pulldown invertido DROPSET",sets:3,reps:"falha",rest:45,type:"exercise",how:"Pegada invertida até falha.",startKg:35},{name:"↑ Tríceps francês EZ",detail:"PIRÂMIDE",sets:4,reps:"12-10-8-6",rest:60,type:"exercise",how:"Deitado, barra EZ. Desça atrás da cabeça.",startKg:15},{name:"↑ Corda+Barra SUPERSET",detail:"12+12",sets:3,reps:"12+12",rest:60,type:"exercise",how:"12 corda + 12 barra SEM descanso.",startKg:15},{name:"↑ Encolhimento trapézio",detail:"NOVO",sets:4,reps:12,rest:45,type:"exercise",how:"Halteres. Encolha ombros. Segure 1s no topo.",startKg:14},{name:"Face pull",sets:3,reps:15,rest:30,type:"exercise",how:"Polia ao rosto. Saúde ombro.",startKg:12}],
-    s:[{name:"Along. costas+lat",duration:30,type:"timer",how:"Combine."},{name:"Along. tríceps",detail:"Cada braço",duration:30,type:"timer",how:"Cotovelo atrás."},{name:"Along. ombro",detail:"Cada lado",duration:30,type:"timer",how:"Braço cruzado."}]},
-  { w:[{name:"Esteira/bike",duration:300,type:"timer",how:"5 min."},{name:"Rotação ombros",reps:20,type:"reps",how:"Círculos."},{name:"Barra fixa leve",sets:2,reps:8,type:"reps",how:"Aquecer na barra."}],
-    m:[{name:"Barra fixa",detail:"Bata recorde!",sets:4,reps:"máximo",rest:90,type:"exercise",how:"Máx reps. Anote e supere!"},{name:"↑ Remada Pendlay",detail:"NOVO — potência",sets:4,reps:"6-8",rest:90,type:"exercise",how:"Barra no chão entre cada rep. Puxe explosivo até abdômen.",startKg:40},{name:"Remada unilateral",detail:"Cada braço",sets:3,reps:10,rest:60,type:"exercise",how:"Halter, um braço de cada vez.",startKg:16},{name:"↑ Pullover+Pulldown SUPERSET",detail:"12+12",sets:3,reps:"12+12",rest:60,type:"exercise",how:"12 pullover + 12 pulldown.",startKg:12},{name:"↑ Paralelas",detail:"NOVO — bodyweight",sets:4,reps:"máximo",rest:60,type:"exercise",how:"Barras paralelas. Desça até 90° cotovelos."},{name:"↑ Tríceps kickback",detail:"NOVO — cada braço",sets:3,reps:12,rest:30,type:"exercise",how:"Inclinado, cotovelo fixo. Estenda braço para trás.",startKg:6},{name:"Face pull",sets:3,reps:15,rest:30,type:"exercise",how:"Saúde ombro.",startKg:15},{name:"↑ Encolhimento+Peck inv BI-SET",detail:"12+12",sets:3,reps:"12+12",rest:45,type:"exercise",how:"12 encolhimento + 12 peck invertido.",startKg:14}],
-    s:[{name:"Along. costas+lat",duration:30,type:"timer",how:"Combine."},{name:"Along. tríceps+ombro",duration:30,type:"timer",how:"Combine."}]},
-];
-
-// ══════════════════════ RUNNING DATA ══════════════════════
-function mkT(n,d,dur,rec){const s=[];for(let i=1;i<=n;i++){s.push({n:"Tiro "+i+" — "+d+" Z4",d:"147-164 bpm",dur});s.push({n:"Recuperação",d:"Caminhada",dur:rec});}return s;}
-const RD=[
-  {q:"Fartlek 20min",qS:[{n:"Fartlek",d:"Varie o ritmo!",dur:1200}],e:3,l:3.5},{q:"4x400m Z4",qS:mkT(4,"400m",150,120),e:3.5,l:4},
-  {q:"Fartlek 25min",qS:[{n:"Fartlek",d:"Varie o ritmo",dur:1500}],e:4,l:4.5},{q:"5x400m Z4",qS:mkT(5,"400m",150,120),e:4,l:5},
-  {q:"3km Z2",qS:[{n:"Corrida Z2",d:"110-127 bpm"}],e:3,test:"🎯 TESTE 5KM!",tD:5},
-  {q:"4x600m Z4",qS:mkT(4,"600m",210,120),e:5,l:5.5},{q:"Fartlek 25min",qS:[{n:"Fartlek",d:"Varie",dur:1500}],e:5,l:6},
-  {q:"5x600m Z4",qS:mkT(5,"600m",210,120),e:5.5,l:6.5},{q:"Tempo Run 15min Z3",qS:[{n:"Tempo Run Z3",d:"129-145 bpm",dur:900}],e:5.5,l:7},
-  {q:"4km Z2",qS:[{n:"Corrida Z2",d:"Teste!"}],e:4,test:"🎯 TESTE 7KM!",tD:7},
-  {q:"4x800m Z4",qS:mkT(4,"800m",270,180),e:7,l:7.5},{q:"Tempo Run 20min Z3",qS:[{n:"Tempo Run Z3",d:"129-145 bpm",dur:1200}],e:7,l:8},
-  {q:"4x1000m Z4",qS:mkT(4,"1km",330,210),e:7.5,l:9},{q:"5km Z2",qS:[{n:"Corrida Z2",d:"Teste!"}],e:5,test:"🎯 TESTE 10KM!",tD:10},
-  {q:"5x800m Z4",qS:mkT(5,"800m",270,180),e:8,l:10},{q:"Tempo Run 25min Z3",qS:[{n:"Tempo Run Z3",d:"129-145 bpm",dur:1500}],e:8,l:10},
-  {q:"Fartlek 30min",qS:[{n:"Fartlek",d:"Varie",dur:1800}],e:8,l:11},{q:"6km Z2",qS:[{n:"Corrida Z2",d:"Pace!"}],e:6,test:"🎯 10km pace",tD:10},
-  {q:"5x1000m Z4",qS:mkT(5,"1km",330,180),e:8,l:12},{q:"Tempo Run 30min Z3",qS:[{n:"Tempo Run Z3",d:"Ritmo meia!",dur:1800}],e:8,l:12},
-  {q:"4x1200m Z4",qS:mkT(4,"1.2km",400,240),e:9,l:13},{q:"Tempo Run 35min Z3",qS:[{n:"Tempo Run Z3",d:"129-145 bpm",dur:2100}],e:9,l:14},
-  {q:"5x1200m Z4",qS:mkT(5,"1.2km",400,180),e:9,l:15},{q:"6km Z2",qS:[{n:"Corrida Z2",d:"Teste!"}],e:6,test:"🎯 TESTE 15KM!",tD:15},
-  {q:"Tempo Run 35min Z3",qS:[{n:"Tempo Run Z3",d:"129-145 bpm",dur:2100}],e:10,l:16},{q:"5x1000m Z4",qS:mkT(5,"1km",330,180),e:10,l:17},
-  {q:"Tempo Run 40min Z3",qS:[{n:"Tempo Run Z3",d:"Pico!",dur:2400}],e:10,l:18},{q:"Fartlek 35min",qS:[{n:"Fartlek",d:"Varie",dur:2100}],e:8,l:19},
-  {q:"4x800m TAPER",qS:mkT(4,"800m",270,180),e:8,l:10},{q:"5km Z2",qS:[{n:"Corrida Z2",d:"MEIA!"}],e:3,test:"🏆 21KM!",tD:21},
-];
-
-// ══════════════════════ CORRIDA MACROFASE 4 (CONSTRUÇÃO) ══════════════════════
-const RUN_M4 = [
-  {q:"Fartlek 15min",qS:[{n:"Fartlek",d:"Varie o ritmo!",dur:900}],e:2.5,l:3},
-  {q:"4x400m Z4",qS:mkT(4,"400m",150,120),e:3,l:3.5},
-  {q:"Fartlek 20min",qS:[{n:"Fartlek",d:"Varie o ritmo!",dur:1200}],e:3,l:4},
-  {q:"4x400m Z4",qS:mkT(4,"400m",150,120),e:3.5,test:"🎯 TESTE 5KM!",tD:5},
-  {q:"Fartlek 25min",qS:[{n:"Fartlek",d:"Varie",dur:1500}],e:4,l:5},
-  {q:"4x600m Z4",qS:mkT(4,"600m",210,120),e:4.5,l:6},
-  {q:"Tempo Run 15min Z3",qS:[{n:"Tempo Run Z3",d:"129-145 bpm",dur:900}],e:5,l:7},
-  {q:"5km leve Z2",qS:[{n:"Corrida Z2",d:"110-127 bpm"}],e:4,test:"🎯 TESTE 10KM!",tD:10},
-];
-
-// ══════════════════════ CONSTANTS ══════════════════════
-const SL=["Musculação A","Corrida Qualidade","Musculação B","Corrida Leve","Musculação C","Corrida Longa"];
-const SS=["A","🏃","B","🏃","C","🏃‍♂️"];const SIC=["🏋️","🏃","🦵","🏃","💪","🏃‍♂️"];
-const SCO=["#2E7D32","#E65100","#1565C0","#E65100","#4A148C","#B71C1C"];
-const PH=[{n:"FASE 1: 3km→5km",a:1,b:5,c:"#2E7D32"},{n:"FASE 2: 5km→7km",a:6,b:10,c:"#1565C0"},{n:"FASE 3: 7km→10km",a:11,b:14,c:"#E65100"},{n:"FASE 4: Consol 10km",a:15,b:18,c:"#4A148C"},{n:"FASE 5: 10km→15km",a:19,b:24,c:"#B71C1C"},{n:"FASE 6: Meia!",a:25,b:30,c:"#F57F17"}];
-const gp=w=>PH.find(p=>w>=p.a&&w<=p.b)||PH[0];
-
-// ══════════════════════ BUILD FUNCTIONS ══════════════════════
-function bm(phases,wk){const p=getMPh(wk),m=phases[p],r=[];
-  r.push({section:"🔥 AQUECIMENTO"});m.w.forEach(e=>r.push({...e,ph:"w"}));
-  r.push({section:"💪 TREINO — "+PHASE_NAMES[p]});m.m.forEach(e=>r.push({...e,ph:"m"}));
-  r.push({section:"🧘 ALONGAMENTO"});m.s.forEach(e=>r.push({...e,ph:"s"}));
-  r.push({section:"🦶 FORTALECIMENTO PÉS"});(phases===MB?FEET_B:FEET_S).forEach(e=>r.push({...e,ph:"f"}));
-  return r;}
-
-function br(wk,rt,tbl){const rd=(tbl||RD)[wk-1];if(!rd)return[];const r=[];
-  r.push({section:"🦶 PÉS PRÉ-CORRIDA"});FOOT_PRE.forEach(e=>r.push({...e,ph:"fp"}));
-  r.push({section:"🔥 AQUECIMENTO"});WARMUP_RUN.forEach(e=>r.push({...e,ph:"w"}));
-  r.push({section:"🏃 CORRIDA"});r.push({name:"Aquecimento: Caminhada",detail:"Z1 (92-109 bpm)",duration:300,type:"timer",ph:"r",how:"Caminhe 5 min."});
-  if(rt==="q")rd.qS.forEach(x=>r.push({name:x.n,detail:x.d,duration:x.dur,type:x.dur?"timer":"manual",ph:"r"}));
-  else if(rt==="e")r.push({name:"Corrida Z2 — "+rd.e+"km",detail:"110-127 bpm",type:"manual",ph:"r",how:"Ritmo leve, conversação."});
-  else if(rt==="l"){if(rd.test)r.push({name:rd.test,detail:"Z2 — "+rd.tD+"km",type:"manual",ph:"r",isTest:true,how:"NÃO ACELERE! Completar é o objetivo."});else r.push({name:"Longão Z2 — "+rd.l+"km",detail:"CONVERSA",type:"manual",ph:"r",how:"Ritmo de conversa."});}
-  r.push({name:"Volta à calma",detail:"Caminhada Z1",duration:300,type:"timer",ph:"r",how:"5 min caminhada."});
-  r.push({section:"🧘 ALONGAMENTO PÓS"});STRETCH.forEach(e=>r.push({...e,ph:"s"}));
-  r.push({section:"❄️ GELO NOS PÉS"});ICE.forEach(e=>r.push({...e,ph:"i"}));return r;}
-
-// ══════════════════════ MOTOR DE SESSÃO POR MACROFASE ══════════════════════
-export function getMuscPhaseIndex(macrofase, semanaIdx) {
-  if (macrofase === 2) return 0;
-  if (macrofase === 3) return semanaIdx < 2 ? 0 : 1;
-  if (macrofase === 4) return semanaIdx < 4 ? 1 : 2;
-  return 0;
-}
-
-export function levePeso(ex) {
-  if (ex.type !== "exercise") return ex;
-  if (typeof ex.reps === "string") { const { detail, ...rest } = ex; return { ...rest, sets: 3, reps: 15 }; }
-  return { ...ex, sets: 3, reps: 15 };
-}
-
-export function buildMuscSession(phases, macrofase, semanaIdx) {
-  const p = getMuscPhaseIndex(macrofase, semanaIdx);
-  const fase = phases[p];
-  const leve = macrofase === 2 && semanaIdx < 2;
-  const m = leve ? fase.m.map(levePeso) : fase.m;
-  const r = [];
-  r.push({ section: "🔥 AQUECIMENTO" }); fase.w.forEach(e => r.push({ ...e, ph: "w" }));
-  r.push({ section: "💪 TREINO — " + PHASE_NAMES[p] }); m.forEach(e => r.push({ ...e, ph: "m" }));
-  r.push({ section: "🧘 ALONGAMENTO" }); fase.s.forEach(e => r.push({ ...e, ph: "s" }));
-  r.push({ section: "🦶 FORTALECIMENTO PÉS" }); (phases === MB ? FEET_B : FEET_S).forEach(e => r.push({ ...e, ph: "f" }));
-  return r;
-}
-
-export function indicesDisponiveis(macrofase) { return macrofase === 2 ? [0, 2, 4] : [0, 1, 2, 3, 4, 5]; }
-
-// ══════════════════════ MOTOR DE CORRIDA — MACROFASE 3 (WALK/RUN) ══════════════════════
-export function mkWR(ciclos, corridaSeg, caminhadaSeg) {
-  const s = [];
-  for (let i = 1; i <= ciclos; i++) {
-    s.push({ name: "Corrida " + i, duration: corridaSeg, type: "timer", ph: "r", how: "Ritmo Z1-Z2 confortável — consegue conversar sem ofegar." });
-    s.push({ name: "Caminhada " + i, duration: caminhadaSeg, type: "timer", ph: "r", how: "Recuperação ativa, caminhada." });
+function buildSessao(tipo, macrofase, semanaIdx, force3x15) {
+  switch (tipo) {
+    case "muscA": return { steps: buildMuscSession(MA, macrofase, semanaIdx, force3x15), resumo: null, testeId: null, testeNome: null };
+    case "muscB": return { steps: buildMuscSession(MB, macrofase, semanaIdx, force3x15), resumo: null, testeId: null, testeNome: null };
+    case "muscC": return { steps: buildMuscSession(MC, macrofase, semanaIdx, force3x15), resumo: null, testeId: null, testeNome: null };
+    case "caminhada": { const r = buildCaminhadaSession(semanaIdx); return { steps: r.steps, resumo: r.testeNome, testeId: r.testeId, testeNome: "Dor ≤2/10 durante e na manhã seguinte?" }; }
+    case "walkrun": { const r = buildWalkRunSession(semanaIdx); const ultima = semanaIdx >= 3; return { steps: r.steps, resumo: r.resumo, testeId: ultima ? "corrida5min" : null, testeNome: "Consegui 5min de corrida contínua sem piorar a dor?" }; }
+    case "qualidade": { const r = macrofase === 3 ? buildContinuoSession(semanaIdx, "q") : buildMetaSession(semanaIdx, "q"); return { steps: r.steps, resumo: r.resumo, testeId: null, testeNome: null }; }
+    case "longao": {
+      const r = macrofase === 3 ? buildContinuoSession(semanaIdx, "l") : buildMetaSession(semanaIdx, "l");
+      let testeId = null;
+      if (macrofase === 3 && r.teste) testeId = "teste5km";
+      if (macrofase === 4 && r.teste) testeId = "teste10km";
+      return { steps: r.steps, resumo: r.resumo, testeId, testeNome: testeId === "teste5km" ? "Completei o teste de 5km contínuo sem piora de dor?" : "Completei o teste de 10km?" };
+    }
+    default: return { steps: [], resumo: null, testeId: null, testeNome: null };
   }
-  return s;
 }
 
-const RUN_M3 = [
-  { nome: "1min corrida / 2min caminhada", ciclos: 8, corrida: 60, caminhada: 120 },
-  { nome: "2min corrida / 2min caminhada", ciclos: 6, corrida: 120, caminhada: 120 },
-  { nome: "3min corrida / 1min caminhada", ciclos: 6, corrida: 180, caminhada: 60 },
-  { nome: "5min corrida / 1min caminhada", ciclos: 5, corrida: 300, caminhada: 60 },
-];
+function isoHojeReal() { return toISO(new Date()); }
 
-export function buildRunM3(semanaIdx) {
-  const cfg = RUN_M3[Math.min(semanaIdx, RUN_M3.length - 1)];
-  const r = [];
-  r.push({ section: "🔥 AQUECIMENTO" });
-  r.push({ name: "Caminhada rápida", duration: 300, type: "timer", ph: "w", how: "5 min pra aquecer antes dos intervalos." });
-  r.push({ section: "🏃 WALK/RUN — " + cfg.nome });
-  mkWR(cfg.ciclos, cfg.corrida, cfg.caminhada).forEach(e => r.push(e));
-  r.push({ section: "🧘 ALONGAMENTO" });
-  r.push({ name: "Along. panturrilha (joelho reto + dobrado)", sets: 2, duration: 30, type: "timer", ph: "s", how: "Pé na parede. 2x30s joelho reto + 2x30s joelho dobrado." });
-  r.push({ section: "❄️ GELO PÓS-CORRIDA" });
-  r.push({ name: "Gelo nos pés", duration: 900, type: "timer", ph: "i", isIce: true, how: "15 minutos, obrigatório pós-corrida nesta fase de retorno." });
-  return r;
-}
+export default function App() {
+  const [state, setState] = useState(null);
+  const [scr, setScr] = useState("carregando");
+  const [sessaoAtual, setSessaoAtual] = useState(null); // { tipo, steps, label, cor, icon, resumo, testeId, testeNome, grupo }
+  const [activeDoseKey, setActiveDoseKey] = useState(null);
+  const [recalibrando, setRecalibrando] = useState(false);
 
-export function grdM3(semanaIdx) { const cfg = RUN_M3[Math.min(semanaIdx, RUN_M3.length - 1)]; return Math.round(cfg.ciclos * cfg.corrida / 60) + "min corrida"; }
+  useEffect(() => {
+    const s = loadState();
+    setState(s);
+    setScr(s.onboarding ? "home" : "onboarding");
+  }, []);
 
-export function sessaoDados(macrofase, semanaIdx, ses, wk) {
-  if (macrofase < 2) return bw(wk, ses);
-  if (ses === 0) return buildMuscSession(MA, macrofase, semanaIdx);
-  if (ses === 2) return buildMuscSession(MB, macrofase, semanaIdx);
-  if (ses === 4) return buildMuscSession(MC, macrofase, semanaIdx);
-  if (macrofase === 3) return buildRunM3(semanaIdx);
-  if (macrofase === 4) { const rt = ses === 1 ? "q" : ses === 3 ? "e" : "l"; return br(semanaIdx + 1, rt, RUN_M4); }
-  return [];
-}
+  // dor / rehab reforçado — verifica recuo automático 1x por dia
+  useEffect(() => {
+    if (!state || !state.progresso) return;
+    const hoje = isoHojeReal();
+    if (state.ultimoRecuoISO === hoje) return;
+    const r = checkRecuoAutomatico(state.dorLog, hoje);
+    if (r.trigger) {
+      const novoSemana = Math.max(0, state.progresso.semanaIdx - 1);
+      setState(s => { const n = { ...s, progresso: { ...s.progresso, semanaIdx: novoSemana }, ultimoRecuoISO: hoje }; saveState(n); return n; });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state && state.dorLog && state.dorLog[isoHojeReal()]]);
 
-export function sessaoDesc(macrofase, semanaIdx, ses, wk) {
-  if (macrofase < 2) return grd(wk, ses);
-  if (macrofase === 3 && (ses === 1 || ses === 3 || ses === 5)) return grdM3(semanaIdx);
-  if (macrofase === 4 && (ses === 1 || ses === 3 || ses === 5)) return grd(semanaIdx + 1, ses, RUN_M4);
-  return "";
-}
+  if (!state) return <div style={{ background: color.bg, color: color.text, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui" }}><p style={{ opacity: .6 }}>Carregando...</p></div>;
 
-export function bw(wk,si){if(si===0)return bm(MA,wk);if(si===1)return br(wk,"q");if(si===2)return bm(MB,wk);if(si===3)return br(wk,"e");if(si===4)return bm(MC,wk);if(si===5)return br(wk,"l");return[];}
-function ft(s){if(s==null)return"--:--";return Math.floor(s/60)+":"+(s%60).toString().padStart(2,"0");}
-export function grd(wk,si,tbl){const r=(tbl||RD)[wk-1];if(!r)return"";if(si===1)return r.q;if(si===3)return r.e?r.e+"km Z2":"";if(si===5)return r.test||(r.l?r.l+"km Longão":"");return"";}
+  function patch(partial) { setState(s => { const n = { ...s, ...partial }; saveState(n); return n; }); }
 
-// ══════════════════════ UI COMPONENTS ══════════════════════
-function CT({time,total,running,color}){const r=70,circ=2*Math.PI*r,off=circ*(1-(total>0?(total-time)/total:0));
-  return<svg viewBox="0 0 160 160" style={{width:180,height:180}}><circle cx="80" cy="80" r={r} fill="none" stroke="#1a1a2e" strokeWidth="8"/><circle cx="80" cy="80" r={r} fill="none" stroke={color||"#4ade80"} strokeWidth="8" strokeDasharray={circ} strokeDashoffset={off} strokeLinecap="round" style={{transform:"rotate(-90deg)",transformOrigin:"center",transition:"stroke-dashoffset 0.3s"}}/><text x="80" y="72" textAnchor="middle" fill="white" fontSize="32" fontWeight="800" fontFamily="monospace">{ft(time)}</text><text x="80" y="98" textAnchor="middle" fill="#94a3b8" fontSize="11">{running?"EM ANDAMENTO":time===0?"CONCLUÍDO ✓":"PAUSADO"}</text></svg>;}
-function CU({time,running}){return<svg viewBox="0 0 160 160" style={{width:180,height:180}}><circle cx="80" cy="80" r="70" fill="none" stroke="#1a1a2e" strokeWidth="8"/><circle cx="80" cy="80" r="70" fill="none" stroke="#f59e0b" strokeWidth="8" strokeDasharray="8 6" style={{animation:running?"spin 8s linear infinite":"none"}}/><text x="80" y="72" textAnchor="middle" fill="white" fontSize="32" fontWeight="800" fontFamily="monospace">{ft(time)}</text><text x="80" y="98" textAnchor="middle" fill="#94a3b8" fontSize="11">{running?"CORRENDO...":"PAUSADO"}</text></svg>;}
+  const hojeISO = isoHojeReal();
+  const progresso = state.progresso || { macrofase: 1, semanaIdx: 0, sessaoIdx: 0, dorAlta: false, acelerarTestes: false, force3x15: false };
+  const sessoesTipos = SESSOES_MF[progresso.macrofase] || SESSOES_MF[1];
+  const macInfo = getMacrofaseInfo(progresso.macrofase);
+  const totSem = totalSemanas(progresso.macrofase);
+  const diaAlternado = diffDias(MARCO_ZERO, hojeISO) % 2 === 0;
+  const rehabDoses = getRehabForMacrofase(progresso.macrofase, progresso.semanaIdx, diaAlternado, progresso.dorAlta);
+  const ultimoRathleffMs = Object.keys(state.rathleffLog).length ? Math.max(...Object.values(state.rathleffLog)) : 0;
+  const rathleff = rathleffStatus(ultimoRathleffMs, Date.now());
 
-function PVList({steps}){return<div style={{maxHeight:"55vh",overflowY:"auto"}}>{steps.map((s,i)=>s.section?<div key={i} style={{fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginTop:14,marginBottom:6}}>{s.section}</div>:<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",background:"rgba(255,255,255,0.03)",borderRadius:8,marginBottom:3}}><div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,color:s.name&&s.name.startsWith("↑")?"#4ade80":"#e2e8f0"}}>{s.name}</div>{s.detail&&<div style={{fontSize:11,color:"#64748b"}}>{s.detail}</div>}</div><div style={{fontSize:11,color:"#475569",textAlign:"right",minWidth:55}}>{s.sets&&s.reps?s.sets+"x"+s.reps:s.duration&&!s.sets?ft(s.duration):s.sets&&s.duration?s.sets+"x"+ft(s.duration):s.reps?s.reps+" reps":""}</div></div>)}</div>;}
+  function avancarProgresso(tipoCompletado) {
+    let { macrofase, semanaIdx } = progresso;
+    const tipos = SESSOES_MF[macrofase];
+    const idxCompletado = tipoCompletado ? tipos.indexOf(tipoCompletado) : progresso.sessaoIdx;
+    const baseIdx = idxCompletado === -1 ? progresso.sessaoIdx : idxCompletado;
+    let novoSessaoIdx = (baseIdx + 1) % tipos.length;
+    let novoSemanaIdx = semanaIdx, novoMacrofase = macrofase;
+    if (novoSessaoIdx === 0) {
+      const max = totalSemanas(macrofase);
+      if (semanaIdx + 1 >= max) {
+        const gate = verificarGate(macrofase, { testesLog: state.testesLog, dorLog: state.dorLog, hojeISO });
+        if (gate.ok && macrofase < 4) { novoMacrofase = macrofase + 1; novoSemanaIdx = 0; }
+      } else novoSemanaIdx = semanaIdx + 1;
+    }
+    patch({ progresso: { ...progresso, macrofase: novoMacrofase, semanaIdx: novoSemanaIdx, sessaoIdx: novoSessaoIdx } });
+  }
 
-function TabataTimer({work,rest:restT,rounds,onDone,color}){
-  const[round,setRound]=useState(1),[phase,setPhase]=useState("work"),[time,setTime]=useState(work),[running,setRunning]=useState(false),[done,setDone]=useState(false);
-  const ref=useRef(null);
-  useEffect(()=>{if(running&&time>0){ref.current=setInterval(()=>setTime(t=>t-1),1000);}else{clearInterval(ref.current);if(time===0&&running){playBeep();if(phase==="work"){setPhase("rest");setTime(restT);}else{if(round<rounds){setRound(r=>r+1);setPhase("work");setTime(work);}else{setRunning(false);setDone(true);}}}}return()=>clearInterval(ref.current);},[running,time,phase,round,rounds,work,restT]);
-  return<div style={{textAlign:"center"}}><div style={{fontSize:13,fontWeight:700,color:phase==="work"?"#ef4444":"#4ade80",marginBottom:4}}>{done?"COMPLETO!":phase==="work"?"💥 ESFORÇO":"😮‍💨 DESCANSO"}</div><div style={{fontSize:12,color:"#94a3b8",marginBottom:8}}>Round {round}/{rounds}</div><CT time={time} total={phase==="work"?work:restT} running={running} color={phase==="work"?"#ef4444":"#4ade80"}/>{!running&&!done&&<button onClick={()=>setRunning(true)} style={{marginTop:12,padding:"10px 28px",background:color,color:"white",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer"}}>{time===work&&round===1?"▶ Iniciar Tabata":"▶ Continuar"}</button>}{running&&<button onClick={()=>setRunning(false)} style={{marginTop:12,padding:"10px 28px",background:"#334155",color:"white",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer"}}>⏸ Pausar</button>}{done&&<button onClick={onDone} style={{marginTop:12,padding:"10px 28px",background:"#4ade80",color:"#0f0f1a",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer"}}>✓ Concluído</button>}</div>;
-}
+  function iniciarSessao(tipo) {
+    const info = tipoInfo(tipo);
+    const built = buildSessao(tipo, progresso.macrofase, progresso.semanaIdx, progresso.force3x15);
+    setSessaoAtual({ tipo, ...info, ...built });
+    setScr("workout");
+  }
 
-// ══════════════════════ REHAB SCREEN ══════════════════════
-function RehabScreen({onBack, routines, onRoutineComplete}){
-  const[activeRoutine,setActiveRoutine]=useState(null);
-  const[sI,setSI]=useState(0);
-  const[tmr,setTmr]=useState(0);
-  const[tmrOn,setTmrOn]=useState(false);
-  const[cS,setCS]=useState(1);
-  const[rst,setRst]=useState(false);
-  const[showHow,setShowHow]=useState(true);
-  const iR=useRef(null),bp=useRef(false);
-  
-  useEffect(()=>{if(tmrOn&&tmr>0){bp.current=false;iR.current=setInterval(()=>setTmr(t=>t-1),1000);}else{clearInterval(iR.current);if(tmr===0&&tmrOn){setTmrOn(false);if(!bp.current){playBeep();bp.current=true;}}}return()=>clearInterval(iR.current);},[tmrOn,tmr]);
+  function registrarDor(nota) { patch({ dorLog: { ...state.dorLog, [hojeISO]: nota } }); }
+  function diasSemRegistroDor() {
+    const piso = (state.onboarding && state.onboarding.iso) || hojeISO;
+    let n = 0, d = new Date(hojeISO + "T00:00:00");
+    for (;;) {
+      const iso = toISO(d);
+      if (state.dorLog[iso] !== undefined || iso < piso) break;
+      n++; d = new Date(d.getTime() - 86400000);
+    }
+    return n;
+  }
 
-  if(!activeRoutine){
-    return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto"}}>
-      <button onClick={onBack} style={{background:"none",border:"none",color:"#94a3b8",fontSize:14,cursor:"pointer",padding:4,marginBottom:16}}>← Voltar ao treino</button>
-      <div style={{textAlign:"center",marginBottom:24}}>
-        <div style={{fontSize:32,marginBottom:8}}>🦶</div>
-        <div style={{fontSize:22,fontWeight:800}}>Reabilitação Fascite Plantar</div>
-        <div style={{fontSize:12,color:"#94a3b8",marginTop:4}}>Protocolo baseado em evidência científica</div>
-        <div style={{fontSize:11,color:"#ef4444",marginTop:8,padding:"6px 12px",background:"#ef444415",borderRadius:8,display:"inline-block"}}>⚠️ Pare de correr até a dor melhorar</div>
-      </div>
-      <div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>Escolha a rotina do momento</div>
-      {routines.map(r=><button key={r.id} onClick={()=>{setActiveRoutine(r);setSI(0);setCS(1);setTmr(0);setTmrOn(false);setRst(false);const ex=r.exercises[0];if(ex&&ex.duration&&ex.type==="timer")setTmr(ex.duration)}} style={{width:"100%",padding:"16px",marginBottom:10,borderRadius:14,border:"1px solid "+r.color+"44",background:"linear-gradient(135deg,"+r.color+"15,"+r.color+"05)",cursor:"pointer",textAlign:"left"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div><div style={{fontSize:16,fontWeight:800,color:"white"}}>{r.title}</div><div style={{fontSize:12,color:"#94a3b8",marginTop:2}}>{r.subtitle}</div><div style={{fontSize:11,color:r.color,marginTop:4}}>{r.when}</div></div>
-          <div style={{fontSize:12,color:"#64748b",background:"rgba(255,255,255,0.06)",padding:"4px 10px",borderRadius:8}}>{r.time}</div>
-        </div>
-        <div style={{fontSize:11,color:"#475569",marginTop:8}}>{r.exercises.length} exercícios</div>
-      </button>)}
-      <div style={{marginTop:20,padding:14,background:"rgba(255,255,255,0.03)",borderRadius:12,border:"1px solid #1e293b"}}>
-        <div style={{fontSize:12,fontWeight:700,color:"#f59e0b",marginBottom:6}}>📋 Frequência recomendada</div>
-        <div style={{fontSize:11,color:"#94a3b8",lineHeight:1.6}}>
-          • 🌅 Matinal — TODOS os dias ao acordar (na cama!)<br/>
-          • 🌞 Manhã — TODOS os dias, 1x<br/>
-          • 🌆 Tarde — TODOS os dias, 1x<br/>
-          • 💪 Carga (Rathleff) — DIAS ALTERNADOS (seg/qua/sex)
-        </div>
-      </div>
-      <div style={{marginTop:12,padding:14,background:"#ef444410",borderRadius:12,border:"1px solid #ef444433"}}>
-        <div style={{fontSize:12,fontWeight:700,color:"#ef4444",marginBottom:6}}>🚫 O que NÃO fazer</div>
-        <div style={{fontSize:11,color:"#fca5a5",lineHeight:1.6}}>
-          • Correr, saltar, burpees, polichinelos<br/>
-          • Andar descalço em piso duro<br/>
-          • Alongar agressivamente com pé "frio"<br/>
-          • Massagem forte no calcanhar
-        </div>
-      </div>
+  function markDose(key) {
+    const novo = { ...state.rehabLog, [hojeISO]: { ...(state.rehabLog[hojeISO] || {}), [key]: true } };
+    const patchObj = { rehabLog: novo };
+    if (key === "carga") patchObj.rathleffLog = { ...state.rathleffLog, [hojeISO]: Date.now() };
+    patch(patchObj);
+  }
+  function doseFeita(key) { return !!(state.rehabLog[hojeISO] && state.rehabLog[hojeISO][key]); }
+
+  function onRegistrarCarga(exName, kg, atingiuTopo) { patch({ cargas: registrarCarga(state.cargas, exName, kg, atingiuTopo, hojeISO) }); }
+
+  function onFinishWorkout(entry) {
+    const historicoTreinos = registrarHistoricoTreino(state.historicoTreinos, { iso: hojeISO, ...entry });
+    patch({ historicoTreinos });
+    if (sessaoAtual && sessaoAtual.testeId) { setScr("teste"); return; }
+    avancarProgresso(sessaoAtual && sessaoAtual.tipo);
+    setScr("home");
+  }
+
+  function onResultadoTeste(passou) {
+    if (sessaoAtual && sessaoAtual.testeId) {
+      patch({ testesLog: { ...state.testesLog, [sessaoAtual.testeId]: { passou, iso: hojeISO } } });
+    }
+    avancarProgresso(sessaoAtual && sessaoAtual.tipo);
+    setScr("home");
+  }
+
+  // ══════════════════════ ONBOARDING / RECALIBRAÇÃO ══════════════════════
+  if (scr === "onboarding") {
+    return <Onboarding recalibrando={recalibrando} onFinish={(respostas) => {
+      const posicao = calcularPosicao({ dor: respostas.dor, semanasParado: respostas.semanasParado }, state.progresso);
+      patch({
+        onboarding: { dorInicial: respostas.dor, semanasParado: respostas.semanasParado, pesoInicial: respostas.peso, iso: hojeISO },
+        progresso: { ...posicao, sessaoIdx: 0 },
+        pesoLog: registrarPeso(state.pesoLog, hojeISO, respostas.peso),
+      });
+      setRecalibrando(false);
+      setScr("home");
+    }} />;
+  }
+
+  // ══════════════════════ TESTE (caminhada / corrida contínua / 5km / 10km) ══════════════════════
+  if (scr === "teste" && sessaoAtual) {
+    return <TesteScreen nome={sessaoAtual.resumo || "Teste"} criterio={sessaoAtual.testeNome} onResultado={onResultadoTeste} />;
+  }
+
+  // ══════════════════════ REHAB ══════════════════════
+  if (scr === "rehabDose" && activeDoseKey) {
+    const rotinas = [{ key: activeDoseKey, rotina: activeDoseKey === "carga" ? rehabDoses.carga : activeDoseKey === "gelo" ? rehabDoses.gelo : rehabDoses.base }];
+    return <RehabScreen
+      rotinas={rotinas}
+      rathleff={rathleff}
+      dorLog={state.dorLog}
+      pesoLog={state.pesoLog}
+      hojeISO={hojeISO}
+      onBack={() => { setScr("home"); setActiveDoseKey(null); }}
+      onRoutineComplete={() => markDose(activeDoseKey)}
+    />;
+  }
+
+  // ══════════════════════ HISTÓRICO ══════════════════════
+  if (scr === "historico") return <HistoricoTreinos historico={state.historicoTreinos} onBack={() => setScr("home")} />;
+
+  // ══════════════════════ PREVIEW ══════════════════════
+  if (scr === "preview" && sessaoAtual) {
+    return <Preview steps={sessaoAtual.steps} label={sessaoAtual.label} cor={sessaoAtual.cor} icon={sessaoAtual.icon} resumo={sessaoAtual.resumo}
+      onBack={() => setScr("home")} onIniciar={() => setScr("workout")} />;
+  }
+
+  // ══════════════════════ WORKOUT ══════════════════════
+  if (scr === "workout" && sessaoAtual) {
+    return <WorkoutScreen steps={sessaoAtual.steps} sessionLabel={sessaoAtual.label} cor={sessaoAtual.cor} grupoCarga={sessaoAtual.grupo}
+      cargas={state.cargas} onRegistrarCarga={onRegistrarCarga}
+      onExit={() => setScr("home")} onFinish={onFinishWorkout} />;
+  }
+
+  // ══════════════════════ PROGRAMA CONCLUÍDO ══════════════════════
+  const concluido = progresso.macrofase === 4 && state.testesLog.teste10km;
+  if (concluido) {
+    return <div style={{ background: color.bg, color: color.text, minHeight: "100vh", fontFamily: "system-ui", padding: 24, maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+      <Icon name="flag" size={40} color={color.success} />
+      <div style={{ fontSize: 22, fontWeight: 800, marginTop: 16, marginBottom: 8 }}>Programa concluído</div>
+      <div style={{ fontSize: 13, color: color.textDim, lineHeight: 1.6 }}>{META_OFICIAL}</div>
     </div>;
   }
 
-  // Active routine execution
-  const routine=activeRoutine;
-  const exercises=routine.exercises;
-  const step=exercises[sI];
-  const tot=exercises.length;
-  const mx=step.sets||1;
-  const isT=step.type==="timer"||step.type==="timed_exercise";
-  const isE=step.type==="exercise"||step.type==="timed_exercise";
+  // ══════════════════════ HOME ══════════════════════
+  const proximoTipo = sessoesTipos[progresso.sessaoIdx];
+  const infoProx = tipoInfo(proximoTipo);
+  const previewProx = buildSessao(proximoTipo, progresso.macrofase, progresso.semanaIdx, progresso.force3x15);
+  const ultimaSemana = progresso.semanaIdx === totSem - 1;
+  const ultimaSessaoDaSemana = progresso.sessaoIdx === sessoesTipos.length - 1;
+  const gateInfo = (ultimaSemana && ultimaSessaoDaSemana) ? verificarGate(progresso.macrofase, { testesLog: state.testesLog, dorLog: state.dorLog, hojeISO }) : null;
 
-  function nxt(){setTmrOn(false);setRst(false);setCS(1);setShowHow(true);if(sI+1>=tot){if(onRoutineComplete)onRoutineComplete();setActiveRoutine(null);return;}const n=exercises[sI+1];setSI(sI+1);if(n&&n.duration&&n.type==="timer")setTmr(n.duration);else setTmr(0);}
-  function dn(){if(cS<mx){if(step.rest){setRst(true);setTmr(step.rest);setTmrOn(true);}setCS(cS+1);}else nxt();}
-  const bb=(bg,cl)=>({padding:"14px 0",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",background:bg,color:cl,flex:1});
+  const doses = progresso.dorAlta
+    ? [{ key: "manha", label: "Rotina — Manhã" }, { key: "tarde", label: "Rotina — Tarde" }, { key: "noite", label: "Rotina — Noite" }]
+    : progresso.macrofase === 1
+      ? [{ key: "manha", label: "Rotina — Manhã" }, { key: "noite", label: "Rotina — Noite" }]
+      : [{ key: "unica", label: rehabDoses.base.title }];
 
-  return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:16,maxWidth:480,margin:"0 auto"}}>
-    <style>{"@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}"}</style>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-      <button onClick={()=>{setTmrOn(false);setActiveRoutine(null)}} style={{background:"none",border:"none",color:"#94a3b8",fontSize:14,cursor:"pointer",padding:4}}>← Sair</button>
-      <div style={{fontSize:12,color:"#64748b"}}>{sI+1}/{tot}</div>
-    </div>
-    <div style={{height:4,background:"#1a1a2e",borderRadius:2,marginBottom:12,overflow:"hidden"}}><div style={{height:4,borderRadius:2,background:routine.color,width:"100%",transform:"scaleX("+((sI+1)/tot)+")",transformOrigin:"left",transition:"transform 0.3s"}}/></div>
-    <div style={{fontSize:11,color:routine.color,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:8,textAlign:"center"}}>{routine.title}</div>
-    <div style={{textAlign:"center",marginBottom:12}}>
-      <div style={{fontSize:20,fontWeight:800,marginBottom:4,lineHeight:1.3}}>{step.name}</div>
-      {step.detail&&<div style={{fontSize:13,color:"#94a3b8"}}>{step.detail}</div>}
-      {step.sets&&step.reps&&<div style={{fontSize:13,color:routine.color,marginTop:4}}>{step.sets}x{step.reps}</div>}
-    </div>
-    
-    {/* How to do */}
-    {step.how&&<div style={{padding:14,background:"rgba(255,255,255,0.04)",borderRadius:12,marginBottom:12,border:"1px solid #1e293b"}}>
-      <div style={{fontSize:11,fontWeight:700,color:"#f59e0b",marginBottom:6}}>📖 Como fazer:</div>
-      <div style={{fontSize:12,color:"#cbd5e1",lineHeight:1.6}}>{step.how}</div>
-    </div>}
-
-    {isE&&!rst&&<div style={{textAlign:"center",marginBottom:8}}>
-      <div style={{display:"inline-flex",gap:6,marginBottom:8}}>{Array.from({length:mx},(_,i)=><div key={i} style={{width:32,height:32,borderRadius:"50%",background:i<cS-1?routine.color:i===cS-1?routine.color+"66":"#1a1a2e",border:i===cS-1?"2px solid "+routine.color:"2px solid #1a1a2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:i<cS?"white":"#475569"}}>{i<cS-1?"✓":i+1}</div>)}</div>
-      <div style={{fontSize:14,fontWeight:700}}>Série {cS}/{mx}{step.reps?" — "+(typeof step.reps==="string"?(step.reps.split("-")[cS-1]||step.reps):step.reps)+" reps":""}</div>
-    </div>}
-    {rst&&<div style={{textAlign:"center",marginBottom:8}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:4}}>⏱ DESCANSO</div><CT time={tmr} total={step.rest||60} running={tmrOn} color={routine.color}/></div>}
-    {isT&&!rst&&!isE&&step.duration&&<div style={{textAlign:"center",marginBottom:8}}><CT time={tmr} total={step.duration} running={tmrOn} color={routine.color}/></div>}
-    {isE&&step.type==="timed_exercise"&&!rst&&<div style={{textAlign:"center",marginBottom:8}}><CT time={tmr} total={step.duration||60} running={tmrOn} color={routine.color}/></div>}
-    
-    <div style={{display:"flex",gap:10,marginTop:16}}>
-      {isT&&!rst&&!isE&&step.duration&&<>{!tmrOn&&tmr>0&&<button onClick={()=>setTmrOn(true)} style={bb(routine.color,"white")}>▶ {tmr===step.duration?"Iniciar":"Continuar"}</button>}{tmrOn&&<button onClick={()=>setTmrOn(false)} style={bb("#334155","white")}>⏸ Pausar</button>}{tmr===0&&!tmrOn&&<button onClick={nxt} style={bb("#4ade80","#0f0f1a")}>✓ Próximo</button>}</>}
-      {isE&&step.type==="timed_exercise"&&!rst&&<>{!tmrOn&&<button onClick={()=>{setTmr(step.duration||60);setTmrOn(true)}} style={bb(routine.color,"white")}>▶ Série {cS}</button>}{tmrOn&&<button onClick={()=>setTmrOn(false)} style={bb("#334155","white")}>⏸ Pausar</button>}{tmr===0&&!tmrOn&&<button onClick={dn} style={bb("#4ade80","#0f0f1a")}>✓ Concluída</button>}</>}
-      {isE&&step.type==="exercise"&&!rst&&<button onClick={dn} style={bb("#4ade80","#0f0f1a")}>✓ Série {cS} concluída</button>}
-      {rst&&<>{tmr>0&&<button onClick={()=>{setRst(false);setTmrOn(false);setTmr(0)}} style={bb("#334155","white")}>Pular descanso</button>}{tmr===0&&<button onClick={()=>{setRst(false);setTmr(0)}} style={bb("#4ade80","#0f0f1a")}>✓ Próxima série</button>}</>}
-      {step.type==="reps"&&!step.sets&&<button onClick={nxt} style={bb("#4ade80","#0f0f1a")}>✓ Concluído</button>}
-      {step.type==="reps"&&step.sets&&<button onClick={dn} style={bb("#4ade80","#0f0f1a")}>✓ Série {cS}/{mx}</button>}
-    </div>
-    <button onClick={nxt} style={{width:"100%",marginTop:10,padding:"10px 0",background:"transparent",color:"#475569",border:"none",fontSize:12,cursor:"pointer"}}>Pular passo →</button>
-    {sI+1<tot&&<div style={{marginTop:16,padding:12,background:"rgba(255,255,255,0.03)",borderRadius:10}}><div style={{fontSize:10,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>A seguir</div><div style={{fontSize:13,color:"#94a3b8"}}>{exercises[sI+1]&&exercises[sI+1].name}</div></div>}
-  </div>;
-}
-
-// ══════════════════════ MAIN APP ══════════════════════
-export default function App(){
-  const[wk,setWk]=useState(2),[ses,setSes]=useState(2),[scr,setScr]=useState("home");
-  const[pvS,setPvS]=useState(0),[sI,setSIdx]=useState(0),[cS,setCS]=useState(1);
-  const[tmr,setTmr]=useState(0),[tmrOn,setTmrOn]=useState(false),[rst,setRst]=useState(false);
-  const[cup,setCup]=useState(0),[cupOn,setCupOn]=useState(false),[ok,setOk]=useState(false);
-  const[showHow,setShowHow]=useState(false);
-  const[diasOffset,setDiasOffset]=useState(0);
-  const[rehabLog,setRehabLog]=useState({});
-  const[activeDoseKey,setActiveDoseKey]=useState(null);
-  const[rehabScreenRoutines,setRehabScreenRoutines]=useState(null);
-  const[chaveDiaBase,setChaveDiaBase]=useState(null);
-  const[testeAtivo,setTesteAtivo]=useState(null);
-  const[testesLog,setTestesLog]=useState({});
-  const iR=useRef(null),cR=useRef(null),bp=useRef(false);
-
-  useEffect(()=>{(async()=>{try{const r=localStorage.getItem("tp7");if(r){const d=JSON.parse(r);setWk(d.w||2);setSes(d.s!==undefined?d.s:2);setDiasOffset(d.o||0);}const rl=localStorage.getItem("tp7rehab");if(rl)setRehabLog(JSON.parse(rl));const rd=localStorage.getItem("tp7dia");if(rd)setChaveDiaBase(JSON.parse(rd).b||null);const rt=localStorage.getItem("tp7testes");if(rt)setTestesLog(JSON.parse(rt));}catch(e){}setOk(true);})();},[]);
-  const sv=useCallback((w,s,o)=>{try{localStorage.setItem("tp7",JSON.stringify({w,s,o}))}catch(e){}},[]);
-  useEffect(()=>{if(ok&&!chaveDiaBase&&isoHoje()>=INICIO_TREINO){setChaveDiaBase(INICIO_TREINO);try{localStorage.setItem("tp7dia",JSON.stringify({b:INICIO_TREINO}))}catch(e){}}},[ok,chaveDiaBase,diasOffset]);
-
-  useEffect(()=>{if(tmrOn&&tmr>0){bp.current=false;iR.current=setInterval(()=>setTmr(t=>t-1),1000);}else{clearInterval(iR.current);if(tmr===0&&tmrOn){setTmrOn(false);if(!bp.current){playBeep();bp.current=true;}}}return()=>clearInterval(iR.current);},[tmrOn,tmr]);
-  useEffect(()=>{if(cupOn)cR.current=setInterval(()=>setCup(t=>t+1),1000);else clearInterval(cR.current);return()=>clearInterval(cR.current);},[cupOn]);
-
-  const mfInfo=getMacrofase(hojeEfetivo(Date.now(),diasOffset));
-  const idxOk=indicesDisponiveis(mfInfo.macrofase);
-  const sesEf=idxOk.includes(ses)?ses:idxOk[0];
-  const all=sessaoDados(mfInfo.macrofase,mfInfo.semanaIdx,sesEf,wk),steps=all.filter(s=>!s.section),step=steps[sI],ph=gp(wk),tot=steps.length,mph=getMPh(wk);
-  function curSec(){let sec="",c=0;for(const s of all){if(s.section){sec=s.section;continue;}if(c===sI)return sec;c++;}return sec;}
-  function startAny(si){setSes(si);sv(wk,si,diasOffset);setSIdx(0);setCS(1);setRst(false);setTmr(0);setTmrOn(false);setCup(0);setCupOn(false);setShowHow(false);const w=sessaoDados(mfInfo.macrofase,mfInfo.semanaIdx,si,wk),st=w.filter(x=>!x.section);if(st[0]&&st[0].duration&&st[0].type==="timer")setTmr(st[0].duration);setScr("workout");}
-  function adv(){const idx=indicesDisponiveis(mfInfo.macrofase);const pos=idx.indexOf(ses);const ns=idx[(pos+1)%idx.length];let nw=wk;if(mfInfo.macrofase<2&&pos===idx.length-1)nw=Math.min(wk+1,30);sv(nw,ns,diasOffset);setSes(ns);setWk(nw);setScr("home");}
-  function nxt(){setTmrOn(false);setCupOn(false);setRst(false);setCS(1);setCup(0);setShowHow(false);if(sI+1>=tot){adv();return;}const n=steps[sI+1];setSIdx(sI+1);if(n&&n.duration&&n.type==="timer")setTmr(n.duration);else setTmr(0);}
-  function dn(){const mx=step.sets||1;if(cS<mx){if(step.rest){setRst(true);setTmr(step.rest);setTmrOn(true);}setCS(cS+1);}else nxt();}
-  function setDias(n){const o=diasOffset+n;setDiasOffset(o);try{localStorage.setItem("tp7",JSON.stringify({w:wk,s:ses,o}))}catch(e){}}
-  function isoHoje(){const dt=hojeEfetivo(Date.now(),diasOffset);return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");}
-  const chaveDiaEfetivo=computeChaveDiaEfetivo(chaveDiaBase,rehabLog,isoHoje());
-  function markDose(key){const iso=chaveDiaEfetivo;if(!iso)return;const novo={...rehabLog,[iso]:{...(rehabLog[iso]||{}),[key]:true}};setRehabLog(novo);try{localStorage.setItem("tp7rehab",JSON.stringify(novo))}catch(e){}}
-  function doseFeita(key){const iso=chaveDiaEfetivo;return !!(iso&&rehabLog[iso]&&rehabLog[iso][key]);}
-  function finalizarDia(){if(!chaveDiaEfetivo)return;const b=proximoDiaAtivo(chaveDiaEfetivo);setChaveDiaBase(b);try{localStorage.setItem("tp7dia",JSON.stringify({b}))}catch(e){}}
-  function marcarTeste(id,passou){const novo={...testesLog,[id]:{passou,data:isoHoje()}};setTestesLog(novo);try{localStorage.setItem("tp7testes",JSON.stringify(novo))}catch(e){}setScr("home");}
-  function abrirDose(key,rotina){setActiveDoseKey(key);setRehabScreenRoutines([rotina]);setScr("rehabDose");}
-  const RESTRICOES=[
-    {fim:"2026-08-17",texto:"Dias 1-7 pós-op: zero esforço físico. Alongamentos de pé sentado/deitado liberados."},
-    {fim:"2026-08-25",texto:"Dias 8-15 pós-op: sem esforço moderado. Alongamentos + exercícios leves sentado liberados."},
-    {fim:"2026-09-10",texto:"Dias 16-30 pós-op: sem esforço excessivo. Musculação leve retorna gradualmente."},
-    {fim:"9999-12-31",texto:"Dia 31+ pós-op: liberado para treino normal."},
-  ];
-  function textoLiberado(iso){if(iso<"2026-08-11")return"Pré-operatório — foco total na fascite antes da cirurgia.";return RESTRICOES.find(x=>iso<=x.fim).texto;}
-
-  if(!ok)return<div style={{background:"#0f0f1a",color:"white",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"system-ui"}}><p style={{opacity:.6}}>Carregando...</p></div>;
-  const G="@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}";
-  const bb=(bg,cl)=>({padding:"14px 0",border:"none",borderRadius:12,fontSize:15,fontWeight:700,cursor:"pointer",background:bg,color:cl,flex:1});
-
-  // REHAB SCREEN
-  if(scr==="rehab") return<RehabScreen onBack={()=>setScr("home")} routines={mfInfo.macrofase===2?getRehabM2(mfInfo.diaAlternado):mfInfo.macrofase>=3?getRehabM3(mfInfo.diaAlternado):REHAB_ROUTINES}/>;
-  if(scr==="rehabDose") return<RehabScreen onBack={()=>{setScr("home");setRehabScreenRoutines(null);}} routines={rehabScreenRoutines} onRoutineComplete={()=>markDose(activeDoseKey)}/>;
-  if(scr==="testeCaminhada"){const t=TESTES_CAMINHADA.find(x=>x.id===testeAtivo);if(!t)return<div style={{background:"#0f0f1a",color:"white",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}><button onClick={()=>setScr("home")} style={{color:"white"}}>← Voltar</button></div>;
-    return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:16,maxWidth:480,margin:"0 auto"}}>
-      <button onClick={()=>setScr("home")} style={{background:"none",border:"none",color:"#94a3b8",fontSize:14,cursor:"pointer",padding:4,marginBottom:20}}>← Voltar</button>
-      <div style={{textAlign:"center",marginBottom:24}}>
-        <div style={{fontSize:40,marginBottom:12}}>🚶</div>
-        <div style={{fontSize:20,fontWeight:800,marginBottom:8}}>{t.nome}</div>
-        <div style={{fontSize:13,color:"#94a3b8"}}>{t.criterio}</div>
-      </div>
-      <button onClick={()=>marcarTeste(t.id,true)} style={{width:"100%",padding:16,marginBottom:10,borderRadius:14,border:"2px solid #4ade8088",background:"#4ade8022",color:"white",fontSize:15,fontWeight:700,cursor:"pointer"}}>✓ Passou</button>
-      <button onClick={()=>marcarTeste(t.id,false)} style={{width:"100%",padding:16,borderRadius:14,border:"2px solid #ef444488",background:"#ef444422",color:"white",fontSize:15,fontWeight:700,cursor:"pointer"}}>✗ Não passou (dor {'>'} 2/10)</button>
-    </div>;}
-
-  // PREVIEW
-  if(scr==="preview"){const pw=sessaoDados(mfInfo.macrofase,mfInfo.semanaIdx,pvS,wk),desc=sessaoDesc(mfInfo.macrofase,mfInfo.semanaIdx,pvS,wk),isMu=pvS===0||pvS===2||pvS===4,idxPrev=indicesDisponiveis(mfInfo.macrofase),tituloFase=mfInfo.macrofase>=2?mfInfo.nome:"Semana "+wk+" — "+ph.n,faseM=mfInfo.macrofase>=2?PHASE_NAMES[getMuscPhaseIndex(mfInfo.macrofase,mfInfo.semanaIdx)]:PHASE_NAMES[mph];
-    return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:16,maxWidth:480,margin:"0 auto"}}><style>{G}</style>
-      <button onClick={()=>setScr("home")} style={{background:"none",border:"none",color:"#94a3b8",fontSize:14,cursor:"pointer",padding:4,marginBottom:12}}>← Voltar</button>
-      <div style={{display:"flex",gap:5,marginBottom:16,overflowX:"auto",paddingBottom:4}}>{idxPrev.map(i=><button key={i} onClick={()=>setPvS(i)} style={{padding:"7px 12px",borderRadius:10,border:"none",cursor:"pointer",whiteSpace:"nowrap",fontSize:11,fontWeight:i===pvS?800:500,background:i===pvS?SCO[i]:"rgba(255,255,255,0.06)",color:i===pvS?"white":"#94a3b8"}}>{SS[i]}</button>)}</div>
-      <div style={{textAlign:"center",marginBottom:12}}><div style={{fontSize:36,marginBottom:4}}>{SIC[pvS]}</div><div style={{fontSize:20,fontWeight:800}}>{SL[pvS]}</div><div style={{fontSize:12,color:"#94a3b8",marginTop:2}}>{tituloFase}</div>{isMu&&<div style={{fontSize:11,color:"#4ade80",marginTop:4}}>🏋️ {faseM}</div>}{desc&&<div style={{fontSize:13,color:SCO[pvS],fontWeight:600,marginTop:6,background:SCO[pvS]+"18",borderRadius:8,padding:"4px 12px",display:"inline-block"}}>{desc}</div>}</div>
-      <PVList steps={pw}/>
-      <button onClick={()=>startAny(pvS)} style={{width:"100%",marginTop:16,padding:"14px 0",background:"linear-gradient(135deg,"+SCO[pvS]+","+SCO[pvS]+"cc)",color:"white",border:"none",borderRadius:14,fontSize:15,fontWeight:800,cursor:"pointer",letterSpacing:1,textTransform:"uppercase"}}>INICIAR ESTE TREINO</button></div>;}
-
-  // HOME
-  if(scr==="home"){
-    const hojeReal=isoHoje();
-    if(hojeReal<INICIO_TREINO){
-      return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center"}}>
-        <div style={{fontSize:40,marginBottom:12}}>⏸️</div>
-        <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Pausado até {INICIO_TREINO}</div>
-        <div style={{fontSize:13,color:"#94a3b8"}}>Reabilitação começa terça a sexta, a partir de 12/08.</div>
-        <div style={{display:"flex",gap:8,alignItems:"center",marginTop:20}}>
-          <button onClick={()=>setDias(-1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>-1 dia</button>
-          <span style={{fontSize:13,color:"#94a3b8",minWidth:110,textAlign:"center"}}>{diasOffset===0?"Hoje":(diasOffset>0?"+":"")+diasOffset+" dias"}</span>
-          <button onClick={()=>setDias(1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>+1 dia</button>
-        </div>
-      </div>;
-    }
-    if(mfInfo.macrofase===2){
-      const descM2=sessaoDesc(mfInfo.macrofase,mfInfo.semanaIdx,sesEf,wk);
-      const idxM2=indicesDisponiveis(mfInfo.macrofase);
-      const rotinasRehabM2=getRehabM2(mfInfo.diaAlternado);
-      return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto"}}><style>{G}</style>
-        <div style={{textAlign:"center",marginBottom:20}}>
-          <div style={{fontSize:12,color:"#94a3b8",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Treino Híbrido</div>
-          <div style={{fontSize:22,fontWeight:800}}>{mfInfo.nome}</div>
-          <div style={{fontSize:12,color:"#64748b",marginTop:4}}>Semana {mfInfo.semanaIdx+1}/4 — {hojeReal}</div>
-          <div style={{fontSize:10,color:"#64748b",marginTop:4}}>🏋️ {PHASE_NAMES[getMuscPhaseIndex(mfInfo.macrofase,mfInfo.semanaIdx)]}</div>
-        </div>
-        <button onClick={()=>setScr("rehab")} style={{width:"100%",padding:"14px 16px",marginBottom:16,borderRadius:14,border:"1px solid #ef444444",background:"linear-gradient(135deg,#ef444415,#ef444405)",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12}}>
-          <div style={{fontSize:28}}>🦶</div>
-          <div><div style={{fontSize:14,fontWeight:700,color:"#ef4444"}}>{rotinasRehabM2[0].title}</div><div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>Manutenção — toque a qualquer momento</div></div>
-        </button>
-        {mfInfo.semanaIdx>=2&&<div style={{marginBottom:16,padding:14,background:"rgba(255,255,255,0.03)",borderRadius:12}}>
-          <div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>🚶 Testes de caminhada</div>
-          {TESTES_CAMINHADA.map(t=>{const r=testesLog[t.id];return<button key={t.id} onClick={()=>{setTesteAtivo(t.id);setScr("testeCaminhada")}} style={{width:"100%",padding:10,marginBottom:6,borderRadius:10,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span style={{fontSize:12}}>{t.nome}</span>
-            <span style={{fontSize:11,color:r?(r.passou?"#4ade80":"#ef4444"):"#64748b"}}>{r?(r.passou?"✓ Passou":"✗ Não passou"):"Pendente"}</span>
-          </button>;})}
-        </div>}
-        <div style={{background:"rgba(255,255,255,0.04)",borderRadius:16,padding:4,marginBottom:16}}>
-          <div style={{display:"flex",gap:2}}>{idxM2.map(i=><div key={i} style={{flex:1,height:6,borderRadius:3,background:i<sesEf?SCO[i]:i===sesEf?SCO[i]+"99":"#1a1a2e",animation:i===sesEf?"pulse 2s infinite":"none"}}/>)}</div>
-          <div style={{display:"flex",justifyContent:"space-between",padding:"6px 2px 2px",fontSize:9,color:"#64748b"}}>{idxM2.map(i=><span key={i} style={{flex:1,textAlign:"center",fontWeight:i===sesEf?700:400,color:i===sesEf?"white":"#64748b"}}>{SS[i]}</span>)}</div>
-        </div>
-        <div style={{background:"linear-gradient(135deg,"+SCO[sesEf]+"22,"+SCO[sesEf]+"08)",border:"1px solid "+SCO[sesEf]+"44",borderRadius:20,padding:28,textAlign:"center",marginBottom:20}}>
-          <div style={{fontSize:56,marginBottom:8}}>{SIC[sesEf]}</div>
-          <div style={{fontSize:11,color:"#94a3b8",textTransform:"uppercase",letterSpacing:2,marginBottom:4}}>Próximo treino</div>
-          <div style={{fontSize:22,fontWeight:800,marginBottom:6}}>{SL[sesEf]}</div>
-          {descM2&&<div style={{fontSize:14,color:SCO[sesEf],fontWeight:600,background:SCO[sesEf]+"18",borderRadius:8,padding:"6px 14px",display:"inline-block"}}>{descM2}</div>}
-        </div>
-        <button onClick={()=>startAny(sesEf)} style={{width:"100%",padding:"16px 0",fontSize:17,fontWeight:800,background:"linear-gradient(135deg,"+SCO[sesEf]+","+SCO[sesEf]+"cc)",color:"white",border:"none",borderRadius:14,cursor:"pointer",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>INICIAR TREINO</button>
-        <button onClick={adv} style={{width:"100%",padding:"10px 0",fontSize:12,background:"transparent",color:"#475569",border:"none",cursor:"pointer"}}>Pular treino →</button>
-        <div style={{marginTop:24}}><div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>Treinos — toque para ver ou iniciar</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>{idxM2.map(i=><button key={i} onClick={()=>{setPvS(i);setScr("preview")}} style={{padding:"12px 6px",borderRadius:12,border:i===sesEf?"2px solid "+SCO[i]:"1px solid #1e293b",background:i===sesEf?SCO[i]+"15":"rgba(255,255,255,0.02)",cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:2}}>{SIC[i]}</div><div style={{fontSize:10,color:i===sesEf?SCO[i]:"#94a3b8",fontWeight:i===sesEf?700:500}}>{SL[i].replace("Musculação ","")}</div>{i===sesEf&&<div style={{fontSize:8,color:SCO[i],marginTop:2,fontWeight:700}}>PRÓXIMO</div>}</button>)}</div></div>
-        <div style={{marginTop:20,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:16}}>
-          <div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Ajustar data (teste)</div>
-          <div style={{display:"flex",gap:8,alignItems:"center",justifyContent:"center"}}>
-            <button onClick={()=>setDias(-1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>-1 dia</button>
-            <span style={{fontSize:13,color:"#94a3b8",minWidth:110,textAlign:"center"}}>{diasOffset===0?"Hoje":(diasOffset>0?"+":"")+diasOffset+" dias"}</span>
-            <button onClick={()=>setDias(1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>+1 dia</button>
-          </div>
-        </div>
-      </div>;
-    }
-    if(mfInfo.macrofase===3){
-      const descM3=sessaoDesc(mfInfo.macrofase,mfInfo.semanaIdx,sesEf,wk);
-      const idxM3=indicesDisponiveis(mfInfo.macrofase);
-      const rotinasRehabM3=getRehabM3(mfInfo.diaAlternado);
-      return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto"}}><style>{G}</style>
-        <div style={{textAlign:"center",marginBottom:20}}>
-          <div style={{fontSize:12,color:"#94a3b8",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Treino Híbrido</div>
-          <div style={{fontSize:22,fontWeight:800}}>{mfInfo.nome}</div>
-          <div style={{fontSize:12,color:"#64748b",marginTop:4}}>Semana {mfInfo.semanaIdx+1}/4 — {hojeReal}</div>
-          <div style={{fontSize:10,color:"#64748b",marginTop:4}}>🏋️ {PHASE_NAMES[getMuscPhaseIndex(mfInfo.macrofase,mfInfo.semanaIdx)]}</div>
-        </div>
-        <div style={{padding:14,background:"#f59e0b15",border:"1px solid #f59e0b44",borderRadius:12,marginBottom:16,fontSize:12,color:"#fbbf24",lineHeight:1.5}}>⚠️ Regra inegociável: se a dor matinal piorar no dia seguinte à corrida, volte uma etapa. Sem exceção.</div>
-        <button onClick={()=>setScr("rehab")} style={{width:"100%",padding:"14px 16px",marginBottom:16,borderRadius:14,border:"1px solid #ef444444",background:"linear-gradient(135deg,#ef444415,#ef444405)",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12}}>
-          <div style={{fontSize:28}}>🦶</div>
-          <div><div style={{fontSize:14,fontWeight:700,color:"#ef4444"}}>{rotinasRehabM3[0].title}</div><div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>Manutenção — toque a qualquer momento</div></div>
-        </button>
-        <div style={{background:"rgba(255,255,255,0.04)",borderRadius:16,padding:4,marginBottom:16}}>
-          <div style={{display:"flex",gap:2}}>{idxM3.map(i=><div key={i} style={{flex:1,height:6,borderRadius:3,background:i<sesEf?SCO[i]:i===sesEf?SCO[i]+"99":"#1a1a2e",animation:i===sesEf?"pulse 2s infinite":"none"}}/>)}</div>
-          <div style={{display:"flex",justifyContent:"space-between",padding:"6px 2px 2px",fontSize:9,color:"#64748b"}}>{SS.map((l,i)=><span key={i} style={{flex:1,textAlign:"center",fontWeight:i===sesEf?700:400,color:i===sesEf?"white":"#64748b"}}>{l}</span>)}</div>
-        </div>
-        <div style={{background:"linear-gradient(135deg,"+SCO[sesEf]+"22,"+SCO[sesEf]+"08)",border:"1px solid "+SCO[sesEf]+"44",borderRadius:20,padding:28,textAlign:"center",marginBottom:20}}>
-          <div style={{fontSize:56,marginBottom:8}}>{SIC[sesEf]}</div>
-          <div style={{fontSize:11,color:"#94a3b8",textTransform:"uppercase",letterSpacing:2,marginBottom:4}}>Próximo treino</div>
-          <div style={{fontSize:22,fontWeight:800,marginBottom:6}}>{SL[sesEf]}</div>
-          {descM3&&<div style={{fontSize:14,color:SCO[sesEf],fontWeight:600,background:SCO[sesEf]+"18",borderRadius:8,padding:"6px 14px",display:"inline-block"}}>{descM3}</div>}
-        </div>
-        <button onClick={()=>startAny(sesEf)} style={{width:"100%",padding:"16px 0",fontSize:17,fontWeight:800,background:"linear-gradient(135deg,"+SCO[sesEf]+","+SCO[sesEf]+"cc)",color:"white",border:"none",borderRadius:14,cursor:"pointer",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>INICIAR TREINO</button>
-        <button onClick={adv} style={{width:"100%",padding:"10px 0",fontSize:12,background:"transparent",color:"#475569",border:"none",cursor:"pointer"}}>Pular treino →</button>
-        <div style={{marginTop:24}}><div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>Treinos — toque para ver ou iniciar</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>{idxM3.map(i=><button key={i} onClick={()=>{setPvS(i);setScr("preview")}} style={{padding:"12px 6px",borderRadius:12,border:i===sesEf?"2px solid "+SCO[i]:"1px solid #1e293b",background:i===sesEf?SCO[i]+"15":"rgba(255,255,255,0.02)",cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:2}}>{SIC[i]}</div><div style={{fontSize:10,color:i===sesEf?SCO[i]:"#94a3b8",fontWeight:i===sesEf?700:500}}>{SL[i].replace("Musculação ","").replace("Corrida ","")}</div>{i===sesEf&&<div style={{fontSize:8,color:SCO[i],marginTop:2,fontWeight:700}}>PRÓXIMO</div>}</button>)}</div></div>
-        <div style={{marginTop:20,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:16}}>
-          <div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Ajustar data (teste)</div>
-          <div style={{display:"flex",gap:8,alignItems:"center",justifyContent:"center"}}>
-            <button onClick={()=>setDias(-1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>-1 dia</button>
-            <span style={{fontSize:13,color:"#94a3b8",minWidth:110,textAlign:"center"}}>{diasOffset===0?"Hoje":(diasOffset>0?"+":"")+diasOffset+" dias"}</span>
-            <button onClick={()=>setDias(1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>+1 dia</button>
-          </div>
-        </div>
-      </div>;
-    }
-    if(mfInfo.macrofase===4){
-      const descM4=sessaoDesc(mfInfo.macrofase,mfInfo.semanaIdx,sesEf,wk);
-      const idxM4=indicesDisponiveis(mfInfo.macrofase);
-      const rotinasRehabM4=getRehabM3(mfInfo.diaAlternado);
-      return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto"}}><style>{G}</style>
-        <div style={{textAlign:"center",marginBottom:20}}>
-          <div style={{fontSize:12,color:"#94a3b8",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Treino Híbrido</div>
-          <div style={{fontSize:22,fontWeight:800}}>{mfInfo.nome}</div>
-          <div style={{fontSize:12,color:"#64748b",marginTop:4}}>Semana {mfInfo.semanaIdx+1}/8 — {hojeReal}</div>
-          <div style={{fontSize:10,color:"#64748b",marginTop:4}}>🏋️ {PHASE_NAMES[getMuscPhaseIndex(mfInfo.macrofase,mfInfo.semanaIdx)]}</div>
-        </div>
-        <div style={{padding:14,background:"#f59e0b15",border:"1px solid #f59e0b44",borderRadius:12,marginBottom:16,fontSize:12,color:"#fbbf24",lineHeight:1.5}}>⚠️ Se a dor voltar, volte para reabilitação 2x/dia imediatamente.</div>
-        <button onClick={()=>setScr("rehab")} style={{width:"100%",padding:"14px 16px",marginBottom:16,borderRadius:14,border:"1px solid #ef444444",background:"linear-gradient(135deg,#ef444415,#ef444405)",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12}}>
-          <div style={{fontSize:28}}>🦶</div>
-          <div><div style={{fontSize:14,fontWeight:700,color:"#ef4444"}}>{rotinasRehabM4[0].title}</div><div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>Manutenção — toque a qualquer momento</div></div>
-        </button>
-        <div style={{background:"rgba(255,255,255,0.04)",borderRadius:16,padding:4,marginBottom:16}}>
-          <div style={{display:"flex",gap:2}}>{idxM4.map(i=><div key={i} style={{flex:1,height:6,borderRadius:3,background:i<sesEf?SCO[i]:i===sesEf?SCO[i]+"99":"#1a1a2e",animation:i===sesEf?"pulse 2s infinite":"none"}}/>)}</div>
-          <div style={{display:"flex",justifyContent:"space-between",padding:"6px 2px 2px",fontSize:9,color:"#64748b"}}>{SS.map((l,i)=><span key={i} style={{flex:1,textAlign:"center",fontWeight:i===sesEf?700:400,color:i===sesEf?"white":"#64748b"}}>{l}</span>)}</div>
-        </div>
-        <div style={{background:"linear-gradient(135deg,"+SCO[sesEf]+"22,"+SCO[sesEf]+"08)",border:"1px solid "+SCO[sesEf]+"44",borderRadius:20,padding:28,textAlign:"center",marginBottom:20}}>
-          <div style={{fontSize:56,marginBottom:8}}>{SIC[sesEf]}</div>
-          <div style={{fontSize:11,color:"#94a3b8",textTransform:"uppercase",letterSpacing:2,marginBottom:4}}>Próximo treino</div>
-          <div style={{fontSize:22,fontWeight:800,marginBottom:6}}>{SL[sesEf]}</div>
-          {descM4&&<div style={{fontSize:14,color:SCO[sesEf],fontWeight:600,background:SCO[sesEf]+"18",borderRadius:8,padding:"6px 14px",display:"inline-block"}}>{descM4}</div>}
-        </div>
-        <button onClick={()=>startAny(sesEf)} style={{width:"100%",padding:"16px 0",fontSize:17,fontWeight:800,background:"linear-gradient(135deg,"+SCO[sesEf]+","+SCO[sesEf]+"cc)",color:"white",border:"none",borderRadius:14,cursor:"pointer",letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>INICIAR TREINO</button>
-        <button onClick={adv} style={{width:"100%",padding:"10px 0",fontSize:12,background:"transparent",color:"#475569",border:"none",cursor:"pointer"}}>Pular treino →</button>
-        <div style={{marginTop:24}}><div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>Treinos — toque para ver ou iniciar</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>{idxM4.map(i=><button key={i} onClick={()=>{setPvS(i);setScr("preview")}} style={{padding:"12px 6px",borderRadius:12,border:i===sesEf?"2px solid "+SCO[i]:"1px solid #1e293b",background:i===sesEf?SCO[i]+"15":"rgba(255,255,255,0.02)",cursor:"pointer",textAlign:"center"}}><div style={{fontSize:22,marginBottom:2}}>{SIC[i]}</div><div style={{fontSize:10,color:i===sesEf?SCO[i]:"#94a3b8",fontWeight:i===sesEf?700:500}}>{SL[i].replace("Musculação ","").replace("Corrida ","")}</div>{i===sesEf&&<div style={{fontSize:8,color:SCO[i],marginTop:2,fontWeight:700}}>PRÓXIMO</div>}</button>)}</div></div>
-        <div style={{marginTop:20,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:16}}>
-          <div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Ajustar data (teste)</div>
-          <div style={{display:"flex",gap:8,alignItems:"center",justifyContent:"center"}}>
-            <button onClick={()=>setDias(-1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>-1 dia</button>
-            <span style={{fontSize:13,color:"#94a3b8",minWidth:110,textAlign:"center"}}>{diasOffset===0?"Hoje":(diasOffset>0?"+":"")+diasOffset+" dias"}</span>
-            <button onClick={()=>setDias(1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>+1 dia</button>
-          </div>
-        </div>
-      </div>;
-    }
-    if(mfInfo.macrofase>4){
-      return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center"}}>
-        <div style={{fontSize:40,marginBottom:12}}>🚧</div>
-        <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>{mfInfo.nome} ainda não configurada no app</div>
-        <div style={{fontSize:13,color:"#94a3b8",marginBottom:20}}>Consulte o plano completo no CLAUDE.md do projeto até essa parte ser implementada.</div>
-        <button onClick={()=>setScr("rehab")} style={{padding:"12px 20px",borderRadius:12,border:"1px solid #ef444444",background:"#ef444415",color:"#ef4444",cursor:"pointer",marginBottom:16}}>🦶 Abrir Reabilitação</button>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button onClick={()=>setDias(-7)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>-7 dias</button>
-          <span style={{fontSize:13,color:"#94a3b8"}}>{hojeReal}</span>
-          <button onClick={()=>setDias(7)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>+7 dias</button>
-        </div>
-      </div>;
-    }
-    const diaCheckList=chaveDiaEfetivo||hojeReal;
-    const completoHoje=diaCompleto(diaCheckList,rehabLog);
-    if(diaCheckList>ultimoDiaAtivoAte(hojeReal)||(completoHoje&&!isDiaAtivo(hojeReal))){
-      return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center"}}>
-        <div style={{fontSize:40,marginBottom:12}}>😴</div>
-        <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>Dia de descanso</div>
-        <div style={{fontSize:13,color:"#94a3b8"}}>Rehab é terça a sexta.</div>
-      </div>;
-    }
-    const mfDia=getMacrofase(new Date(diaCheckList+"T00:00:00"));
-    const rotinas=getRehabForMacrofase(mfDia.macrofase,mfDia.semanaIdx,mfDia.diaAlternado);
-    const rotinaBase=rotinas[0];
-    const cfgSemana=mfDia.macrofase===1?REHAB_M1[Math.min(mfDia.semanaIdx,REHAB_M1.length-1)]:null;
-    const rotinaCarga=rotinas[1]||(cfgSemana?cfgSemana.carga:null);
-    const atrasado=diaCheckList<hojeReal;
-    return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:"20px 16px",maxWidth:480,margin:"0 auto"}}><style>{G}</style>
-      <div style={{textAlign:"center",marginBottom:16}}>
-        <div style={{fontSize:12,color:"#94a3b8",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>Treino Híbrido</div>
-        <div style={{fontSize:22,fontWeight:800}}>{mfDia.nome}</div>
-        <div style={{fontSize:12,color:"#64748b",marginTop:4}}>Dia {mfDia.diasDesdeInicioMacrofase+1} — {diaCheckList}</div>
-        {atrasado&&<div style={{fontSize:11,color:"#ef4444",marginTop:4,fontWeight:700}}>⚠ Atrasado desde {diaCheckList} — hoje é {hojeReal}</div>}
-      </div>
-      <div style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:26,fontSize:12,color:"#94a3b8",lineHeight:1.5}}><span style={{fontSize:14,flexShrink:0,opacity:.8}}>🩹</span><span>{textoLiberado(hojeReal)}</span></div>
-      <div style={{fontSize:12,color:"#e2e8f0",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12}}>Checklist de {diaCheckList===hojeReal?"hoje":diaCheckList}</div>
-      {["manha","noite"].map(key=>{const feita=doseFeita(key);return<button key={key} onClick={()=>abrirDose(key,rotinaBase)} style={{width:"100%",padding:16,marginBottom:10,borderRadius:14,border:"2px solid "+(feita?"#4ade8055":"#f59e0b88"),background:feita?"#4ade8014":"#f59e0b22",boxShadow:feita?"none":"0 2px 10px #f59e0b26",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div><div style={{fontSize:16,fontWeight:800}}>{feita?"✓ ":""}Rotina {key==="manha"?"Manhã":"Noite"}</div><div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{rotinaBase.time}</div><div style={{fontSize:10,color:"#64748b",marginTop:4,lineHeight:1.4}}>{rotinaBase.exercises.map(e=>e.name).join(" · ")}</div></div>
-        <div style={{fontSize:20}}>{feita?"✅":"▶"}</div>
-      </button>;})}
-      {rotinaCarga&&<button onClick={()=>abrirDose("carga",rotinaCarga)} style={{width:"100%",padding:16,marginBottom:10,borderRadius:14,border:"2px solid "+(doseFeita("carga")?"#4ade8055":"#ef444488"),background:doseFeita("carga")?"#4ade8014":"#ef444422",boxShadow:doseFeita("carga")?"none":"0 2px 10px #ef444426",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div><div style={{fontSize:16,fontWeight:800}}>{doseFeita("carga")?"✓ ":""}{rotinaCarga.title}</div><div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{mfDia.diaAlternado?"Dia sugerido":"Fazer mesmo assim"}</div><div style={{fontSize:10,color:"#64748b",marginTop:4,lineHeight:1.4}}>{rotinaCarga.exercises.map(e=>e.name).join(" · ")}</div></div>
-        <div style={{fontSize:20}}>{doseFeita("carga")?"✅":"▶"}</div>
-      </button>}
-      <button onClick={finalizarDia} style={{width:"100%",padding:14,marginTop:10,marginBottom:10,borderRadius:12,border:"1px solid #334155",background:"rgba(255,255,255,0.03)",color:"#94a3b8",fontSize:13,fontWeight:600,cursor:"pointer"}}>✓ Dia finalizado</button>
-      <div style={{marginTop:14,background:"rgba(255,255,255,0.03)",borderRadius:12,padding:16}}>
-        <div style={{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Ajustar data (teste)</div>
-        <div style={{display:"flex",gap:8,alignItems:"center",justifyContent:"center"}}>
-          <button onClick={()=>setDias(-1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>-1 dia</button>
-          <span style={{fontSize:13,color:"#94a3b8",minWidth:110,textAlign:"center"}}>{diasOffset===0?"Hoje":(diasOffset>0?"+":"")+diasOffset+" dias"}</span>
-          <button onClick={()=>setDias(1)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #334155",background:"transparent",color:"white",cursor:"pointer"}}>+1 dia</button>
-        </div>
-      </div>
-    </div>;
-  }
-
-  // WORKOUT
-  if(scr==="workout"&&step){const sec=curSec(),iT=step.type==="timer"||step.type==="timed_exercise",iE=step.type==="exercise"||step.type==="timed_exercise",isTab=step.type==="tabata",mx=step.sets||1,pc=step.ph==="r"?"#E65100":step.ph==="fp"||step.ph==="f"?"#F57F17":step.ph==="i"?"#0ea5e9":step.ph==="w"?"#F57F17":step.ph==="s"?"#1565C0":SCO[ses];
-    return<div style={{background:"linear-gradient(180deg,#0f0f1a,#1a1a2e)",color:"white",minHeight:"100vh",fontFamily:"system-ui",padding:16,maxWidth:480,margin:"0 auto"}}><style>{G}</style>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <button onClick={()=>{setTmrOn(false);setCupOn(false);setScr("home")}} style={{background:"none",border:"none",color:"#94a3b8",fontSize:14,cursor:"pointer",padding:4}}>← Sair</button>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button onClick={()=>setScr("rehab")} style={{background:"#ef444420",border:"none",color:"#ef4444",fontSize:11,padding:"4px 8px",borderRadius:6,cursor:"pointer"}}>🦶 Rehab</button>
-          <span style={{fontSize:12,color:"#64748b"}}>{sI+1}/{tot}</span>
-        </div>
-      </div>
-      <div style={{height:4,background:"#1a1a2e",borderRadius:2,marginBottom:12,overflow:"hidden"}}><div style={{height:4,borderRadius:2,background:pc,width:"100%",transform:"scaleX("+((sI+1)/tot)+")",transformOrigin:"left",transition:"transform 0.3s"}}/></div>
-      <div style={{fontSize:12,color:pc,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:8,textAlign:"center"}}>{sec}</div>
-      <div style={{textAlign:"center",marginBottom:8}}>
-        <div style={{fontSize:20,fontWeight:800,marginBottom:4,lineHeight:1.3,color:step.name&&step.name.startsWith("↑")?"#4ade80":"white"}}>{step.name}</div>
-        {step.detail&&<div style={{fontSize:13,color:"#94a3b8"}}>{step.detail}</div>}
-        {step.how&&<button onClick={()=>setShowHow(!showHow)} style={{marginTop:6,fontSize:11,padding:"4px 12px",borderRadius:8,background:"rgba(255,255,255,0.06)",color:"#94a3b8",border:"1px solid #334155",cursor:"pointer"}}>{showHow?"Fechar":"📖 Como fazer"}</button>}
-        {showHow&&step.how&&<div style={{marginTop:8,padding:12,background:"rgba(255,255,255,0.04)",borderRadius:10,fontSize:12,color:"#cbd5e1",lineHeight:1.5,textAlign:"left"}}>{step.how}</div>}
-      </div>
-
-      {isTab&&<TabataTimer work={step.tabataWork} rest={step.tabataRest} rounds={step.tabataRounds} onDone={()=>{if(cS<(step.sets||1)){if(step.rest){setRst(true);setTmr(step.rest);setTmrOn(true);}setCS(cS+1);}else nxt();}} color={pc}/>}
-      {iE&&!rst&&!isTab&&<div style={{textAlign:"center",marginBottom:8}}><div style={{display:"inline-flex",gap:6,marginBottom:8}}>{Array.from({length:mx},(_,i)=><div key={i} style={{width:32,height:32,borderRadius:"50%",background:i<cS-1?pc:i===cS-1?pc+"66":"#1a1a2e",border:i===cS-1?"2px solid "+pc:"2px solid #1a1a2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:i<cS?"white":"#475569"}}>{i<cS-1?"✓":i+1}</div>)}</div><div style={{fontSize:14,fontWeight:700}}>Série {cS}/{mx}{step.reps?" — "+(typeof step.reps==="string"?(step.reps.split("-")[cS-1]||step.reps):step.reps)+" reps":""}</div></div>}
-      {rst&&<div style={{textAlign:"center",marginBottom:8}}><div style={{fontSize:13,color:"#94a3b8",marginBottom:4}}>⏱ DESCANSO</div><CT time={tmr} total={step.rest||60} running={tmrOn} color={pc}/></div>}
-      {iT&&!rst&&!iE&&step.duration&&<div style={{textAlign:"center",marginBottom:8}}><CT time={tmr} total={step.duration} running={tmrOn} color={step.isIce?"#0ea5e9":pc}/></div>}
-      {iE&&step.type==="timed_exercise"&&!rst&&<div style={{textAlign:"center",marginBottom:8}}><CT time={tmr} total={step.duration||60} running={tmrOn} color={pc}/></div>}
-      {step.type==="manual"&&<div style={{textAlign:"center",marginBottom:8}}><CU time={cup} running={cupOn}/>{!cupOn&&cup===0&&<button onClick={()=>setCupOn(true)} style={{marginTop:12,padding:"10px 28px",background:pc,color:"white",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer"}}>▶ Iniciar</button>}{cupOn&&<button onClick={()=>setCupOn(false)} style={{marginTop:12,padding:"10px 28px",background:"#334155",color:"white",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer"}}>⏸ Pausar</button>}{!cupOn&&cup>0&&<button onClick={()=>setCupOn(true)} style={{marginTop:12,padding:"10px 28px",background:pc,color:"white",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer"}}>▶ Continuar</button>}</div>}
-      
-      <div style={{display:"flex",gap:10,marginTop:16}}>
-        {iT&&!rst&&!iE&&step.duration&&<>{!tmrOn&&tmr>0&&<button onClick={()=>setTmrOn(true)} style={bb(pc,"white")}>▶ {tmr===step.duration?"Iniciar":"Continuar"}</button>}{tmrOn&&<button onClick={()=>setTmrOn(false)} style={bb("#334155","white")}>⏸ Pausar</button>}{tmr===0&&!tmrOn&&<button onClick={nxt} style={bb("#4ade80","#0f0f1a")}>✓ Próximo</button>}</>}
-        {iE&&step.type==="timed_exercise"&&!rst&&<>{!tmrOn&&<button onClick={()=>{setTmr(step.duration||60);setTmrOn(true)}} style={bb(pc,"white")}>▶ Série {cS}</button>}{tmrOn&&<button onClick={()=>setTmrOn(false)} style={bb("#334155","white")}>⏸ Pausar</button>}{tmr===0&&!tmrOn&&<button onClick={dn} style={bb("#4ade80","#0f0f1a")}>✓ Concluída</button>}</>}
-        {iE&&step.type==="exercise"&&!rst&&<button onClick={dn} style={bb("#4ade80","#0f0f1a")}>✓ Série {cS} concluída</button>}
-        {rst&&<>{tmr>0&&<button onClick={()=>{setRst(false);setTmrOn(false);setTmr(0)}} style={bb("#334155","white")}>Pular descanso</button>}{tmr===0&&<button onClick={()=>{setRst(false);setTmr(0)}} style={bb("#4ade80","#0f0f1a")}>✓ Próxima série</button>}</>}
-        {step.type==="reps"&&!step.sets&&<button onClick={nxt} style={bb("#4ade80","#0f0f1a")}>✓ Concluído</button>}
-        {step.type==="reps"&&step.sets&&<button onClick={dn} style={bb("#4ade80","#0f0f1a")}>✓ Série {cS}/{mx}</button>}
-        {step.type==="manual"&&<button onClick={()=>{setCupOn(false);nxt()}} style={bb("#4ade80","#0f0f1a")}>✓ Concluído</button>}
-      </div>
-      <button onClick={nxt} style={{width:"100%",marginTop:10,padding:"10px 0",background:"transparent",color:"#475569",border:"none",fontSize:12,cursor:"pointer"}}>Pular passo →</button>
-      {sI+1<tot&&<div style={{marginTop:16,padding:12,background:"rgba(255,255,255,0.03)",borderRadius:10}}><div style={{fontSize:10,color:"#475569",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>A seguir</div><div style={{fontSize:13,color:"#94a3b8"}}>{steps[sI+1]&&steps[sI+1].name}</div></div>}
-      {step.isTest&&<div style={{marginTop:16,padding:14,background:pc+"15",borderRadius:12,border:"1px solid "+pc+"33",textAlign:"center"}}><div style={{fontSize:24,marginBottom:4}}>🎯</div><div style={{fontSize:13,color:pc,fontWeight:700}}>DIA DE TESTE!</div><div style={{fontSize:12,color:"#94a3b8",marginTop:4}}>Não acelere! COMPLETAR é o objetivo!</div></div>}
-    </div>;}
-
-  return<div style={{background:"#0f0f1a",color:"white",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}><p>Carregando...</p></div>;
+  return <Home
+    macrofaseNome={macInfo.nome} semanaIdx={progresso.semanaIdx} totalSemanas={totSem} hojeISO={hojeISO}
+    dorHoje={state.dorLog[hojeISO]} diasSemRegistroDor={diasSemRegistroDor()} onRegistrarDor={registrarDor}
+    doses={doses} doseFeitaFn={doseFeita}
+    onAbrirDose={(key) => { setActiveDoseKey(key); setScr("rehabDose"); }}
+    cargaDisponivel={!!rehabDoses.carga} cargaFeita={doseFeita("carga")} cargaTitulo={rehabDoses.carga ? rehabDoses.carga.title : ""}
+    cargaBloqueada={!rathleff.liberado} restanteRathleff={formatarRestante(rathleff.restanteMs)}
+    proximaSessao={{ label: infoProx.label, icon: infoProx.icon, cor: infoProx.cor, resumo: previewProx.resumo }}
+    onIniciar={() => iniciarSessao(proximoTipo)}
+    onPular={avancarProgresso}
+    gateInfo={gateInfo}
+    sessoes={sessoesTipos.map(t => tipoInfo(t))}
+    onVerSessao={(i) => { const tipo = sessoesTipos[i]; const info = tipoInfo(tipo); const built = buildSessao(tipo, progresso.macrofase, progresso.semanaIdx, progresso.force3x15); setSessaoAtual({ tipo, ...info, ...built }); setScr("preview"); }}
+    onAbrirHistorico={() => setScr("historico")}
+    onRecalibrar={() => { setRecalibrando(true); setScr("onboarding"); }}
+  />;
 }
