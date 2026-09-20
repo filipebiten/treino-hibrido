@@ -58,6 +58,18 @@ const GIF_MAP = {
   "Bíceps Scott": "Exercicios/Bíceps/Rosca scott com halteres.gif",
   "Along. posterior": "Exercicios/Mobilidade/Alongamento dos Isquiotibiais Sentado.gif",
   "Along. posterior coxa": "Exercicios/Mobilidade/Alongamento dos Isquiotibiais Sentado.gif",
+  "Supino leve barra vazia": "Exercicios/Peitoral/Supino Reto.gif",
+  "Supino barra vazia": "Exercicios/Peitoral/Supino Reto.gif",
+  "Agach. peso corpo": "Exercicios/Calistenia/Agachamento.gif",
+  "Agach. barra vazia": "Exercicios/Calistenia/Agachamento.gif",
+  "Elevação lateral": "Exercicios/Ombros/Elevação lateral de braços com halteres.gif",
+  "Rosca bíceps W": "Exercicios/Bíceps/Rosca direta com barra w.gif",
+  "Supino reto halteres": "Exercicios/Peitoral/Supino com Halteres.gif",
+  "Desenvolvimento ombro": "Exercicios/Ombros/Desenvolvimento de ombro com halteres em Z.gif",
+  "Rosca alternada": "Exercicios/Bíceps/Rosca alternada com halteres sentado.gif",
+  "Supino inclinado BARRA": "Exercicios/Peitoral/Supino inclinado com barra.gif",
+  "Mergulho banco": "Exercicios/Calistenia/Mergulho de tríceps.gif",
+  "Tríceps francês EZ": "Exercicios/Tríceps/Tríceps francês com barra W acima da cabeça sentado.gif",
 };
 
 export function getGifUrl(exerciseName) {
