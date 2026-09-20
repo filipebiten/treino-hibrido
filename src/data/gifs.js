@@ -49,6 +49,15 @@ const GIF_MAP = {
   "Pullover halter": "Exercicios/Peitoral/Pullover com haltere.gif",
   "Avanço caminhando": "Exercicios/Pernas/Avanço com Halteres.gif",
   "Búlgaro": "Exercicios/Pernas/Agachamento Búlgaro com Halteres.gif",
+  "Terra Deadlift": "Exercicios/Costas/Levantamento Terra.gif",
+  "Stiff romeno barra": "Exercicios/Costas/Levantamento Terra Romeno.gif",
+  "Avanço dinâmico": "Exercicios/Calistenia/Avanço sem Peso Corporal.gif",
+  "Elev. panturrilha bilateral": "Exercicios/Calistenia/Elevação de panturrilha em pé.gif",
+  "Elev. panturrilha UNILATERAL": "Exercicios/Calistenia/Elevação de Panturrilha em Uma Perna.gif",
+  "Elev. panturrilha unilateral": "Exercicios/Calistenia/Elevação de Panturrilha em Uma Perna.gif",
+  "Bíceps Scott": "Exercicios/Bíceps/Rosca scott com halteres.gif",
+  "Along. posterior": "Exercicios/Mobilidade/Alongamento dos Isquiotibiais Sentado.gif",
+  "Along. posterior coxa": "Exercicios/Mobilidade/Alongamento dos Isquiotibiais Sentado.gif",
 };
 
 export function getGifUrl(exerciseName) {
