@@ -23,7 +23,7 @@ export default function Onboarding({ onFinish, recalibrando }) {
   if (step === 0) {
     return (
       <div style={wrap}>
-        <div style={title}>{recalibrando ? "Recalibrar" : "Antes de começar"}</div>
+        <h1 style={title}>{recalibrando ? "Recalibrar" : "Antes de começar"}</h1>
         <div style={sub}>Dor no calcanhar ao dar os primeiros passos da manhã?</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: space.sm }}>
           {Array.from({ length: 11 }, (_, i) => i).map(n => (
@@ -39,7 +39,7 @@ export default function Onboarding({ onFinish, recalibrando }) {
   if (step === 1) {
     return (
       <div style={wrap}>
-        <div style={title}>Tempo parado</div>
+        <h1 style={title}>Tempo parado</h1>
         <div style={sub}>Há quantas semanas você não treina?</div>
         <div style={{ display: "flex", flexDirection: "column", gap: space.sm }}>
           {SEMANAS_OPCOES.map(o => (
@@ -53,7 +53,7 @@ export default function Onboarding({ onFinish, recalibrando }) {
 
   return (
     <div style={wrap}>
-      <div style={title}>Peso atual</div>
+      <h1 style={title}>Peso atual</h1>
       <div style={sub}>Em kg</div>
       <input type="number" inputMode="decimal" value={peso} onChange={e => setPeso(e.target.value)} placeholder="89" style={{ ...btnBase, textAlign: "center", fontSize: ty.hero, fontWeight: 800, padding: space.md }} />
       <button disabled={!peso} onClick={() => onFinish({ dor, semanasParado, peso: parseFloat(peso) })} style={{ ...btnBase, marginTop: space.xl, background: !peso ? color.surface : color.success, color: !peso ? color.textFaint : "#0f1115", fontWeight: 800 }}>{recalibrando ? "Recalibrar" : "Começar"}</button>

@@ -62,7 +62,7 @@ export default function RehabScreen({ onBack, rotinas, onRoutineComplete, rathle
           <div>
             <div style={{ textAlign: "center", marginBottom: space.xl }}>
               <Icon name="foot" size={34} color={color.alert} />
-              <div style={{ fontSize: ty.display, fontWeight: 800, marginTop: 8 }}>Reabilitação</div>
+              <h1 style={{ fontSize: ty.display, fontWeight: 800, marginTop: 8 }}>Reabilitação</h1>
               <div style={{ fontSize: ty.xs, color: color.textDim, marginTop: 4 }}>Protocolo baseado em evidência científica</div>
             </div>
             {rotinas.map(r => {
@@ -118,7 +118,7 @@ export default function RehabScreen({ onBack, rotinas, onRoutineComplete, rathle
       <div style={{ height: 4, background: color.surfaceAlt, borderRadius: 2, marginBottom: space.md, overflow: "hidden" }}><div style={{ height: 4, borderRadius: 2, background: routine.color, width: "100%", transform: "scaleX(" + ((sI + 1) / tot) + ")", transformOrigin: "left", transition: "transform 0.3s" }} /></div>
       <div style={{ fontSize: ty.xs, color: routine.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm, textAlign: "center" }}>{routine.title}</div>
       <div style={{ textAlign: "center", marginBottom: space.md }}>
-        <div style={{ fontSize: ty.xl, fontWeight: 800, marginBottom: 4, lineHeight: 1.3 }}>{step.name}</div>
+        <h1 style={{ fontSize: ty.xl, fontWeight: 800, marginBottom: 4, lineHeight: 1.3 }}>{step.name}</h1>
         {step.detail && <div style={{ fontSize: ty.base, color: color.textDim }}>{step.detail}</div>}
         {step.sets && step.reps && <div style={{ fontSize: ty.base, color: routine.color, marginTop: 4 }}>{step.sets}x{step.reps}</div>}
       </div>
@@ -132,7 +132,7 @@ export default function RehabScreen({ onBack, rotinas, onRoutineComplete, rathle
 
       {isE && !rst && (
         <div style={{ textAlign: "center", marginBottom: space.sm }}>
-          <div style={{ display: "inline-flex", gap: 6, marginBottom: 8 }}>{Array.from({ length: mx }, (_, i) => <div key={i} style={{ width: 32, height: 32, borderRadius: "50%", background: i < cS - 1 ? routine.color : i === cS - 1 ? routine.color + "66" : color.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", fontSize: ty.sm, fontWeight: 700, color: i < cS ? "white" : color.textFaint }}>{i < cS - 1 ? <Icon name="check" size={14} /> : i + 1}</div>)}</div>
+          <div style={{ display: "inline-flex", gap: 6, marginBottom: 8 }}>{Array.from({ length: mx }, (_, i) => <div key={i} style={{ width: 32, height: 32, borderRadius: "50%", background: i < cS - 1 ? routine.color : i === cS - 1 ? routine.color + "66" : color.surfaceAlt, display: "flex", alignItems: "center", justifyContent: "center", fontSize: ty.sm, fontWeight: 700, color: i < cS - 1 ? color.bg : i === cS - 1 ? color.text : color.textFaint }}>{i < cS - 1 ? <Icon name="check" size={14} /> : i + 1}</div>)}</div>
           <div style={{ fontSize: ty.md, fontWeight: 700 }}>Série {cS}/{mx}{step.reps ? " — " + (typeof step.reps === "string" ? (step.reps.split("-")[cS - 1] || step.reps) : step.reps) + " reps" : ""}</div>
         </div>
       )}
@@ -141,8 +141,8 @@ export default function RehabScreen({ onBack, rotinas, onRoutineComplete, rathle
       {isE && step.type === "timed_exercise" && !rst && <div style={{ textAlign: "center", marginBottom: space.sm }}><CT time={tmr} total={step.duration || 60} running={tmrOn} cor={routine.color} /></div>}
 
       <div style={{ display: "flex", gap: 10, marginTop: space.lg }}>
-        {isT && !rst && !isE && step.duration && <>{!tmrOn && tmr > 0 && <button onClick={() => setTmrOn(true)} style={bb(routine.color, "white")}>{tmr === step.duration ? "Iniciar" : "Continuar"}</button>}{tmrOn && <button onClick={() => setTmrOn(false)} style={bb(color.surfaceAlt, color.text)}>Pausar</button>}{tmr === 0 && !tmrOn && <button onClick={nxt} style={bb(color.success, "#0f1115")}>Próximo</button>}</>}
-        {isE && step.type === "timed_exercise" && !rst && <>{!tmrOn && <button onClick={() => { setTmr(step.duration || 60); setTmrOn(true); }} style={bb(routine.color, "white")}>Série {cS}</button>}{tmrOn && <button onClick={() => setTmrOn(false)} style={bb(color.surfaceAlt, color.text)}>Pausar</button>}{tmr === 0 && !tmrOn && <button onClick={dn} style={bb(color.success, "#0f1115")}>Concluída</button>}</>}
+        {isT && !rst && !isE && step.duration && <>{!tmrOn && tmr > 0 && <button onClick={() => setTmrOn(true)} style={bb(routine.color, color.bg)}>{tmr === step.duration ? "Iniciar" : "Continuar"}</button>}{tmrOn && <button onClick={() => setTmrOn(false)} style={bb(color.surfaceAlt, color.text)}>Pausar</button>}{tmr === 0 && !tmrOn && <button onClick={nxt} style={bb(color.success, "#0f1115")}>Próximo</button>}</>}
+        {isE && step.type === "timed_exercise" && !rst && <>{!tmrOn && <button onClick={() => { setTmr(step.duration || 60); setTmrOn(true); }} style={bb(routine.color, color.bg)}>Série {cS}</button>}{tmrOn && <button onClick={() => setTmrOn(false)} style={bb(color.surfaceAlt, color.text)}>Pausar</button>}{tmr === 0 && !tmrOn && <button onClick={dn} style={bb(color.success, "#0f1115")}>Concluída</button>}</>}
         {isE && step.type === "exercise" && !rst && <button onClick={dn} style={bb(color.success, "#0f1115")}>Série {cS} concluída</button>}
         {rst && <>{tmr > 0 && <button onClick={() => { setRst(false); setTmrOn(false); setTmr(0); }} style={bb(color.surfaceAlt, color.text)}>Pular descanso</button>}{tmr === 0 && <button onClick={() => { setRst(false); setTmr(0); }} style={bb(color.success, "#0f1115")}>Próxima série</button>}</>}
         {step.type === "reps" && !step.sets && <button onClick={nxt} style={bb(color.success, "#0f1115")}>Concluído</button>}

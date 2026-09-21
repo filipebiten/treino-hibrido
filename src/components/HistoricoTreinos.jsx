@@ -11,14 +11,14 @@ export default function HistoricoTreinos({ historico, onBack }) {
       <button onClick={onBack} style={backBtn}><Icon name="chevronLeft" size={16} /> Voltar</button>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: space.lg, marginTop: space.sm }}>
         <Icon name="history" size={22} />
-        <div style={{ fontSize: ty.display, fontWeight: 800 }}>Histórico de treinos</div>
+        <h1 style={{ fontSize: ty.display, fontWeight: 800 }}>Histórico de treinos</h1>
       </div>
-      {historico.length === 0 && <div style={{ fontSize: ty.sm, color: color.textFaint, textAlign: "center", marginTop: space.xxl }}>Nenhum treino concluído ainda.</div>}
+      {historico.length === 0 && <div style={{ fontSize: ty.sm, color: color.textFaint, textAlign: "center", marginTop: space.xxl }}>Nenhum treino concluído ainda. Quando você terminar o primeiro, ele aparece aqui.</div>}
       {historico.map((h, i) => (
         <div key={i} style={{ background: color.surface, borderRadius: radius.lg, padding: space.md, marginBottom: space.sm }}>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <div style={{ fontSize: ty.md, fontWeight: 700 }}>{h.label}</div>
-            <div style={{ fontSize: ty.xs, color: color.textFaint }}>{h.iso}</div>
+            <div style={{ fontSize: ty.xs, color: color.textFaint }}>{h.iso.split("-").reverse().join("/")}</div>
           </div>
           <div style={{ fontSize: ty.xs, color: color.textDim, marginTop: 4 }}>
             {ft(h.duracaoSeg)}{h.volume > 0 ? " · " + h.volume + "kg de volume" : ""}

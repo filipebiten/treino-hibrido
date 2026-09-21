@@ -1,7 +1,7 @@
 import Icon from "./Icon.jsx";
 import { color, space, type as ty, radius, touch } from "../lib/tokens.js";
 
-const cardBase = { width: "100%", borderRadius: radius.lg, border: "1px solid " + color.border, background: color.surface, cursor: "pointer", textAlign: "left" };
+const cardBase = { width: "100%", color: color.text, borderRadius: radius.lg, border: "1px solid " + color.border, background: color.surface, cursor: "pointer", textAlign: "left" };
 
 function DorCard({ dorHoje, diasSemRegistro, onRegistrar }) {
   if (dorHoje !== undefined) {
@@ -61,14 +61,26 @@ export default function Home({
   gateInfo,
   sessoes, onVerSessao,
   onAbrirHistorico, onRecalibrar,
+  retomar, onRetomar, onDescartarRetomar,
 }) {
   return (
     <div style={{ background: color.bg, color: color.text, minHeight: "100vh", fontFamily: "system-ui", padding: space.xl + "px " + space.lg + "px", maxWidth: 480, margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginBottom: space.lg }}>
         <div style={{ fontSize: ty.xs, color: color.textFaint, letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>Treino Híbrido</div>
-        <div style={{ fontSize: ty.display, fontWeight: 800 }}>{macrofaseNome}</div>
-        <div style={{ fontSize: ty.xs, color: color.textFaint, marginTop: 4 }}>Semana {semanaIdx + 1}/{totalSemanas} · {hojeISO}</div>
+        <h1 style={{ fontSize: ty.display, fontWeight: 800 }}>{macrofaseNome}</h1>
+        <div style={{ fontSize: ty.xs, color: color.textFaint, marginTop: 4 }}>Semana {semanaIdx + 1}/{totalSemanas} · {hojeISO.split("-").reverse().slice(0, 2).join("/")}</div>
       </div>
+
+      {retomar && (
+        <div style={{ ...cardBase, cursor: "default", padding: space.lg, marginBottom: space.md, border: "1px solid " + color.success + "88", background: color.success + "12" }}>
+          <div style={{ fontSize: ty.md, fontWeight: 800, marginBottom: 2 }}>Treino em andamento</div>
+          <div style={{ fontSize: ty.sm, color: color.textDim, marginBottom: space.md }}>{retomar.label} · passo {retomar.passo}/{retomar.total}</div>
+          <div style={{ display: "flex", gap: space.sm }}>
+            <button onClick={onRetomar} style={{ flex: 1, minHeight: 48, borderRadius: radius.md, border: "none", background: color.success, color: color.bg, fontSize: ty.md, fontWeight: 800, cursor: "pointer" }}>Retomar</button>
+            <button onClick={onDescartarRetomar} style={{ minHeight: 48, padding: "0 16px", borderRadius: radius.md, border: "1px solid " + color.border, background: "transparent", color: color.textDim, fontSize: ty.sm, cursor: "pointer" }}>Descartar</button>
+          </div>
+        </div>
+      )}
 
       <DorCard dorHoje={dorHoje} diasSemRegistro={diasSemRegistroDor} onRegistrar={onRegistrarDor} />
 
@@ -82,8 +94,8 @@ export default function Home({
           {proximaSessao.resumo && <div style={{ fontSize: ty.sm, color: proximaSessao.cor, fontWeight: 600, background: proximaSessao.cor + "18", borderRadius: radius.sm, padding: "6px 14px", display: "inline-block" }}>{proximaSessao.resumo}</div>}
         </div>
       )}
-      <button onClick={onIniciar} style={{ width: "100%", minHeight: touch.min, fontSize: ty.md, fontWeight: 800, background: proximaSessao ? proximaSessao.cor : color.success, color: "white", border: "none", borderRadius: radius.lg, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase", marginBottom: space.sm }}>Iniciar treino</button>
-      <button onClick={onPular} style={{ width: "100%", minHeight: 44, fontSize: ty.xs, background: "transparent", color: color.textFaint, border: "none", cursor: "pointer" }}>Pular treino</button>
+      <button onClick={onIniciar} style={{ width: "100%", minHeight: touch.min, fontSize: ty.md, fontWeight: 800, background: proximaSessao ? proximaSessao.cor : color.success, color: color.bg, border: "none", borderRadius: radius.lg, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase", marginBottom: space.sm }}>Iniciar treino</button>
+      <button onClick={() => window.confirm("Pular este treino e ir para o próximo?") && onPular()} style={{ width: "100%", minHeight: 44, fontSize: ty.xs, background: "transparent", color: color.textFaint, border: "none", cursor: "pointer" }}>Pular treino</button>
 
       {gateInfo && !gateInfo.ok && (
         <div style={{ marginTop: space.lg, padding: space.md, background: color.alert + "14", border: "1px solid " + color.alert + "44", borderRadius: radius.lg }}>

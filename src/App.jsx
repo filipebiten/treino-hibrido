@@ -58,6 +58,9 @@ function buildSessao(tipo, macrofase, semanaIdx, force3x15) {
   }
 }
 
+const RESUME_KEY = "th1-resume";
+function lerResume() { try { const r = JSON.parse(localStorage.getItem(RESUME_KEY)); return r && r.iso === isoHojeReal() ? r : null; } catch { return null; } }
+
 function isoHojeReal() { return toISO(new Date()); }
 
 export default function App() {
@@ -66,11 +69,14 @@ export default function App() {
   const [sessaoAtual, setSessaoAtual] = useState(null); // { tipo, steps, label, cor, icon, resumo, testeId, testeNome, grupo }
   const [activeDoseKey, setActiveDoseKey] = useState(null);
   const [recalibrando, setRecalibrando] = useState(false);
+  const [resume, setResume] = useState(null);      // treino interrompido hoje: { tipo, label, tot, iso, sI, cS, startMs, volume }
+  const [retomando, setRetomando] = useState(false);
 
   useEffect(() => {
     const s = loadState();
     setState(s);
     setScr(s.onboarding ? "home" : "onboarding");
+    setResume(lerResume());
   }, []);
 
   // dor / rehab reforçado — verifica recuo automático 1x por dia
@@ -117,7 +123,21 @@ export default function App() {
     patch({ progresso: { ...progresso, macrofase: novoMacrofase, semanaIdx: novoSemanaIdx, sessaoIdx: novoSessaoIdx } });
   }
 
+  function limparResume() { setResume(null); setRetomando(false); try { localStorage.removeItem(RESUME_KEY); } catch { /* sem localStorage */ } }
+  function guardarResume(p) {
+    if (!sessaoAtual) return;
+    const tot = sessaoAtual.steps.filter(x => !x.section).length;
+    try { localStorage.setItem(RESUME_KEY, JSON.stringify({ tipo: sessaoAtual.tipo, label: sessaoAtual.label, tot, iso: hojeISO, ...p })); } catch { /* sem localStorage */ }
+  }
+  function retomarSessao() {
+    const built = buildSessao(resume.tipo, progresso.macrofase, progresso.semanaIdx, progresso.force3x15);
+    setSessaoAtual({ tipo: resume.tipo, ...tipoInfo(resume.tipo), ...built });
+    setRetomando(true);
+    setScr("workout");
+  }
+
   function iniciarSessao(tipo) {
+    limparResume();
     const info = tipoInfo(tipo);
     const built = buildSessao(tipo, progresso.macrofase, progresso.semanaIdx, progresso.force3x15);
     setSessaoAtual({ tipo, ...info, ...built });
@@ -147,6 +167,7 @@ export default function App() {
   function onRegistrarCarga(exName, kg, atingiuTopo) { patch({ cargas: registrarCarga(state.cargas, exName, kg, atingiuTopo, hojeISO) }); }
 
   function onFinishWorkout(entry) {
+    limparResume();
     const historicoTreinos = registrarHistoricoTreino(state.historicoTreinos, { iso: hojeISO, ...entry });
     patch({ historicoTreinos });
     if (sessaoAtual && sessaoAtual.testeId) { setScr("teste"); return; }
@@ -201,14 +222,15 @@ export default function App() {
   // ══════════════════════ PREVIEW ══════════════════════
   if (scr === "preview" && sessaoAtual) {
     return <Preview steps={sessaoAtual.steps} label={sessaoAtual.label} cor={sessaoAtual.cor} icon={sessaoAtual.icon} resumo={sessaoAtual.resumo}
-      onBack={() => setScr("home")} onIniciar={() => setScr("workout")} />;
+      onBack={() => setScr("home")} onIniciar={() => { limparResume(); setScr("workout"); }} />;
   }
 
   // ══════════════════════ WORKOUT ══════════════════════
   if (scr === "workout" && sessaoAtual) {
     return <WorkoutScreen steps={sessaoAtual.steps} sessionLabel={sessaoAtual.label} cor={sessaoAtual.cor} grupoCarga={sessaoAtual.grupo}
       cargas={state.cargas} onRegistrarCarga={onRegistrarCarga}
-      onExit={() => setScr("home")} onFinish={onFinishWorkout} />;
+      resume={retomando ? resume : null} onProgress={guardarResume}
+      onBack={() => { setRetomando(false); setResume(lerResume()); setScr("home"); }} onFinish={onFinishWorkout} />;
   }
 
   // ══════════════════════ PROGRAMA CONCLUÍDO ══════════════════════
@@ -216,7 +238,7 @@ export default function App() {
   if (concluido) {
     return <div style={{ background: color.bg, color: color.text, minHeight: "100vh", fontFamily: "system-ui", padding: 24, maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
       <Icon name="flag" size={40} color={color.success} />
-      <div style={{ fontSize: 22, fontWeight: 800, marginTop: 16, marginBottom: 8 }}>Programa concluído</div>
+      <h1 style={{ fontSize: 22, fontWeight: 800, marginTop: 16, marginBottom: 8 }}>Programa concluído</h1>
       <div style={{ fontSize: 13, color: color.textDim, lineHeight: 1.6 }}>{META_OFICIAL}</div>
     </div>;
   }
@@ -250,5 +272,7 @@ export default function App() {
     onVerSessao={(i) => { const tipo = sessoesTipos[i]; const info = tipoInfo(tipo); const built = buildSessao(tipo, progresso.macrofase, progresso.semanaIdx, progresso.force3x15); setSessaoAtual({ tipo, ...info, ...built }); setScr("preview"); }}
     onAbrirHistorico={() => setScr("historico")}
     onRecalibrar={() => { setRecalibrando(true); setScr("onboarding"); }}
+    retomar={resume ? { label: resume.label, passo: resume.sI + 1, total: resume.tot } : null}
+    onRetomar={retomarSessao} onDescartarRetomar={limparResume}
   />;
 }

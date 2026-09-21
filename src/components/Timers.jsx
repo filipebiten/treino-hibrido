@@ -56,7 +56,7 @@ export function TabataTimer({ work, rest: restT, rounds, onDone, cor }) {
       <div style={{ fontSize: ty.base, fontWeight: 700, color: done ? color.success : phase === "work" ? color.pain : color.success, marginBottom: 4 }}>{done ? "COMPLETO" : phase === "work" ? "ESFORÇO" : "DESCANSO"}</div>
       <div style={{ fontSize: ty.sm, color: color.textDim, marginBottom: 8 }}>Round {round}/{rounds}</div>
       <CT time={time} total={phase === "work" ? work : restT} running={running} cor={phase === "work" ? color.pain : color.success} />
-      {!running && !done && <button onClick={() => setRunning(true)} style={btn(cor, "white")}>{time === work && round === 1 ? "Iniciar Tabata" : "Continuar"}</button>}
+      {!running && !done && <button onClick={() => setRunning(true)} style={btn(cor, color.bg)}>{time === work && round === 1 ? "Iniciar Tabata" : "Continuar"}</button>}
       {running && <button onClick={() => setRunning(false)} style={btn(color.surfaceAlt, color.text)}>Pausar</button>}
       {done && <button onClick={onDone} style={btn(color.success, "#0f1115")}>Concluído</button>}
     </div>
