@@ -204,7 +204,9 @@ export default function App() {
 
   // ══════════════════════ REHAB ══════════════════════
   if (scr === "rehabDose" && activeDoseKey) {
-    const rotinas = [{ key: activeDoseKey, rotina: activeDoseKey === "carga" ? rehabDoses.carga : activeDoseKey === "gelo" ? rehabDoses.gelo : rehabDoses.base }];
+    const baseRotina = activeDoseKey === "carga" ? rehabDoses.carga : activeDoseKey === "gelo" ? rehabDoses.gelo : rehabDoses.base;
+    const tituloPeriodo = activeDoseKey === "manha" ? "Rotina — Manhã" : activeDoseKey === "tarde" ? "Rotina — Tarde" : activeDoseKey === "noite" ? "Rotina — Noite" : null;
+    const rotinas = [{ key: activeDoseKey, rotina: tituloPeriodo ? { ...baseRotina, title: tituloPeriodo } : baseRotina }];
     return <RehabScreen
       rotinas={rotinas}
       rathleff={rathleff}
@@ -217,7 +219,7 @@ export default function App() {
   }
 
   // ══════════════════════ HISTÓRICO ══════════════════════
-  if (scr === "historico") return <HistoricoTreinos historico={state.historicoTreinos} onBack={() => setScr("home")} />;
+  if (scr === "historico") return <HistoricoTreinos historico={state.historicoTreinos} dorLog={state.dorLog} hojeISO={hojeISO} onBack={() => setScr("home")} />;
 
   // ══════════════════════ PREVIEW ══════════════════════
   if (scr === "preview" && sessaoAtual) {
