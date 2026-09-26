@@ -239,7 +239,7 @@ export default function App() {
   if (scr === "historico") return <Historico eventos={state.eventos} hojeISO={hojeISO} onBack={() => setScr("home")} onEventosChange={(eventos) => patch({ eventos })} />;
 
   // ══════════════════════ RELATÓRIOS ══════════════════════
-  if (scr === "relatorios") return <Relatorios eventos={state.eventos} hojeISO={hojeISO} onBack={() => setScr("home")} />;
+  if (scr === "relatorios") return <Relatorios eventos={state.eventos} hojeISO={hojeISO} cargas={state.cargas} macrofase={progresso.macrofase} testesLog={state.testesLog} dorLog={state.dorLog} onBack={() => setScr("home")} />;
 
   // ══════════════════════ PREVIEW ══════════════════════
   if (scr === "preview" && sessaoAtual) {

@@ -8,6 +8,10 @@ const { buildCaminhadaSession, buildWalkRunSession, buildContinuoSession, buildM
 const { buildMuscSession, MA, getMuscPhaseIndex } = await server.ssrLoadModule("/src/data/musculacao.js");
 const { getRehabForMacrofase } = await server.ssrLoadModule("/src/data/rehab.js");
 const { registrar, listar, editar, remover, migrarParaEventos } = await server.ssrLoadModule("/src/lib/eventos.js");
+const {
+  periodoParaDatas, aderenciaRehab, dorAoLongoDoTempo, dorPorAderencia, dorPorTipoTreino,
+  acwr, progressaoCarga, exerciciosEstagnados, volumeCorrida, pesoCorporal, eventosParaCSV, eventosParaJSON,
+} = await server.ssrLoadModule("/src/lib/relatorios.js");
 
 // ══════════════════════ CALENDÁRIO ══════════════════════
 assert.strictEqual(totalSemanas(1), 4);
@@ -161,6 +165,82 @@ const migrado = migrarParaEventos(estadoLegado);
 assert.strictEqual(migrado.eventosMigrados, true);
 assert.strictEqual(migrado.eventos.length, 7); // dor + peso + rehab_dose(manha) + rathleff(carga) + treino_concluido + teste + recuo — rathleffLog não duplica pois já coberto via rehabLog.carga
 assert.strictEqual(migrarParaEventos(migrado).eventos.length, migrado.eventos.length); // idempotente
+
+// ══════════════════════ RELATÓRIOS ══════════════════════
+let pd = periodoParaDatas("7d", "2026-09-30");
+assert.deepStrictEqual(pd, { desde: "2026-09-24", ate: "2026-09-30" });
+pd = periodoParaDatas("tudo", "2026-09-30");
+assert.strictEqual(pd.desde, MARCO_ZERO);
+pd = periodoParaDatas("90d", "2026-09-25"); // clampa no marco zero, plano só começou 21/09
+assert.strictEqual(pd.desde, MARCO_ZERO);
+
+let evR = [];
+evR = registrar(evR, "rehab_dose", { periodo: "manha" }, "2026-09-21");
+evR = registrar(evR, "rehab_dose", { periodo: "noite" }, "2026-09-21");
+evR = registrar(evR, "rehab_dose", { periodo: "manha" }, "2026-09-22");
+evR = registrar(evR, "dor_checkin", { nivel: 4 }, "2026-09-21");
+evR = registrar(evR, "dor_checkin", { nivel: 2 }, "2026-09-22");
+evR = registrar(evR, "treino_concluido", { tipo: "muscA", duracaoSeg: 1800 }, "2026-09-22");
+
+let ad = aderenciaRehab(evR, "2026-09-21", "2026-09-22");
+assert.strictEqual(ad.manha.feitas, 2); assert.strictEqual(ad.manha.pct, 100);
+assert.strictEqual(ad.noite.feitas, 1); assert.strictEqual(ad.noite.pct, 50);
+
+let dt = dorAoLongoDoTempo(evR, "2026-09-21", "2026-09-22");
+assert.strictEqual(dt.pontos.length, 2);
+assert.strictEqual(dt.mediaMovel[1].media, 3); // média de 4 e 2
+
+// dor do dia seguinte ao treino de 22/09 é a de 23/09
+const evR2 = registrar(evR, "dor_checkin", { nivel: 5 }, "2026-09-23");
+const dpt = dorPorTipoTreino(evR2, "2026-09-21", "2026-09-23");
+assert.strictEqual(dpt.muscA.n, 1);
+assert.strictEqual(dpt.muscA.dorMedia, 5);
+assert.strictEqual(dpt.muscA.suficiente, false); // só 1 amostra, mínimo é 3
+
+// ACWR: sem 28 dias de histórico ainda -> insuficiente
+let acwrInsuf = acwr(evR, "2026-09-22");
+assert.strictEqual(acwrInsuf.suficiente, false);
+assert.strictEqual(acwrInsuf.faltamDias, 26);
+
+// 28 dias de rehab manhã+noite todo santo dia -> carga constante -> ratio ~1 (ideal)
+let evR28 = [];
+for (let i = 0; i < 28; i++) {
+  const d = new Date("2026-09-21T00:00:00"); d.setDate(d.getDate() + i);
+  const iso = d.toISOString().slice(0, 10);
+  evR28 = registrar(evR28, "rehab_dose", { periodo: "manha" }, iso);
+  evR28 = registrar(evR28, "rehab_dose", { periodo: "noite" }, iso);
+}
+let acwrOk = acwr(evR28, "2026-10-18"); // dia 28 desde o marco zero
+assert.strictEqual(acwrOk.suficiente, true);
+assert.strictEqual(acwrOk.ratio, 1);
+assert.strictEqual(acwrOk.faixa, "ideal");
+
+// dor x aderência: dados insuficientes com só 2 dias de histórico
+let daa = dorPorAderencia(evR, "2026-09-21", "2026-09-22");
+assert.strictEqual(daa.suficiente, false);
+
+const cargasTeste = {
+  "Supino": { historico: [{ iso: "2026-09-01", kg: 10 }, { iso: "2026-09-08", kg: 12 }] },
+  "Agachamento": { historico: [{ iso: "2026-09-01", kg: 20 }, { iso: "2026-09-08", kg: 20 }, { iso: "2026-09-15", kg: 20 }] },
+};
+assert.strictEqual(progressaoCarga(cargasTeste, "Supino").historico.length, 2);
+let estag = exerciciosEstagnados(cargasTeste);
+assert.strictEqual(estag.length, 1);
+assert.strictEqual(estag[0].nome, "Agachamento");
+
+let vc = volumeCorrida(evR, "2026-09-21", "2026-09-22");
+assert.strictEqual(vc.temDado, false); // app não captura distância hoje
+
+let evPeso = registrar(registrar([], "peso", { kg: 90 }, "2026-09-21"), "peso", { kg: 88 }, "2026-09-28");
+let pc = pesoCorporal(evPeso);
+assert.strictEqual(pc.tendencia, -2);
+assert.strictEqual(pc.pontos.length, 2);
+
+let csv = eventosParaCSV(evR);
+assert.ok(csv.startsWith("data;tipo;payload"));
+assert.ok(csv.includes("21/09/2026"));
+let json = JSON.parse(eventosParaJSON(evR));
+assert.strictEqual(json.length, evR.length);
 
 console.log("check-plano.mjs: todos os testes passaram");
 await server.close();

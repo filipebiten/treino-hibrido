@@ -1,16 +1,7 @@
+import StatBox from "./StatBox.jsx";
 import { color, space, type as ty, radius } from "../../lib/tokens.js";
 
 const BAR_W = 8, GAP_BARRA = 4, GAP_GRUPO = 6, ALTURA = 70;
-
-function Numero({ label, pct, feitas, total, cor }) {
-  return (
-    <div style={{ flex: 1 }}>
-      <div style={{ fontSize: 11, color: color.textFaint, marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: ty.xl, fontWeight: 800, color: cor }}>{pct}%</div>
-      <div style={{ fontSize: 10, color: color.textFaint }}>{feitas}/{total} dias</div>
-    </div>
-  );
-}
 
 export default function Relatorio1Aderencia({ dados }) {
   const semanas = dados.porSemana;
@@ -22,8 +13,8 @@ export default function Relatorio1Aderencia({ dados }) {
       <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.md }}>1. Aderência ao rehab</div>
 
       <div style={{ display: "flex", gap: space.lg, marginBottom: space.md }}>
-        <Numero label="Manhã" pct={dados.manha.pct} feitas={dados.manha.feitas} total={dados.manha.planejadas} cor={color.corrida} />
-        <Numero label="Noite" pct={dados.noite.pct} feitas={dados.noite.feitas} total={dados.noite.planejadas} cor={color.forca} />
+        <StatBox label="Manhã" valor={dados.manha.pct + "%"} sub={dados.manha.feitas + "/" + dados.manha.planejadas + " dias"} cor={color.corrida} />
+        <StatBox label="Noite" valor={dados.noite.pct + "%"} sub={dados.noite.feitas + "/" + dados.noite.planejadas + " dias"} cor={color.forca} />
       </div>
 
       {semanas.length > 0 ? (
