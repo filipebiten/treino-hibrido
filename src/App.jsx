@@ -6,6 +6,7 @@ import { buildCaminhadaSession, buildWalkRunSession, buildContinuoSession, build
 import { loadState, saveState } from "./lib/storage.js";
 import { calcularPosicao, verificarGate, checkRecuoAutomatico, rathleffStatus, formatarRestante } from "./lib/progressao.js";
 import { registrarCarga, registrarHistoricoTreino, registrarPeso } from "./lib/treino.js";
+import { registrar as registrarEvento } from "./lib/eventos.js";
 import { color } from "./lib/tokens.js";
 
 import Onboarding from "./components/Onboarding.jsx";
@@ -87,7 +88,11 @@ export default function App() {
     const r = checkRecuoAutomatico(state.dorLog, hoje);
     if (r.trigger) {
       const novoSemana = Math.max(0, state.progresso.semanaIdx - 1);
-      setState(s => { const n = { ...s, progresso: { ...s.progresso, semanaIdx: novoSemana }, ultimoRecuoISO: hoje }; saveState(n); return n; });
+      setState(s => {
+        const eventos = registrarEvento(s.eventos, "recuo_automatico", { de: s.progresso.semanaIdx, para: novoSemana, motivo: "dor_subiu_2dias" }, hoje);
+        const n = { ...s, progresso: { ...s.progresso, semanaIdx: novoSemana }, ultimoRecuoISO: hoje, eventos };
+        saveState(n); return n;
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state && state.dorLog && state.dorLog[isoHojeReal()]]);
@@ -144,7 +149,7 @@ export default function App() {
     setScr("workout");
   }
 
-  function registrarDor(nota) { patch({ dorLog: { ...state.dorLog, [hojeISO]: nota } }); }
+  function registrarDor(nota) { patch({ dorLog: { ...state.dorLog, [hojeISO]: nota }, eventos: registrarEvento(state.eventos, "dor_checkin", { nivel: nota }, hojeISO) }); }
   function diasSemRegistroDor() {
     const piso = (state.onboarding && state.onboarding.iso) || hojeISO;
     let n = 0, d = new Date(hojeISO + "T00:00:00");
@@ -159,7 +164,12 @@ export default function App() {
   function markDose(key) {
     const novo = { ...state.rehabLog, [hojeISO]: { ...(state.rehabLog[hojeISO] || {}), [key]: true } };
     const patchObj = { rehabLog: novo };
-    if (key === "carga") patchObj.rathleffLog = { ...state.rathleffLog, [hojeISO]: Date.now() };
+    if (key === "carga") {
+      patchObj.rathleffLog = { ...state.rathleffLog, [hojeISO]: Date.now() };
+      patchObj.eventos = registrarEvento(state.eventos, "rathleff", {}, hojeISO);
+    } else {
+      patchObj.eventos = registrarEvento(state.eventos, "rehab_dose", { periodo: key }, hojeISO);
+    }
     patch(patchObj);
   }
   function doseFeita(key) { return !!(state.rehabLog[hojeISO] && state.rehabLog[hojeISO][key]); }
@@ -169,15 +179,20 @@ export default function App() {
   function onFinishWorkout(entry) {
     limparResume();
     const historicoTreinos = registrarHistoricoTreino(state.historicoTreinos, { iso: hojeISO, ...entry });
-    patch({ historicoTreinos });
+    const tipoSessao = sessaoAtual && sessaoAtual.tipo;
+    const eventos = registrarEvento(state.eventos, "treino_concluido", { tipo: tipoSessao || null, ...entry }, hojeISO);
+    patch({ historicoTreinos, eventos });
     if (sessaoAtual && sessaoAtual.testeId) { setScr("teste"); return; }
-    avancarProgresso(sessaoAtual && sessaoAtual.tipo);
+    avancarProgresso(tipoSessao);
     setScr("home");
   }
 
   function onResultadoTeste(passou) {
     if (sessaoAtual && sessaoAtual.testeId) {
-      patch({ testesLog: { ...state.testesLog, [sessaoAtual.testeId]: { passou, iso: hojeISO } } });
+      patch({
+        testesLog: { ...state.testesLog, [sessaoAtual.testeId]: { passou, iso: hojeISO } },
+        eventos: registrarEvento(state.eventos, "teste", { testeId: sessaoAtual.testeId, passou }, hojeISO),
+      });
     }
     avancarProgresso(sessaoAtual && sessaoAtual.tipo);
     setScr("home");
@@ -191,6 +206,7 @@ export default function App() {
         onboarding: { dorInicial: respostas.dor, semanasParado: respostas.semanasParado, pesoInicial: respostas.peso, iso: hojeISO },
         progresso: { ...posicao, sessaoIdx: 0 },
         pesoLog: registrarPeso(state.pesoLog, hojeISO, respostas.peso),
+        eventos: registrarEvento(state.eventos, "peso", { kg: respostas.peso }, hojeISO),
       });
       setRecalibrando(false);
       setScr("home");
@@ -268,7 +284,7 @@ export default function App() {
     cargaBloqueada={!rathleff.liberado} restanteRathleff={formatarRestante(rathleff.restanteMs)}
     proximaSessao={{ label: infoProx.label, icon: infoProx.icon, cor: infoProx.cor, resumo: previewProx.resumo }}
     onIniciar={() => iniciarSessao(proximoTipo)}
-    onPular={avancarProgresso}
+    onPular={() => { patch({ eventos: registrarEvento(state.eventos, "treino_pulado", { tipo: proximoTipo }, hojeISO) }); avancarProgresso(); }}
     gateInfo={gateInfo}
     sessoes={sessoesTipos.map(t => tipoInfo(t))}
     onVerSessao={(i) => { const tipo = sessoesTipos[i]; const info = tipoInfo(tipo); const built = buildSessao(tipo, progresso.macrofase, progresso.semanaIdx, progresso.force3x15); setSessaoAtual({ tipo, ...info, ...built }); setScr("preview"); }}

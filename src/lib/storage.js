@@ -1,4 +1,6 @@
 // ══════════════════════ STORAGE — schema versionado, chave th1 ══════════════════════
+import { migrarParaEventos } from "./eventos.js";
+
 const KEY = "th1";
 const SCHEMA_VERSION = 1;
 const LEGACY_KEYS = ["tp7", "tp7rehab", "tp7dia", "tp7testes"];
@@ -17,19 +19,25 @@ export function defaultState() {
     testesLog: {},               // { id: { passou, iso } }
     ultimoRecuoISO: null,
     legacy: null,
+    eventos: [],               // [{ id, data, timestamp, tipo, payload }] — log append-only, ver lib/eventos.js
+    eventosMigrados: false,
   };
 }
 
 export function loadState() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...defaultState(), ...JSON.parse(raw) };
+    if (raw) {
+      const state = migrarParaEventos({ ...defaultState(), ...JSON.parse(raw) });
+      saveState(state);
+      return state;
+    }
   } catch { /* localStorage indisponível */ }
   return migrateFromLegacy();
 }
 
 function migrateFromLegacy() {
-  const state = defaultState();
+  let state = defaultState();
   try {
     const legacy = {};
     LEGACY_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v) legacy[k] = JSON.parse(v); });
@@ -39,6 +47,7 @@ function migrateFromLegacy() {
       if (legacy.tp7testes) state.testesLog = legacy.tp7testes;
     }
   } catch { /* localStorage indisponível */ }
+  state = migrarParaEventos(state);
   saveState(state);
   return state;
 }

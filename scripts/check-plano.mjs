@@ -7,6 +7,7 @@ const { calcularPosicao, verificarGate, checkRecuoAutomatico, rathleffStatus, di
 const { buildCaminhadaSession, buildWalkRunSession, buildContinuoSession, buildMetaSession, CAMINHADAS_GATE_IDS } = await server.ssrLoadModule("/src/data/corrida.js");
 const { buildMuscSession, MA, getMuscPhaseIndex } = await server.ssrLoadModule("/src/data/musculacao.js");
 const { getRehabForMacrofase } = await server.ssrLoadModule("/src/data/rehab.js");
+const { registrar, listar, editar, remover, migrarParaEventos } = await server.ssrLoadModule("/src/lib/eventos.js");
 
 // ══════════════════════ CALENDÁRIO ══════════════════════
 assert.strictEqual(totalSemanas(1), 4);
@@ -134,6 +135,32 @@ assert.strictEqual(reh.carga.exercises[0].reps, 10);
 reh = getRehabForMacrofase(1, 0, false, true); // dor alta — reforçado, sem carga
 assert.strictEqual(reh.reforcado, true);
 assert.strictEqual(reh.carga, null);
+
+// ══════════════════════ EVENTOS ══════════════════════
+let ev = registrar([], "dor_checkin", { nivel: 3 }, "2026-09-25");
+assert.strictEqual(ev.length, 1);
+assert.strictEqual(ev[0].tipo, "dor_checkin");
+ev = registrar(ev, "peso", { kg: 89 }, "2026-09-26");
+assert.strictEqual(listar(ev, { desde: "2026-09-26" }).length, 1);
+assert.strictEqual(listar(ev, {}).length, 2);
+const id0 = ev[0].id;
+ev = editar(ev, id0, { retroativo: true });
+assert.strictEqual(ev.find(e => e.id === id0).retroativo, true);
+ev = remover(ev, id0);
+assert.strictEqual(ev.length, 1);
+
+const estadoLegado = {
+  dorLog: { "2026-09-21": 4 }, pesoLog: { "2026-09-21": 89 },
+  rehabLog: { "2026-09-21": { manha: true, carga: true } },
+  rathleffLog: { "2026-09-21": 123 },
+  historicoTreinos: [{ iso: "2026-09-21", label: "Treino A", duracaoSeg: 1800, volume: 500 }],
+  testesLog: { caminhada20: { passou: true, iso: "2026-09-21" } },
+  ultimoRecuoISO: "2026-09-22", eventos: [], eventosMigrados: false,
+};
+const migrado = migrarParaEventos(estadoLegado);
+assert.strictEqual(migrado.eventosMigrados, true);
+assert.strictEqual(migrado.eventos.length, 7); // dor + peso + rehab_dose(manha) + rathleff(carga) + treino_concluido + teste + recuo — rathleffLog não duplica pois já coberto via rehabLog.carga
+assert.strictEqual(migrarParaEventos(migrado).eventos.length, migrado.eventos.length); // idempotente
 
 console.log("check-plano.mjs: todos os testes passaram");
 await server.close();
