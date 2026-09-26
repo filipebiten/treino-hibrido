@@ -15,6 +15,7 @@ import Preview from "./components/Preview.jsx";
 import WorkoutScreen from "./components/WorkoutScreen.jsx";
 import RehabScreen from "./components/RehabScreen.jsx";
 import Historico from "./components/Historico/index.jsx";
+import Relatorios from "./components/Relatorios/index.jsx";
 import TesteScreen from "./components/TesteScreen.jsx";
 import Icon from "./components/Icon.jsx";
 
@@ -237,6 +238,9 @@ export default function App() {
   // ══════════════════════ HISTÓRICO ══════════════════════
   if (scr === "historico") return <Historico eventos={state.eventos} hojeISO={hojeISO} onBack={() => setScr("home")} onEventosChange={(eventos) => patch({ eventos })} />;
 
+  // ══════════════════════ RELATÓRIOS ══════════════════════
+  if (scr === "relatorios") return <Relatorios eventos={state.eventos} hojeISO={hojeISO} onBack={() => setScr("home")} />;
+
   // ══════════════════════ PREVIEW ══════════════════════
   if (scr === "preview" && sessaoAtual) {
     return <Preview steps={sessaoAtual.steps} label={sessaoAtual.label} cor={sessaoAtual.cor} icon={sessaoAtual.icon} resumo={sessaoAtual.resumo}
@@ -289,6 +293,7 @@ export default function App() {
     sessoes={sessoesTipos.map(t => tipoInfo(t))}
     onVerSessao={(i) => { const tipo = sessoesTipos[i]; const info = tipoInfo(tipo); const built = buildSessao(tipo, progresso.macrofase, progresso.semanaIdx, progresso.force3x15); setSessaoAtual({ tipo, ...info, ...built }); setScr("preview"); }}
     onAbrirHistorico={() => setScr("historico")}
+    onAbrirRelatorios={() => setScr("relatorios")}
     onRecalibrar={() => { setRecalibrando(true); setScr("onboarding"); }}
     retomar={resume ? { label: resume.label, passo: resume.sI + 1, total: resume.tot } : null}
     onRetomar={retomarSessao} onDescartarRetomar={limparResume}

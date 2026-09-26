@@ -60,7 +60,7 @@ export default function Home({
   proximaSessao, onIniciar, onPular,
   gateInfo,
   sessoes, onVerSessao,
-  onAbrirHistorico, onRecalibrar,
+  onAbrirHistorico, onAbrirRelatorios, onRecalibrar,
   retomar, onRetomar, onDescartarRetomar,
 }) {
   return (
@@ -118,6 +118,7 @@ export default function Home({
 
       <div style={{ display: "flex", justifyContent: "center", gap: space.lg, marginTop: space.xl }}>
         <button onClick={onAbrirHistorico} style={{ background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer", minHeight: 44 }}>Histórico</button>
+        <button onClick={onAbrirRelatorios} style={{ background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer", minHeight: 44 }}>Relatórios</button>
         <button onClick={onRecalibrar} style={{ background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer", minHeight: 44 }}>Recalibrar</button>
       </div>
     </div>
