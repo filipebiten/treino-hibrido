@@ -14,7 +14,7 @@ import Home from "./components/Home.jsx";
 import Preview from "./components/Preview.jsx";
 import WorkoutScreen from "./components/WorkoutScreen.jsx";
 import RehabScreen from "./components/RehabScreen.jsx";
-import HistoricoTreinos from "./components/HistoricoTreinos.jsx";
+import Historico from "./components/Historico/index.jsx";
 import TesteScreen from "./components/TesteScreen.jsx";
 import Icon from "./components/Icon.jsx";
 
@@ -235,7 +235,7 @@ export default function App() {
   }
 
   // ══════════════════════ HISTÓRICO ══════════════════════
-  if (scr === "historico") return <HistoricoTreinos historico={state.historicoTreinos} dorLog={state.dorLog} hojeISO={hojeISO} onBack={() => setScr("home")} />;
+  if (scr === "historico") return <Historico eventos={state.eventos} hojeISO={hojeISO} onBack={() => setScr("home")} onEventosChange={(eventos) => patch({ eventos })} />;
 
   // ══════════════════════ PREVIEW ══════════════════════
   if (scr === "preview" && sessaoAtual) {

@@ -17,6 +17,10 @@ const PATHS = {
   lock: "M7 11V8a5 5 0 0 1 10 0v3M5 11h14v9H5z",
   pause: "M7 4h3v16H7zM14 4h3v16h-3z",
   play: "M6 4l14 8-14 8z",
+  calendar: "M4 5h16v15H4zM4 9h16M8 3v4M16 3v4",
+  list: "M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01",
+  edit: "M4 20l4-1 10.5-10.5-3-3L5 16z M13 5l3 3",
+  close: "M6 6l12 12M18 6L6 18",
 };
 
 export default function Icon({ name, size = 18, color = "currentColor", strokeWidth = 1.8 }) {
