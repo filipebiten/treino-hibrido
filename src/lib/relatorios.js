@@ -115,13 +115,14 @@ export function dorPorTipoTreino(eventos, desde, ate) {
 }
 
 // 5. ACWR — carga aguda (7d) : crônica (média semanal dos últimos 28d). Carga = minutos × fator de intensidade.
-// ponytail: rehab não tem duração registrada (só presença da dose) — estimativa fixa de 15min/dose.
-// Revisar se `rehab_dose` ganhar duracaoMin no payload no futuro.
+// Rehab usa `rehabMinutos` real quando a edição de dia informou duração; sem isso,
+// cai numa estimativa fixa de 15min/dose (ponytail: aproximação, editável em Histórico).
 const FATOR_INTENSIDADE = { muscA: 2, muscB: 2, muscC: 2, caminhada: 2, walkrun: 3, qualidade: 3, longao: 3 };
 const MIN_REHAB_ESTIMADO = 15;
 function cargaDoDia(d) {
   if (!d) return 0;
-  let carga = d.periodos.filter(p => p !== "gelo" && p !== "carga").length * MIN_REHAB_ESTIMADO;
+  const doses = d.periodos.filter(p => p !== "gelo" && p !== "carga").length;
+  let carga = d.rehabMinutos != null ? d.rehabMinutos : doses * MIN_REHAB_ESTIMADO;
   if (d.treino) carga += ((d.treino.duracaoSeg || 0) / 60) * (FATOR_INTENSIDADE[d.treino.tipo] || 2);
   return carga;
 }
@@ -148,9 +149,9 @@ export function exerciciosEstagnados(cargas) {
     .map(([nome, reg]) => ({ nome, kg: reg.historico[reg.historico.length - 1].kg }));
 }
 
-// 7. Volume de corrida — km/semana. O app hoje NÃO captura distância/tempo ao finalizar sessões de
-// corrida (só duração total e volume de musculação) — `distanciaKm` fica pronto pro dia em que isso
-// existir, mas por ora este relatório sempre reporta "sem dados" honestamente, em vez de inventar.
+// 7. Volume de corrida — km/semana. O app não captura distância automaticamente ao finalizar
+// sessões de corrida — `distanciaKm` só existe quando o usuário preenche manualmente na edição
+// de dia (Histórico). Sem isso, reporta "sem dados" honestamente, em vez de inventar.
 export function volumeCorrida(eventos, desde, ate) {
   const dias = agruparPorDia(eventos);
   const datas = listaDatas(desde, ate);

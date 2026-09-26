@@ -7,7 +7,7 @@ const { calcularPosicao, verificarGate, checkRecuoAutomatico, rathleffStatus, di
 const { buildCaminhadaSession, buildWalkRunSession, buildContinuoSession, buildMetaSession, CAMINHADAS_GATE_IDS } = await server.ssrLoadModule("/src/data/corrida.js");
 const { buildMuscSession, MA, getMuscPhaseIndex } = await server.ssrLoadModule("/src/data/musculacao.js");
 const { getRehabForMacrofase } = await server.ssrLoadModule("/src/data/rehab.js");
-const { registrar, listar, editar, remover, migrarParaEventos } = await server.ssrLoadModule("/src/lib/eventos.js");
+const { registrar, listar, editar, remover, migrarParaEventos, agruparPorDia, aplicarEdicaoDia } = await server.ssrLoadModule("/src/lib/eventos.js");
 const {
   periodoParaDatas, aderenciaRehab, dorAoLongoDoTempo, dorPorAderencia, dorPorTipoTreino,
   acwr, progressaoCarga, exerciciosEstagnados, volumeCorrida, pesoCorporal, eventosParaCSV, eventosParaJSON,
@@ -229,7 +229,17 @@ assert.strictEqual(estag.length, 1);
 assert.strictEqual(estag[0].nome, "Agachamento");
 
 let vc = volumeCorrida(evR, "2026-09-21", "2026-09-22");
-assert.strictEqual(vc.temDado, false); // app não captura distância hoje
+assert.strictEqual(vc.temDado, false); // sem edição manual, não tem distância
+
+// Edição manual de dia (Histórico) — duração real de rehab + distância/tempo de corrida
+const evEdit = aplicarEdicaoDia([], "2026-09-21", { dor: null, manha: true, noite: true, duracaoRehabMin: 20, treinoStatus: "feito", treinoTipo: "caminhada", distanciaKm: 5, tempoMin: 42 }, false);
+const diaEditado = agruparPorDia(evEdit)["2026-09-21"];
+assert.strictEqual(diaEditado.rehabMinutos, 40); // 20min x 2 doses (manhã + noite)
+assert.strictEqual(diaEditado.treino.distanciaKm, 5);
+assert.strictEqual(diaEditado.treino.tempoTotalMin, 42);
+const vcManual = volumeCorrida(evEdit, "2026-09-21", "2026-09-21");
+assert.strictEqual(vcManual.temDado, true);
+assert.strictEqual(vcManual.porSemana[0].km, 5);
 
 let evPeso = registrar(registrar([], "peso", { kg: 90 }, "2026-09-21"), "peso", { kg: 88 }, "2026-09-28");
 let pc = pesoCorporal(evPeso);

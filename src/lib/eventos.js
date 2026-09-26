@@ -67,14 +67,20 @@ export function migrarParaEventos(state) {
 // já devolve em ordem cronológica, então o forEach naturalmente aplica "mais recente ganha").
 export function agruparPorDia(eventos) {
   const dias = {};
-  function dia(iso) { return dias[iso] || (dias[iso] = { periodos: [], treino: null, pulado: false, dor: null, testes: [], recuo: null }); }
+  function dia(iso) { return dias[iso] || (dias[iso] = { periodos: [], treino: null, pulado: false, dor: null, testes: [], recuo: null, rehabMinutos: null }); }
   listar(eventos).forEach(e => {
     const d = dia(e.data);
     switch (e.tipo) {
       case "dor_checkin": d.dor = e.payload.nivel; break;
-      case "rehab_dose": if (!d.periodos.includes(e.payload.periodo)) d.periodos.push(e.payload.periodo); break;
+      case "rehab_dose":
+        if (!d.periodos.includes(e.payload.periodo)) d.periodos.push(e.payload.periodo);
+        if (e.payload.duracaoMin) d.rehabMinutos = (d.rehabMinutos || 0) + e.payload.duracaoMin;
+        break;
       case "rathleff": if (!d.periodos.includes("carga")) d.periodos.push("carga"); break;
-      case "treino_concluido": d.treino = { tipo: e.payload.tipo, label: e.payload.label, duracaoSeg: e.payload.duracaoSeg, volume: e.payload.volume }; d.pulado = false; break;
+      case "treino_concluido":
+        d.treino = { tipo: e.payload.tipo, label: e.payload.label, duracaoSeg: e.payload.duracaoSeg, volume: e.payload.volume, distanciaKm: e.payload.distanciaKm, tempoTotalMin: e.payload.tempoTotalMin };
+        d.pulado = false;
+        break;
       case "treino_pulado": d.pulado = true; break;
       case "teste": d.testes.push({ testeId: e.payload.testeId, passou: e.payload.passou }); break;
       case "recuo_automatico": d.recuo = e.payload; break;
@@ -87,7 +93,9 @@ export function agruparPorDia(eventos) {
 function substituir(eventos, tipo, iso) { return eventos.filter(e => !(e.tipo === tipo && e.data === iso)); }
 
 // Aplica edição retroativa (ou do dia atual) vinda da tela de Histórico.
-// `edicao`: { dor: number|null, manha: bool, noite: bool, treinoStatus: "feito"|"pulado"|null, treinoTipo: string|null }
+// `edicao`: { dor, manha, noite, duracaoRehabMin, treinoStatus, treinoTipo, distanciaKm, tempoMin }
+// Nota: duracaoRehabMin só é gravado quando a dose é marcada nesta chamada (transição
+// false->true) — editar só a duração de uma dose já marcada exige desmarcar e remarcar.
 export function aplicarEdicaoDia(eventos, iso, edicao, retroativo) {
   let ev = eventos;
   const opts = retroativo ? { retroativo: true } : {};
@@ -97,11 +105,18 @@ export function aplicarEdicaoDia(eventos, iso, edicao, retroativo) {
   }
   ["manha", "noite"].forEach(periodo => {
     const tem = ev.some(e => e.tipo === "rehab_dose" && e.data === iso && e.payload.periodo === periodo);
-    if (edicao[periodo] && !tem) ev = registrar(ev, "rehab_dose", { periodo }, iso, opts);
+    if (edicao[periodo] && !tem) {
+      const payload = { periodo };
+      if (edicao.duracaoRehabMin) payload.duracaoMin = edicao.duracaoRehabMin;
+      ev = registrar(ev, "rehab_dose", payload, iso, opts);
+    }
     if (!edicao[periodo] && tem) ev = ev.filter(e => !(e.tipo === "rehab_dose" && e.data === iso && e.payload.periodo === periodo));
   });
   if (edicao.treinoStatus === "feito") {
-    ev = registrar(substituir(substituir(ev, "treino_concluido", iso), "treino_pulado", iso), "treino_concluido", { tipo: edicao.treinoTipo || null, manual: true }, iso, opts);
+    const payload = { tipo: edicao.treinoTipo || null, manual: true };
+    if (edicao.distanciaKm) payload.distanciaKm = edicao.distanciaKm;
+    if (edicao.tempoMin) payload.tempoTotalMin = edicao.tempoMin;
+    ev = registrar(substituir(substituir(ev, "treino_concluido", iso), "treino_pulado", iso), "treino_concluido", payload, iso, opts);
   } else if (edicao.treinoStatus === "pulado") {
     ev = registrar(substituir(substituir(ev, "treino_concluido", iso), "treino_pulado", iso), "treino_pulado", { tipo: edicao.treinoTipo || null }, iso, opts);
   } else if (edicao.treinoStatus === null) {

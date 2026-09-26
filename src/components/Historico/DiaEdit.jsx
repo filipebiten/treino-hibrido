@@ -6,6 +6,7 @@ const TIPOS = [
   { v: "muscA", label: "Musculação A" }, { v: "muscB", label: "Musculação B" }, { v: "muscC", label: "Musculação C" },
   { v: "caminhada", label: "Caminhada" }, { v: "walkrun", label: "Walk/Run" }, { v: "qualidade", label: "Qualidade" }, { v: "longao", label: "Longão" },
 ];
+const TIPOS_CORRIDA = ["caminhada", "walkrun", "qualidade", "longao"];
 
 const label = { fontSize: ty.xs, color: color.textDim, fontWeight: 700, marginBottom: space.xs, display: "block" };
 const field = { marginBottom: space.lg };
@@ -14,6 +15,7 @@ const chip = (ativo) => ({
   border: "1px solid " + (ativo ? color.musc : color.border), background: ativo ? color.musc + "22" : "transparent", color: ativo ? color.text : color.textDim,
 });
 const numInput = { width: 56, height: touch.min * 0.6, borderRadius: radius.md, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontSize: ty.lg, textAlign: "center" };
+const numInputSm = { ...numInput, width: 70, fontSize: ty.md };
 
 export default function DiaEdit({ iso, resumoDia, onSalvar, onFechar }) {
   const [dor, setDor] = useState(resumoDia && resumoDia.dor != null ? resumoDia.dor : null);
@@ -21,6 +23,9 @@ export default function DiaEdit({ iso, resumoDia, onSalvar, onFechar }) {
   const [noite, setNoite] = useState(!!(resumoDia && resumoDia.periodos.includes("noite")));
   const [treinoStatus, setTreinoStatus] = useState(resumoDia && resumoDia.treino ? "feito" : resumoDia && resumoDia.pulado ? "pulado" : null);
   const [treinoTipo, setTreinoTipo] = useState((resumoDia && resumoDia.treino && resumoDia.treino.tipo) || null);
+  const [duracaoRehabMin, setDuracaoRehabMin] = useState((resumoDia && resumoDia.rehabMinutos) || null);
+  const [distanciaKm, setDistanciaKm] = useState((resumoDia && resumoDia.treino && resumoDia.treino.distanciaKm) || null);
+  const [tempoMin, setTempoMin] = useState((resumoDia && resumoDia.treino && resumoDia.treino.tempoTotalMin) || null);
 
   const dataFmt = iso.split("-").reverse().join("/");
 
@@ -43,10 +48,17 @@ export default function DiaEdit({ iso, resumoDia, onSalvar, onFechar }) {
 
         <div style={field}>
           <span style={label}>Rehab</span>
-          <div style={{ display: "flex", gap: space.sm }}>
+          <div style={{ display: "flex", gap: space.sm, marginBottom: (manha || noite) ? space.sm : 0 }}>
             <div onClick={() => setManha(!manha)} style={chip(manha)}>Manhã</div>
             <div onClick={() => setNoite(!noite)} style={chip(noite)}>Noite</div>
           </div>
+          {(manha || noite) && (
+            <div style={{ display: "flex", alignItems: "center", gap: space.sm }}>
+              <input type="number" min={0} value={duracaoRehabMin === null ? "" : duracaoRehabMin} placeholder="15"
+                onChange={(e) => setDuracaoRehabMin(e.target.value === "" ? null : Number(e.target.value))} style={numInputSm} />
+              <span style={{ fontSize: ty.xs, color: color.textFaint }}>min de duração (opcional — usado no ACWR; sem isso, estima 15min/dose)</span>
+            </div>
+          )}
         </div>
 
         <div style={field}>
@@ -60,9 +72,23 @@ export default function DiaEdit({ iso, resumoDia, onSalvar, onFechar }) {
               {TIPOS.map(t => <div key={t.v} onClick={() => setTreinoTipo(treinoTipo === t.v ? null : t.v)} style={{ ...chip(treinoTipo === t.v), fontSize: 11 }}>{t.label}</div>)}
             </div>
           )}
+          {treinoStatus === "feito" && TIPOS_CORRIDA.includes(treinoTipo) && (
+            <div style={{ display: "flex", gap: space.md, marginTop: space.sm }}>
+              <div>
+                <span style={{ ...label, marginBottom: 4 }}>Distância (km)</span>
+                <input type="number" min={0} step="0.1" value={distanciaKm === null ? "" : distanciaKm} placeholder="—"
+                  onChange={(e) => setDistanciaKm(e.target.value === "" ? null : Number(e.target.value))} style={numInputSm} />
+              </div>
+              <div>
+                <span style={{ ...label, marginBottom: 4 }}>Tempo (min)</span>
+                <input type="number" min={0} value={tempoMin === null ? "" : tempoMin} placeholder="—"
+                  onChange={(e) => setTempoMin(e.target.value === "" ? null : Number(e.target.value))} style={numInputSm} />
+              </div>
+            </div>
+          )}
         </div>
 
-        <button onClick={() => onSalvar({ dor, manha, noite, treinoStatus, treinoTipo })}
+        <button onClick={() => onSalvar({ dor, manha, noite, duracaoRehabMin, treinoStatus, treinoTipo, distanciaKm, tempoMin })}
           style={{ width: "100%", minHeight: touch.min, borderRadius: radius.md, border: "none", background: color.musc, color: "#08120c", fontSize: ty.md, fontWeight: 800, cursor: "pointer" }}>
           Salvar
         </button>
