@@ -5,7 +5,7 @@ import { getRehabForMacrofase } from "./data/rehab.js";
 import { buildCaminhadaSession, buildWalkRunSession, buildContinuoSession, buildMetaSession } from "./data/corrida.js";
 import { loadState, saveState } from "./lib/storage.js";
 import { calcularPosicao, verificarGate, checkRecuoAutomatico, rathleffStatus, formatarRestante } from "./lib/progressao.js";
-import { registrarCarga, registrarHistoricoTreino, registrarPeso } from "./lib/treino.js";
+import { registrarCarga, registrarHistoricoTreino, registrarPeso, ehPR } from "./lib/treino.js";
 import { registrar as registrarEvento } from "./lib/eventos.js";
 import { atualizarBadge } from "./lib/lembrete.js";
 import { color } from "./lib/tokens.js";
@@ -186,6 +186,18 @@ export default function App() {
 
   function salvarPlanoSeEntao(plano) { patch({ planoSeEntao: plano }); }
 
+  // média de dor dos últimos 7 dias com registro — usada pra priorizar alternativa de
+  // exercício sem impacto no pé (Bloco 2.5), não é métrica de risco nem gate.
+  function dorMedia7d() {
+    let soma = 0, n = 0, d = new Date(hojeISO + "T00:00:00");
+    for (let i = 0; i < 7; i++) {
+      const iso = toISO(d);
+      if (state.dorLog[iso] !== undefined) { soma += state.dorLog[iso]; n++; }
+      d = new Date(d.getTime() - 86400000);
+    }
+    return n ? soma / n : null;
+  }
+
   function markDose(key, completude) {
     const novo = { ...state.rehabLog, [hojeISO]: { ...(state.rehabLog[hojeISO] || {}), [key]: true } };
     const patchObj = { rehabLog: novo };
@@ -200,7 +212,13 @@ export default function App() {
   }
   function doseFeita(key) { return !!(state.rehabLog[hojeISO] && state.rehabLog[hojeISO][key]); }
 
-  function onRegistrarCarga(exName, kg, atingiuTopo) { patch({ cargas: registrarCarga(state.cargas, exName, kg, atingiuTopo, hojeISO) }); }
+  function onRegistrarCarga(exName, kg, atingiuTopo) {
+    const pr = ehPR(state.cargas, exName, kg);
+    const patchObj = { cargas: registrarCarga(state.cargas, exName, kg, atingiuTopo, hojeISO) };
+    if (pr) patchObj.eventos = registrarEvento(state.eventos, "pr", { exercicio: exName, kg }, hojeISO);
+    patch(patchObj);
+    return pr;
+  }
 
   function onFinishWorkout(entry) {
     limparResume();
@@ -278,7 +296,7 @@ export default function App() {
   // ══════════════════════ WORKOUT ══════════════════════
   if (scr === "workout" && sessaoAtual) {
     return <WorkoutScreen steps={sessaoAtual.steps} sessionLabel={sessaoAtual.label} cor={sessaoAtual.cor} grupoCarga={sessaoAtual.grupo}
-      cargas={state.cargas} onRegistrarCarga={onRegistrarCarga}
+      cargas={state.cargas} onRegistrarCarga={onRegistrarCarga} dorMedia7d={dorMedia7d()}
       resume={retomando ? resume : null} onProgress={guardarResume}
       onBack={() => { setRetomando(false); setResume(lerResume()); setScr("home"); }} onFinish={onFinishWorkout} />;
   }

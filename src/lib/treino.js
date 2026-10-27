@@ -9,6 +9,15 @@ export function registrarCarga(cargas, exName, kg, atingiuTopo, iso) {
   return { ...cargas, [exName]: { ultimaKg: kg, historico, streakTopo } };
 }
 
+// PR por peso — compara contra o maior kg já registrado nesse exercício (não é e1RM: o app
+// não captura reps realmente feitas por série, só o alvo prescrito; e1RM ficaria inventado).
+export function ehPR(cargas, exName, kg) {
+  const reg = cargas[exName];
+  if (!reg || !reg.historico || !reg.historico.length) return false;
+  const maior = Math.max(...reg.historico.map(h => h.kg));
+  return kg > maior;
+}
+
 export function sugestaoCarga(cargas, exName, grupo) {
   const reg = cargas[exName];
   if (!reg || reg.streakTopo < 2 || reg.ultimaKg == null) return null;

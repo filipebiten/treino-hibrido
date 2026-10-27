@@ -9,7 +9,7 @@ import { color, space, type as ty, radius, touch } from "../lib/tokens.js";
 
 const backBtn = { background: "none", border: "none", color: color.textDim, fontSize: ty.base, cursor: "pointer", padding: 4, minHeight: touch.min, display: "flex", alignItems: "center", gap: 6 };
 
-export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, cargas, onRegistrarCarga, onBack, onFinish, resume, onProgress }) {
+export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, cargas, onRegistrarCarga, onBack, onFinish, resume, onProgress, dorMedia7d }) {
   const all = steps, list = all.filter(s => !s.section);
   const i0 = resume ? Math.min(resume.sI, list.length - 1) : 0;
   const [sI, setSI] = useState(i0);
@@ -23,13 +23,19 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
   const [kgInput, setKgInput] = useState("");
   const [concluidoPorIdx, setConcluidoPorIdx] = useState({});
   const [showLista, setShowLista] = useState(false);
+  const [showTroca, setShowTroca] = useState(false);
+  const [substitutoPorIdx, setSubstitutoPorIdx] = useState({}); // { idx: {nome, equipamento} }
+  const [prAviso, setPrAviso] = useState(null);
   const iR = useRef(null), cR = useRef(null);
   const startRef = useRef(null);
   const volumeRef = useRef(resume ? resume.volume : 0);
   const endsAtRef = useRef(null);
   const cSPorIdxRef = useRef({});
+  const substituicoesRef = useRef([]); // [{original, substituto}] — pro evento treino_concluido
 
-  const step = list[sI], tot = list.length;
+  const stepOriginal = list[sI], tot = list.length;
+  const substituto = substitutoPorIdx[sI];
+  const step = substituto ? { ...stepOriginal, name: substituto.nome, detail: substituto.equipamento, how: substituto.obs || stepOriginal.how, alternativas: null, startKg: null } : stepOriginal;
   const gifUrl = step ? getGifUrl(step.name) : null;
   function curSec() { let sec = "", c = 0; for (const s of all) { if (s.section) { sec = s.section; continue; } if (c === sI) return sec; c++; } return sec; }
 
@@ -37,7 +43,7 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
   useEffect(() => { cSPorIdxRef.current[sI] = cS; }, [sI, cS]);
 
   function irPara(novoIdx) {
-    setTmrOn(false); setRst(false); setShowHow(false); setShowGif(false); setShowLista(false);
+    setTmrOn(false); setRst(false); setShowHow(false); setShowGif(false); setShowLista(false); setShowTroca(false);
     const n = list[novoIdx];
     setCS(cSPorIdxRef.current[novoIdx] || 1);
     setTmr(n && n.duration && (n.type === "timer" || n.type === "timed_exercise") ? n.duration : 0);
@@ -50,7 +56,7 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
   useEffect(() => {
     if (step && step.type === "exercise") { const reg = cargas[step.name]; setKgInput(reg && reg.ultimaKg != null ? String(reg.ultimaKg) : step.startKg != null ? String(step.startKg) : ""); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sI]);
+  }, [sI, substituto]);
 
   // baseado em timestamp — setInterval sozinho perde contagem com app em segundo plano
   function recalcularTmr() {
@@ -80,12 +86,24 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
     if (isNaN(kg)) return;
     const atingiuTopo = typeof step.reps === "number";
     volumeRef.current += kg * (typeof step.reps === "number" ? step.reps : 0) * (step.sets || 1);
-    onRegistrarCarga(step.name, kg, atingiuTopo);
+    const pr = onRegistrarCarga(step.name, kg, atingiuTopo);
+    if (pr) { setPrAviso(step.name); setTimeout(() => setPrAviso(null), 3000); }
   }
 
   function finalizarTreino() {
     const duracaoSeg = Math.round((Date.now() - startRef.current) / 1000);
-    onFinish({ label: sessionLabel, duracaoSeg, volume: Math.round(volumeRef.current) });
+    onFinish({ label: sessionLabel, duracaoSeg, volume: Math.round(volumeRef.current), substituicoes: substituicoesRef.current });
+  }
+
+  function trocarExercicio(alt) {
+    setSubstitutoPorIdx(s => ({ ...s, [sI]: alt }));
+    substituicoesRef.current = [...substituicoesRef.current, { original: stepOriginal.name, substituto: alt.nome }];
+    setShowTroca(false);
+  }
+  function desfazerTroca() {
+    const nomeOriginal = stepOriginal.name;
+    setSubstitutoPorIdx(s => { const n = { ...s }; delete n[sI]; return n; });
+    substituicoesRef.current = substituicoesRef.current.filter(s => s.original !== nomeOriginal);
   }
 
   function nxt() {
@@ -123,12 +141,25 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
       <div style={{ textAlign: "center", marginBottom: space.sm }}>
         <h1 style={{ fontSize: ty.xl, fontWeight: 800, marginBottom: 4, lineHeight: 1.3, color: step.name && step.name.startsWith("↑") ? color.success : color.text }}>{step.name}</h1>
         {step.detail && <div style={{ fontSize: ty.base, color: color.textDim }}>{step.detail}</div>}
-        <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 6 }}>
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 6, flexWrap: "wrap" }}>
           {step.how && <button onClick={() => setShowHow(!showHow)} style={{ minHeight: 44, fontSize: ty.xs, padding: "4px 12px", borderRadius: radius.sm, background: color.surface, color: color.textDim, border: "1px solid " + color.border, cursor: "pointer" }}>{showHow ? "Fechar" : "Como fazer"}</button>}
           {gifUrl && <button onClick={() => setShowGif(!showGif)} style={{ minHeight: 44, fontSize: ty.xs, padding: "4px 12px", borderRadius: radius.sm, background: color.surface, color: color.textDim, border: "1px solid " + color.border, cursor: "pointer" }}>{showGif ? "Fechar GIF" : "Ver GIF"}</button>}
+          {stepOriginal.alternativas && !substituto && <button onClick={() => setShowTroca(!showTroca)} style={{ minHeight: 44, fontSize: ty.xs, padding: "4px 12px", borderRadius: radius.sm, background: color.surface, color: color.textDim, border: "1px solid " + color.border, cursor: "pointer" }}>Trocar exercício</button>}
+          {substituto && <button onClick={desfazerTroca} style={{ minHeight: 44, fontSize: ty.xs, padding: "4px 12px", borderRadius: radius.sm, background: color.success + "18", color: color.success, border: "1px solid " + color.success + "44", cursor: "pointer" }}>Trocado — desfazer</button>}
         </div>
         {showHow && step.how && <div style={{ marginTop: 8, padding: space.md, background: color.surface, borderRadius: radius.md, fontSize: ty.sm, color: color.textDim, lineHeight: 1.5, textAlign: "left" }}>{step.how}</div>}
         {showGif && gifUrl && <img src={gifUrl} alt={step.name} loading="lazy" style={{ marginTop: 8, maxWidth: "100%", maxHeight: 260, borderRadius: radius.md, border: "1px solid " + color.border }} />}
+        {stepOriginal.impactoPlantar && dorMedia7d != null && dorMedia7d >= 3 && !substituto && <div style={{ marginTop: 8, fontSize: ty.xs, color: color.alert }}>Dor alta essa semana — considera uma alternativa sem impacto no pé.</div>}
+        {showTroca && stepOriginal.alternativas && (
+          <div style={{ marginTop: 8, textAlign: "left" }}>
+            {stepOriginal.alternativas.map((alt, i) => (
+              <button key={i} onClick={() => trocarExercicio(alt)} style={{ width: "100%", padding: space.md, marginBottom: 6, borderRadius: radius.md, border: "1px solid " + color.border, background: color.surface, cursor: "pointer", textAlign: "left" }}>
+                <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.text }}>{alt.nome}</div>
+                <div style={{ fontSize: ty.xs, color: color.textFaint }}>{alt.equipamento}{alt.obs ? " · " + alt.obs : ""}</div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {isTab && <TabataTimer work={step.tabataWork} rest={step.tabataRest} rounds={step.tabataRounds} onDone={() => { if (cS < (step.sets || 1)) { if (step.rest) { setRst(true); setTmr(step.rest); setTmrOn(true); } setCS(cS + 1); } else nxt(); }} cor={pc} />}
@@ -145,6 +176,7 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
         </div>
       )}
       {sugestao && !rst && <div style={{ textAlign: "center", fontSize: ty.xs, color: color.success, marginBottom: space.sm }}>Bateu o topo 2x seguidas — sugestão: {sugestao.kg}kg (+{sugestao.incremento})</div>}
+      {prAviso === step.name && <div style={{ textAlign: "center", fontSize: ty.xs, color: color.success, fontWeight: 700, marginBottom: space.sm }}>PR — maior carga já registrada nesse exercício</div>}
       {rst && <div style={{ textAlign: "center", marginBottom: space.sm }}><div style={{ fontSize: ty.sm, color: color.textDim, marginBottom: 4 }}>DESCANSO</div><CT time={tmr} total={step.rest || 60} running={tmrOn} cor={pc} /></div>}
       {iT && !rst && !iE && step.duration && <div style={{ textAlign: "center", marginBottom: space.sm }}><CT time={tmr} total={step.duration} running={tmrOn} cor={step.isIce ? color.rest : pc} /></div>}
       {iE && step.type === "timed_exercise" && !rst && <div style={{ textAlign: "center", marginBottom: space.sm }}><CT time={tmr} total={step.duration || 60} running={tmrOn} cor={pc} /></div>}
