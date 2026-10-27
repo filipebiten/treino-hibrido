@@ -21,14 +21,28 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
   const [showHow, setShowHow] = useState(false);
   const [showGif, setShowGif] = useState(false);
   const [kgInput, setKgInput] = useState("");
+  const [concluidoPorIdx, setConcluidoPorIdx] = useState({});
+  const [showLista, setShowLista] = useState(false);
   const iR = useRef(null), cR = useRef(null);
   const startRef = useRef(null);
   const volumeRef = useRef(resume ? resume.volume : 0);
   const endsAtRef = useRef(null);
+  const cSPorIdxRef = useRef({});
 
   const step = list[sI], tot = list.length;
   const gifUrl = step ? getGifUrl(step.name) : null;
   function curSec() { let sec = "", c = 0; for (const s of all) { if (s.section) { sec = s.section; continue; } if (c === sI) return sec; c++; } return sec; }
+
+  // checkpoint de série por exercício — voltar preserva onde parou, não reseta pra série 1
+  useEffect(() => { cSPorIdxRef.current[sI] = cS; }, [sI, cS]);
+
+  function irPara(novoIdx) {
+    setTmrOn(false); setRst(false); setShowHow(false); setShowGif(false); setShowLista(false);
+    const n = list[novoIdx];
+    setCS(cSPorIdxRef.current[novoIdx] || 1);
+    setTmr(n && n.duration && (n.type === "timer" || n.type === "timed_exercise") ? n.duration : 0);
+    setSI(novoIdx);
+  }
 
   useEffect(() => { startRef.current = resume ? resume.startMs : Date.now(); pedirWakeLock(); return () => liberarWakeLock(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // guarda a posição pra retomar se o iOS descartar o app ou o usuário sair
@@ -75,10 +89,12 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
   }
 
   function nxt() {
-    setTmrOn(false); setCupOn(false); setRst(false); setCS(1); setCup(0); setShowHow(false); setShowGif(false);
-    if (sI + 1 >= tot) { finalizarTreino(); return; }
-    const n = list[sI + 1]; setSI(sI + 1); if (n && n.duration && n.type === "timer") setTmr(n.duration); else setTmr(0);
+    setCupOn(false); setCup(0);
+    setConcluidoPorIdx(c => ({ ...c, [sI]: true }));
+    if (sI + 1 >= tot) { setTmrOn(false); setRst(false); finalizarTreino(); return; }
+    irPara(sI + 1);
   }
+  function anterior() { if (sI > 0) irPara(sI - 1); }
   function dn() {
     const mx = step.sets || 1;
     if (step.type === "exercise") registrarCargaExercicio();
@@ -150,7 +166,21 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
         {step.type === "reps" && step.sets && <button onClick={dn} style={bb(color.success, "#0f1115")}>Série {cS}/{mx}</button>}
         {step.type === "manual" && <button onClick={() => { setCupOn(false); nxt(); }} style={bb(color.success, "#0f1115")}>Concluído</button>}
       </div>
-      <button onClick={nxt} style={{ width: "100%", marginTop: 10, minHeight: 44, background: "transparent", color: color.textFaint, border: "none", fontSize: ty.xs, cursor: "pointer" }}>Pular passo</button>
+      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+        <button onClick={anterior} disabled={sI === 0} style={{ flex: 1, minHeight: 44, background: "transparent", color: sI === 0 ? color.border : color.textFaint, border: "none", fontSize: ty.xs, cursor: sI === 0 ? "default" : "pointer" }}>← Anterior</button>
+        <button onClick={nxt} style={{ flex: 1, minHeight: 44, background: "transparent", color: color.textFaint, border: "none", fontSize: ty.xs, cursor: "pointer" }}>Pular passo</button>
+        <button onClick={() => setShowLista(!showLista)} style={{ flex: 1, minHeight: 44, background: "transparent", color: color.textFaint, border: "none", fontSize: ty.xs, cursor: "pointer" }}>Lista ({sI + 1}/{tot})</button>
+      </div>
+      {showLista && (
+        <div style={{ marginTop: space.sm, maxHeight: 260, overflowY: "auto", background: color.surface, borderRadius: radius.md, border: "1px solid " + color.border }}>
+          {list.map((s, i) => (
+            <button key={i} onClick={() => irPara(i)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: i === sI ? pc + "14" : "transparent", border: "none", borderBottom: i < tot - 1 ? "1px solid " + color.border : "none", textAlign: "left", cursor: "pointer" }}>
+              {concluidoPorIdx[i] ? <Icon name="check" size={14} color={color.success} /> : i === sI ? <Icon name="play" size={14} color={pc} /> : <div style={{ width: 14, height: 14, borderRadius: "50%", border: "1px solid " + color.border }} />}
+              <span style={{ fontSize: ty.sm, color: i === sI ? color.text : color.textDim, fontWeight: i === sI ? 700 : 400 }}>{s.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
       {sI + 1 < tot && <div style={{ marginTop: space.lg, padding: space.md, background: color.surface, borderRadius: radius.md }}><div style={{ fontSize: ty.micro, color: color.textFaint, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>A seguir</div><div style={{ fontSize: ty.sm, color: color.textDim }}>{list[sI + 1] && list[sI + 1].name}</div></div>}
       {step.isTest && <div style={{ marginTop: space.lg, padding: space.md, background: pc + "18", borderRadius: radius.md, border: "1px solid " + pc + "44", textAlign: "center" }}><Icon name="flag" size={20} color={pc} /><div style={{ fontSize: ty.sm, color: pc, fontWeight: 700, marginTop: 4 }}>DIA DE TESTE</div><div style={{ fontSize: ty.xs, color: color.textDim, marginTop: 4 }}>Não acelere. Completar é o objetivo.</div></div>}
       </div>
