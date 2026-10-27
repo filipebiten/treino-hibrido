@@ -9,7 +9,7 @@ import { color, space, type as ty, radius, touch } from "../lib/tokens.js";
 
 const backBtn = { background: "none", border: "none", color: color.textDim, fontSize: ty.base, cursor: "pointer", padding: 4, minHeight: touch.min, display: "flex", alignItems: "center", gap: 6 };
 
-export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, cargas, onRegistrarCarga, onBack, onFinish, resume, onProgress, dorMedia7d }) {
+export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, cargas, onRegistrarCarga, onBack, onFinish, resume, onProgress, dorMedia7d, isCorrida }) {
   const all = steps, list = all.filter(s => !s.section);
   const i0 = resume ? Math.min(resume.sI, list.length - 1) : 0;
   const [sI, setSI] = useState(i0);
@@ -26,6 +26,8 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
   const [showTroca, setShowTroca] = useState(false);
   const [substitutoPorIdx, setSubstitutoPorIdx] = useState({}); // { idx: {nome, equipamento} }
   const [prAviso, setPrAviso] = useState(null);
+  const [pedindoPSE, setPedindoPSE] = useState(false);
+  const entryPendenteRef = useRef(null);
   const iR = useRef(null), cR = useRef(null);
   const startRef = useRef(null);
   const volumeRef = useRef(resume ? resume.volume : 0);
@@ -92,7 +94,12 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
 
   function finalizarTreino() {
     const duracaoSeg = Math.round((Date.now() - startRef.current) / 1000);
-    onFinish({ label: sessionLabel, duracaoSeg, volume: Math.round(volumeRef.current), substituicoes: substituicoesRef.current });
+    const entry = { label: sessionLabel, duracaoSeg, volume: Math.round(volumeRef.current), substituicoes: substituicoesRef.current };
+    if (isCorrida) { entryPendenteRef.current = entry; setPedindoPSE(true); return; }
+    onFinish(entry);
+  }
+  function finalizarComPSE(pse) {
+    onFinish({ ...entryPendenteRef.current, pse });
   }
 
   function trocarExercicio(alt) {
@@ -117,6 +124,21 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
     const mx = step.sets || 1;
     if (step.type === "exercise") registrarCargaExercicio();
     if (cS < mx) { if (step.rest) { setRst(true); setTmr(step.rest); setTmrOn(true); } setCS(cS + 1); } else nxt();
+  }
+
+  if (pedindoPSE) {
+    return (
+      <div style={{ background: color.bg, color: color.text, minHeight: "100dvh", fontFamily: "system-ui", padding: space.lg, maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center" }}>
+        <h1 style={{ fontSize: ty.xl, fontWeight: 800, marginBottom: 8 }}>Como foi o esforço?</h1>
+        <div style={{ fontSize: ty.sm, color: color.textDim, marginBottom: space.lg }}>0 = muito fácil · 10 = esforço máximo</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 6, width: "100%" }}>
+          {Array.from({ length: 11 }, (_, i) => i).map(n => (
+            <button key={n} onClick={() => finalizarComPSE(n)} style={{ minHeight: 48, borderRadius: radius.sm, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontWeight: 700, fontSize: ty.sm, cursor: "pointer" }}>{n}</button>
+          ))}
+        </div>
+        <button onClick={() => finalizarComPSE(null)} style={{ marginTop: space.lg, background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer", minHeight: 44 }}>Pular</button>
+      </div>
+    );
   }
 
   if (!step) return null;

@@ -297,6 +297,7 @@ export default function App() {
   if (scr === "workout" && sessaoAtual) {
     return <WorkoutScreen steps={sessaoAtual.steps} sessionLabel={sessaoAtual.label} cor={sessaoAtual.cor} grupoCarga={sessaoAtual.grupo}
       cargas={state.cargas} onRegistrarCarga={onRegistrarCarga} dorMedia7d={dorMedia7d()}
+      isCorrida={["caminhada", "walkrun", "qualidade", "longao"].includes(sessaoAtual.tipo)}
       resume={retomando ? resume : null} onProgress={guardarResume}
       onBack={() => { setRetomando(false); setResume(lerResume()); setScr("home"); }} onFinish={onFinishWorkout} />;
   }

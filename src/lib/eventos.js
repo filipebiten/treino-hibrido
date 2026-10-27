@@ -82,7 +82,7 @@ export function agruparPorDia(eventos) {
       }
       case "rathleff": if (!d.periodos.includes("carga")) d.periodos.push("carga"); break;
       case "treino_concluido":
-        d.treino = { tipo: e.payload.tipo, label: e.payload.label, duracaoSeg: e.payload.duracaoSeg, volume: e.payload.volume, distanciaKm: e.payload.distanciaKm, tempoTotalMin: e.payload.tempoTotalMin };
+        d.treino = { tipo: e.payload.tipo, label: e.payload.label, duracaoSeg: e.payload.duracaoSeg, volume: e.payload.volume, distanciaKm: e.payload.distanciaKm, tempoTotalMin: e.payload.tempoTotalMin, pse: e.payload.pse };
         d.pulado = false;
         break;
       case "treino_pulado": d.pulado = true; break;

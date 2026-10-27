@@ -12,7 +12,7 @@ import Relatorio9Gate from "./Relatorio9Gate.jsx";
 import Relatorio10Export from "./Relatorio10Export.jsx";
 import {
   periodoParaDatas, aderenciaRehab, aderenciaRathleff, dorAoLongoDoTempo, dorPorAderencia,
-  dorPorTipoTreino, acwr, volumeCorrida, pesoCorporal, volumePorGrupo, sugerirDeload,
+  dorPorTipoTreino, acwr, volumeCorrida, pesoCorporal, volumePorGrupo, sugerirDeload, srpeCorrida,
 } from "../../lib/relatorios.js";
 import { color, space, type as ty, touch } from "../../lib/tokens.js";
 
@@ -50,7 +50,7 @@ export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testes
       <Relatorio4DorPorTipo dados={dorPorTipoTreino(eventos, desde, ate)} />
       <Relatorio5Acwr dados={acwr(eventos, hojeISO)} />
       <Relatorio6Progressao cargas={cargas} volumeGrupo={volumePorGrupo(eventos, desde, ate)} deload={sugerirDeload(cargas)} />
-      <Relatorio7VolumeCorrida dados={volumeCorrida(eventos, desde, ate)} />
+      <Relatorio7VolumeCorrida dados={volumeCorrida(eventos, desde, ate)} srpe={srpeCorrida(eventos, desde, ate)} />
       <Relatorio8Peso dados={pesoCorporal(eventos)} />
       <Relatorio9Gate macrofase={macrofase} testesLog={testesLog} dorLog={dorLog} hojeISO={hojeISO} />
       <Relatorio10Export eventos={eventos} />

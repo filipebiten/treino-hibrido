@@ -205,6 +205,26 @@ export function volumeCorrida(eventos, desde, ate) {
   return { temDado, porSemana };
 }
 
+// 3.7a — carga de corrida por PSE (esforço percebido 0-10 × minutos). Dispensa wearable.
+// Só existe quando o usuário respondeu o PSE ao finalizar a sessão (pode pular).
+export function srpeCorrida(eventos, desde, ate) {
+  const dias = agruparPorDia(eventos);
+  const datas = listaDatas(desde, ate);
+  let semanaAtual = 0, semana4Atras = [];
+  const CORRIDA_TIPOS = ["caminhada", "walkrun", "qualidade", "longao"];
+  datas.forEach((iso, i) => {
+    const d = dias[iso];
+    if (!d || !d.treino || !CORRIDA_TIPOS.includes(d.treino.tipo) || d.treino.pse == null) return;
+    const minutos = d.treino.tempoTotalMin || (d.treino.duracaoSeg ? d.treino.duracaoSeg / 60 : 0);
+    const srpe = d.treino.pse * minutos;
+    if (i >= datas.length - 7) semanaAtual += srpe;
+    if (i >= datas.length - 28) semana4Atras.push(srpe);
+  });
+  const mediaSemanal4 = semana4Atras.length ? semana4Atras.reduce((s, n) => s + n, 0) / 4 : null;
+  const variacaoPct = mediaSemanal4 ? Math.round(((semanaAtual - mediaSemanal4) / mediaSemanal4) * 100) : null;
+  return { temDado: semana4Atras.some(v => v > 0), semanaAtual: Math.round(semanaAtual), mediaSemanal4: mediaSemanal4 != null ? Math.round(mediaSemanal4) : null, variacaoPct };
+}
+
 // 8. Peso corporal — pontos + média móvel de 7 dias, tendência (delta do primeiro ao último ponto).
 export function pesoCorporal(eventos) {
   const pontos = listar(eventos).filter(e => e.tipo === "peso").map(e => ({ iso: e.data, kg: e.payload.kg }));
