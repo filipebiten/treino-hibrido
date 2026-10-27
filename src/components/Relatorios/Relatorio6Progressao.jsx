@@ -2,7 +2,7 @@ import { useState } from "react";
 import { progressaoCarga, exerciciosEstagnados } from "../../lib/relatorios.js";
 import { color, space, type as ty, radius } from "../../lib/tokens.js";
 
-export default function Relatorio6Progressao({ cargas }) {
+export default function Relatorio6Progressao({ cargas, volumeGrupo, deload }) {
   const nomes = Object.keys(cargas);
   const [selecionado, setSelecionado] = useState(nomes[0] || null);
   const historico = selecionado ? progressaoCarga(cargas, selecionado).historico : [];
@@ -39,6 +39,21 @@ export default function Relatorio6Progressao({ cargas }) {
         <div style={{ marginTop: space.md, paddingTop: space.md, borderTop: "1px solid " + color.border }}>
           <div style={{ fontSize: 11, color: color.alert, fontWeight: 700, marginBottom: 4 }}>Estagnados (mesma carga 3+ sessões)</div>
           {estagnados.map(e => <div key={e.nome} style={{ fontSize: ty.xs, color: color.textDim }}>{e.nome} — {e.kg}kg</div>)}
+        </div>
+      )}
+      {deload && deload.sugerido && (
+        <div style={{ marginTop: space.md, padding: space.md, background: color.alert + "14", border: "1px solid " + color.alert + "44", borderRadius: radius.md }}>
+          <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.alert, marginBottom: 2 }}>Sugestão: semana de deload</div>
+          <div style={{ fontSize: ty.xs, color: color.textDim }}>{deload.estagnados.length} exercícios estagnados ao mesmo tempo. Considera ~50% das séries, RIR mais alto, por uma semana.</div>
+        </div>
+      )}
+      {volumeGrupo && (volumeGrupo.superior > 0 || volumeGrupo.inferior > 0) && (
+        <div style={{ marginTop: space.md, paddingTop: space.md, borderTop: "1px solid " + color.border }}>
+          <div style={{ fontSize: 11, color: color.textFaint, fontWeight: 700, marginBottom: 4, textTransform: "uppercase" }}>Volume por grupo (aproximado por sessão)</div>
+          <div style={{ display: "flex", gap: space.lg }}>
+            <div><div style={{ fontSize: ty.md, fontWeight: 800, color: color.text }}>{volumeGrupo.superior}</div><div style={{ fontSize: 10, color: color.textFaint }}>superior</div></div>
+            <div><div style={{ fontSize: ty.md, fontWeight: 800, color: color.text }}>{volumeGrupo.inferior}</div><div style={{ fontSize: 10, color: color.textFaint }}>inferior</div></div>
+          </div>
         </div>
       )}
     </div>

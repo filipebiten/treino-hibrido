@@ -148,7 +148,9 @@ export function acwr(eventos, hojeISO) {
   const carga7 = cargaPorDia.slice(0, 7).reduce((s, n) => s + n, 0);
   const mediaSemanal28 = cargaPorDia.reduce((s, n) => s + n, 0) / 4;
   const ratio = mediaSemanal28 > 0 ? carga7 / mediaSemanal28 : 0;
-  const faixa = ratio < 0.8 ? "subcarga" : ratio > 1.5 ? "risco alto" : ratio > 1.3 ? "atenção" : "ideal";
+  // rótulos descritivos, não alerta de risco — ACWR não tem evidência como preditor de
+  // lesão (Impellizzeri et al. 2020, IJSPP: acoplamento matemático, faixas arbitrárias)
+  const faixa = ratio < 0.8 ? "subcarga" : ratio > 1.5 ? "carga alta" : ratio > 1.3 ? "carga crescente" : "ideal";
   return { suficiente: true, ratio: Math.round(ratio * 100) / 100, faixa };
 }
 
@@ -159,6 +161,31 @@ export function exerciciosEstagnados(cargas) {
   return Object.entries(cargas)
     .filter(([, reg]) => reg.historico && reg.historico.length >= 3 && reg.historico.slice(-3).every(h => h.kg === reg.historico[reg.historico.length - 1].kg))
     .map(([nome, reg]) => ({ nome, kg: reg.historico[reg.historico.length - 1].kg }));
+}
+
+// 3.6 — deload: 2+ exercícios estagnados ao mesmo tempo sugere semana de descarga
+// (~50% das séries, RIR mais alto). É sugestão, não automático.
+export function sugerirDeload(cargas) {
+  const estagnados = exerciciosEstagnados(cargas);
+  return { sugerido: estagnados.length >= 2, estagnados };
+}
+
+// 3.4 — volume por grupo muscular, aproximado por tipo de sessão (superior/inferior), não
+// por exercício individual: MA/MC (superior) não têm mapeamento de músculo primário por
+// exercício. Espelha o mapeamento tipo→grupo de tipoInfo() em App.jsx.
+const GRUPO_POR_TIPO = { muscA: "superior", muscB: "inferior", muscC: "superior" };
+export function volumePorGrupo(eventos, desde, ate) {
+  const dias = agruparPorDia(eventos);
+  const datas = listaDatas(desde, ate);
+  let superior = 0, inferior = 0;
+  datas.forEach(iso => {
+    const d = dias[iso];
+    if (!d || !d.treino || !d.treino.volume) return;
+    const grupo = GRUPO_POR_TIPO[d.treino.tipo];
+    if (grupo === "superior") superior += d.treino.volume;
+    else if (grupo === "inferior") inferior += d.treino.volume;
+  });
+  return { superior: Math.round(superior), inferior: Math.round(inferior) };
 }
 
 // 7. Volume de corrida — km/semana. O app não captura distância automaticamente ao finalizar
