@@ -29,26 +29,42 @@ export function CU({ time, running }) {
   );
 }
 
+// Baseado em timestamp (endsAt = Date.now() + ms), não em decremento de tick: o navegador
+// suspende setInterval em aba/app em segundo plano, então contar por tick perde tempo real.
+// O interval só repinta a UI; a verdade é sempre endsAt - Date.now(). Recalcula também ao
+// voltar de segundo plano (visibilitychange), senão a transição de fase/round fica presa.
 export function TabataTimer({ work, rest: restT, rounds, onDone, cor }) {
   const [round, setRound] = useState(1), [phase, setPhase] = useState("work"), [time, setTime] = useState(work), [running, setRunning] = useState(false), [done, setDone] = useState(false);
   const ref = useRef(null);
+  const endsAtRef = useRef(null);
   const phaseRef = useRef(phase), roundRef = useRef(round);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => { roundRef.current = round; }, [round]);
 
+  function recalcular() {
+    if (!endsAtRef.current) return;
+    const restante = Math.ceil((endsAtRef.current - Date.now()) / 1000);
+    if (restante > 0) { setTime(restante); return; }
+    avisar();
+    if (phaseRef.current === "work") { setPhase("rest"); setTime(restT); endsAtRef.current = Date.now() + restT * 1000; return; }
+    if (roundRef.current < rounds) { setRound(r => r + 1); setPhase("work"); setTime(work); endsAtRef.current = Date.now() + work * 1000; return; }
+    endsAtRef.current = null; setRunning(false); setDone(true); setTime(0);
+  }
+
   useEffect(() => {
-    if (!running) return;
-    ref.current = setInterval(() => {
-      setTime(t => {
-        if (t > 1) return t - 1;
-        avisar();
-        if (phaseRef.current === "work") { setPhase("rest"); return restT; }
-        if (roundRef.current < rounds) { setRound(r => r + 1); setPhase("work"); return work; }
-        clearInterval(ref.current); setRunning(false); setDone(true); return 0;
-      });
-    }, 1000);
+    if (!running) { endsAtRef.current = null; return; }
+    if (!endsAtRef.current) endsAtRef.current = Date.now() + time * 1000;
+    ref.current = setInterval(recalcular, 250);
     return () => clearInterval(ref.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, rounds, work, restT]);
+
+  useEffect(() => {
+    function onVis() { if (document.visibilityState === "visible") recalcular(); }
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const btn = (bg, cl) => ({ marginTop: 12, padding: "14px 28px", minHeight: 56, background: bg, color: cl, border: "none", borderRadius: 12, fontSize: ty.md, fontWeight: 700, cursor: "pointer" });
   return (

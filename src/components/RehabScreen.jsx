@@ -3,6 +3,7 @@ import { CT } from "./Timers.jsx";
 import Icon from "./Icon.jsx";
 import PainGraph from "./PainGraph.jsx";
 import { avisar } from "../lib/audio.js";
+import { pedirWakeLock, liberarWakeLock, reativarWakeLockSeVisivel } from "../lib/wakelock.js";
 import { color, space, type as ty, radius, touch } from "../lib/tokens.js";
 import { formatarRestante } from "../lib/progressao.js";
 
@@ -18,17 +19,35 @@ export default function RehabScreen({ onBack, rotinas, onRoutineComplete, rathle
   const [cS, setCS] = useState(1);
   const [rst, setRst] = useState(false);
   const iR = useRef(null);
+  const endsAtRef = useRef(null);
 
+  // baseado em timestamp — setInterval sozinho perde contagem com app em segundo plano
+  function recalcularTmr() {
+    if (!endsAtRef.current) return;
+    const restante = Math.ceil((endsAtRef.current - Date.now()) / 1000);
+    if (restante > 0) { setTmr(restante); return; }
+    endsAtRef.current = null; setTmr(0); setTmrOn(false); avisar();
+  }
   useEffect(() => {
-    if (!tmrOn) return;
-    iR.current = setInterval(() => {
-      setTmr(t => {
-        if (t <= 1) { clearInterval(iR.current); avisar(); setTmrOn(false); return 0; }
-        return t - 1;
-      });
-    }, 1000);
+    if (!tmrOn) { endsAtRef.current = null; return; }
+    if (!endsAtRef.current) endsAtRef.current = Date.now() + tmr * 1000;
+    iR.current = setInterval(recalcularTmr, 250);
     return () => clearInterval(iR.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tmrOn]);
+  useEffect(() => {
+    function onVis() { if (document.visibilityState === "visible") { recalcularTmr(); reativarWakeLockSeVisivel(); } }
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // tela sempre acesa durante a rotina de rehab (mesmo princípio do treino de força)
+  useEffect(() => {
+    if (!activeRoutine) return;
+    pedirWakeLock();
+    return () => liberarWakeLock();
+  }, [activeRoutine]);
 
   function abrir(key, rotina) { setActiveKey(key); setActiveRoutine(rotina); setSI(0); setCS(1); setTmr(0); setTmrOn(false); setRst(false); const ex = rotina.exercises[0]; if (ex && ex.duration && ex.type === "timer") setTmr(ex.duration); }
 

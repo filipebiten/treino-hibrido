@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { CT, CU, TabataTimer } from "./Timers.jsx";
 import Icon from "./Icon.jsx";
 import { avisar } from "../lib/audio.js";
-import { pedirWakeLock, liberarWakeLock } from "../lib/wakelock.js";
+import { pedirWakeLock, liberarWakeLock, reativarWakeLockSeVisivel } from "../lib/wakelock.js";
 import { sugestaoCarga } from "../lib/treino.js";
 import { getGifUrl } from "../data/gifs.js";
 import { color, space, type as ty, radius, touch } from "../lib/tokens.js";
@@ -24,6 +24,7 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
   const iR = useRef(null), cR = useRef(null);
   const startRef = useRef(null);
   const volumeRef = useRef(resume ? resume.volume : 0);
+  const endsAtRef = useRef(null);
 
   const step = list[sI], tot = list.length;
   const gifUrl = step ? getGifUrl(step.name) : null;
@@ -37,16 +38,26 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sI]);
 
+  // baseado em timestamp — setInterval sozinho perde contagem com app em segundo plano
+  function recalcularTmr() {
+    if (!endsAtRef.current) return;
+    const restante = Math.ceil((endsAtRef.current - Date.now()) / 1000);
+    if (restante > 0) { setTmr(restante); return; }
+    endsAtRef.current = null; setTmr(0); setTmrOn(false); avisar();
+  }
   useEffect(() => {
-    if (!tmrOn) return;
-    iR.current = setInterval(() => {
-      setTmr(t => {
-        if (t <= 1) { clearInterval(iR.current); avisar(); setTmrOn(false); return 0; }
-        return t - 1;
-      });
-    }, 1000);
+    if (!tmrOn) { endsAtRef.current = null; return; }
+    if (!endsAtRef.current) endsAtRef.current = Date.now() + tmr * 1000;
+    iR.current = setInterval(recalcularTmr, 250);
     return () => clearInterval(iR.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tmrOn]);
+  useEffect(() => {
+    function onVis() { if (document.visibilityState === "visible") { recalcularTmr(); reativarWakeLockSeVisivel(); } }
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => { if (cupOn) cR.current = setInterval(() => setCup(t => t + 1), 1000); else clearInterval(cR.current); return () => clearInterval(cR.current); }, [cupOn]);
 
   function registrarCargaExercicio() {
