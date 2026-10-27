@@ -87,14 +87,14 @@ const CONTINUO_M3 = [
   { qualidade: { nome: "Fartlek 15min", steps: [{ name: "Fartlek", detail: "Varie o ritmo!", duration: 900, type: "timer", ph: "r" }] }, longao: { km: 3, teste: null } },
   { qualidade: { nome: "4x400m Z4", steps: mkT(4, "400m", 150, 120) }, longao: { km: 4, teste: null } },
   { qualidade: { nome: "Fartlek 20min", steps: [{ name: "Fartlek", detail: "Varie o ritmo", duration: 1200, type: "timer", ph: "r" }] }, longao: { km: 5, teste: null } },
-  { qualidade: { nome: "4x400m Z4", steps: mkT(4, "400m", 150, 120) }, longao: { km: 5, teste: "🎯 TESTE 5KM CONTÍNUO Z2" } },
+  { qualidade: { nome: "4x400m Z4", steps: mkT(4, "400m", 150, 120) }, longao: { km: 5, teste: "TESTE 5KM CONTÍNUO Z2" } },
 ];
 
 // ══════════════════════ M4 — META (6,5km→10km) ══════════════════════
 const META_M4 = [
   { qualidade: { nome: "Tempo Run 15min Z3", steps: [{ name: "Tempo Run Z3", detail: "129-145 bpm", duration: 900, type: "timer", ph: "r" }] }, longao: { km: 6.5, teste: null } },
   { qualidade: { nome: "Fartlek 25min", steps: [{ name: "Fartlek", detail: "Varie", duration: 1500, type: "timer", ph: "r" }] }, longao: { km: 8, teste: null } },
-  { qualidade: { nome: "4km leve", steps: [{ name: "Corrida Z2", detail: "Leve, sem pressa", duration: null, type: "manual", ph: "r" }] }, longao: { km: 10, teste: "🎯 TESTE 10KM — run/walk 9:1" } },
+  { qualidade: { nome: "4km leve", steps: [{ name: "Corrida Z2", detail: "Leve, sem pressa", duration: null, type: "manual", ph: "r" }] }, longao: { km: 10, teste: "TESTE 10KM — run/walk 9:1" } },
 ];
 
 function buildQualidadeSession(cfg) {
@@ -114,7 +114,7 @@ function buildLongaoSession(cfg) {
   const r = [];
   r.push({ section: "PÉS PRÉ-CORRIDA" }); FOOT_PRE.forEach(e => r.push({ ...e, ph: "fp" }));
   r.push({ section: "AQUECIMENTO" }); WARMUP_RUN.forEach(e => r.push({ ...e, ph: "w" }));
-  r.push({ section: cfg.teste ? "🎯 TESTE" : "LONGÃO" });
+  r.push({ section: cfg.teste ? "TESTE" : "LONGÃO" });
   r.push({ name: cfg.teste || ("Longão Z2 — " + cfg.km + "km"), detail: cfg.teste ? "Z2 — " + cfg.km + "km" : "Ritmo de conversa", type: "manual", ph: "r", isTest: !!cfg.teste, how: cfg.teste ? "NÃO ACELERE! Completar é o objetivo." : "Ritmo de conversa, sem pressa." });
   r.push({ section: "ALONGAMENTO PÓS" }); STRETCH.forEach(e => r.push({ ...e, ph: "s" }));
   r.push({ section: "GELO NOS PÉS" }); ICE.forEach(e => r.push({ ...e, ph: "i" }));

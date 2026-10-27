@@ -115,7 +115,7 @@ export function buildMuscSession(phases, macrofase, semanaIdx, force3x15) {
   const leve = force3x15 || (macrofase === 1 && semanaIdx < 2);
   const m = leve ? fase.m.map(levePeso) : fase.m;
   const r = [];
-  r.push({ section: "🔥 AQUECIMENTO" }); fase.w.forEach(e => r.push({ ...e, ph: "w" }));
+  r.push({ section: "AQUECIMENTO" }); fase.w.forEach(e => r.push({ ...e, ph: "w" }));
   r.push({ section: "TREINO — " + PHASE_NAMES[p] }); m.forEach(e => r.push({ ...e, ph: "m" }));
   r.push({ section: "ALONGAMENTO" }); fase.s.forEach(e => r.push({ ...e, ph: "s" }));
   r.push({ section: "FORTALECIMENTO PÉS" }); (phases === MB ? FEET_B : FEET_S).forEach(e => r.push({ ...e, ph: "f" }));
