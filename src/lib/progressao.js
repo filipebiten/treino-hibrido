@@ -43,13 +43,50 @@ export function calcularPosicao(respostas, posicaoAnterior) {
 }
 
 // ══════════════════════ GATES DE PROGRESSÃO ══════════════════════
-export function gateM1toM2({ testesLog, dorLog, hojeISO }) {
+
+// critério antigo (conservador) — mantido só pra comparação, ver ADOCAO_SILBERNAGEL_ATE
+export function gateM1toM2Antigo({ testesLog, dorLog, hojeISO }) {
   const faltando = [];
   const pendentes = CAMINHADAS_GATE_IDS.filter(id => !(testesLog[id] && testesLog[id].passou));
   if (pendentes.length) faltando.push(pendentes.length + " teste(s) de caminhada pendente(s)/reprovado(s)");
   const dias = diasConsecutivosDorBaixa(dorLog, hojeISO, 2);
   if (dias < 5) faltando.push("dor ≤2/10 por 5 dias seguidos (" + dias + "/5)");
   return { ok: faltando.length === 0, faltando };
+}
+
+function mediaDorSemana(dorLog, hojeISO, semanasAtras) {
+  let soma = 0, n = 0;
+  const offsetDias = semanasAtras * 7;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(dOnly(hojeISO).getTime() - (offsetDias + i) * 86400000);
+    const iso = toISO(d);
+    if (dorLog[iso] !== undefined) { soma += dorLog[iso]; n++; }
+  }
+  return n ? soma / n : null;
+}
+
+// data limite pra mostrar o critério antigo em paralelo, só pra comparação visual
+export const ADOCAO_SILBERNAGEL_ATE = "2026-11-26";
+
+// Modelo de monitoramento de dor de Silbernagel (2007): dor até 5/10 durante e após a
+// atividade é aceitável, desde que volte à linha de base na manhã seguinte e não aumente de
+// semana para semana. Substitui o critério antigo (dor ≤2/10 por 5 dias), conservador demais
+// e sem essa base de evidência. O app só registra 1 valor de dor por dia (checkin matinal),
+// não "durante"/"depois" separados — a aproximação usa a média semanal como proxy.
+export function gateM1toM2({ testesLog, dorLog, hojeISO }) {
+  const faltando = [];
+  const pendentes = CAMINHADAS_GATE_IDS.filter(id => !(testesLog[id] && testesLog[id].passou));
+  if (pendentes.length) faltando.push(pendentes.length + " teste(s) de caminhada pendente(s)/reprovado(s)");
+
+  const semanaAtual = mediaDorSemana(dorLog, hojeISO, 0);
+  const semanaAnterior = mediaDorSemana(dorLog, hojeISO, 1);
+  if (semanaAtual == null) faltando.push("sem registro de dor suficiente essa semana");
+  else if (semanaAtual > 5) faltando.push("dor média da semana acima de 5/10 (" + semanaAtual.toFixed(1) + ")");
+  else if (semanaAnterior != null && semanaAtual > semanaAnterior) faltando.push("dor subiu de semana para semana (" + semanaAnterior.toFixed(1) + " → " + semanaAtual.toFixed(1) + ")");
+
+  const resultado = { ok: faltando.length === 0, faltando, criterio: "silbernagel" };
+  if (hojeISO <= ADOCAO_SILBERNAGEL_ATE) resultado.comparacaoAntiga = gateM1toM2Antigo({ testesLog, dorLog, hojeISO });
+  return resultado;
 }
 
 export function gateM2toM3({ testesLog }) {
