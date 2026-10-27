@@ -3,7 +3,7 @@ import { color, space, type as ty, radius } from "../../lib/tokens.js";
 
 const BAR_W = 8, GAP_BARRA = 4, GAP_GRUPO = 6, ALTURA = 70;
 
-export default function Relatorio1Aderencia({ dados }) {
+export default function Relatorio1Aderencia({ dados, rathleff }) {
   const semanas = dados.porSemana;
   const larguraGrupo = BAR_W * 2 + GAP_BARRA;
   const svgW = Math.max(semanas.length * (larguraGrupo + GAP_GRUPO), 40);
@@ -15,6 +15,7 @@ export default function Relatorio1Aderencia({ dados }) {
       <div style={{ display: "flex", gap: space.lg, marginBottom: space.md }}>
         <StatBox label="Manhã" valor={dados.manha.pct + "%"} sub={dados.manha.feitas + "/" + dados.manha.planejadas + " dias"} cor={color.corrida} />
         <StatBox label="Noite" valor={dados.noite.pct + "%"} sub={dados.noite.feitas + "/" + dados.noite.planejadas + " dias"} cor={color.forca} />
+        {rathleff && <StatBox label="Rathleff" valor={rathleff.pct + "%"} sub={rathleff.feitas + "/" + rathleff.devidas + " (a cada 2 dias)"} cor={color.pain} />}
       </div>
 
       {semanas.length > 0 ? (

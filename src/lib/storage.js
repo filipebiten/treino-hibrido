@@ -21,6 +21,7 @@ export function defaultState() {
     legacy: null,
     eventos: [],               // [{ id, data, timestamp, tipo, payload }] — log append-only, ver lib/eventos.js
     eventosMigrados: false,
+    planoSeEntao: null,        // { ancora, acao, barreira, atualizadoISO } — não é log, é configuração corrente
   };
 }
 

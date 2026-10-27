@@ -67,15 +67,19 @@ export function migrarParaEventos(state) {
 // já devolve em ordem cronológica, então o forEach naturalmente aplica "mais recente ganha").
 export function agruparPorDia(eventos) {
   const dias = {};
-  function dia(iso) { return dias[iso] || (dias[iso] = { periodos: [], treino: null, pulado: false, dor: null, testes: [], recuo: null, rehabMinutos: null }); }
+  function dia(iso) { return dias[iso] || (dias[iso] = { periodos: [], pesoPeriodo: {}, treino: null, pulado: false, dor: null, testes: [], recuo: null, rehabMinutos: null }); }
   listar(eventos).forEach(e => {
     const d = dia(e.data);
     switch (e.tipo) {
       case "dor_checkin": d.dor = e.payload.nivel; break;
-      case "rehab_dose":
+      case "rehab_dose": {
         if (!d.periodos.includes(e.payload.periodo)) d.periodos.push(e.payload.periodo);
+        // dose parcial (saiu no meio da rotina) conta meio ponto; sem o campo (eventos antigos), conta cheia.
+        const peso = e.payload.completude === "parcial" ? 0.5 : 1;
+        d.pesoPeriodo[e.payload.periodo] = Math.max(d.pesoPeriodo[e.payload.periodo] || 0, peso);
         if (e.payload.duracaoMin) d.rehabMinutos = (d.rehabMinutos || 0) + e.payload.duracaoMin;
         break;
+      }
       case "rathleff": if (!d.periodos.includes("carga")) d.periodos.push("carga"); break;
       case "treino_concluido":
         d.treino = { tipo: e.payload.tipo, label: e.payload.label, duracaoSeg: e.payload.duracaoSeg, volume: e.payload.volume, distanciaKm: e.payload.distanciaKm, tempoTotalMin: e.payload.tempoTotalMin };

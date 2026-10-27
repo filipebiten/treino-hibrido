@@ -34,17 +34,29 @@ export function aderenciaRehab(eventos, desde, ate) {
     let mF = 0, nF = 0;
     semana.forEach(iso => {
       const d = dias[iso];
-      if (d && d.periodos.includes("manha")) { mF++; manhaFeitas++; }
-      if (d && d.periodos.includes("noite")) { nF++; noiteFeitas++; }
+      if (d && d.periodos.includes("manha")) { const w = (d.pesoPeriodo && d.pesoPeriodo.manha) || 1; mF += w; manhaFeitas += w; }
+      if (d && d.periodos.includes("noite")) { const w = (d.pesoPeriodo && d.pesoPeriodo.noite) || 1; nF += w; noiteFeitas += w; }
     });
     porSemana.push({ inicio: semana[0], manhaPct: Math.round((mF / semana.length) * 100), noitePct: Math.round((nF / semana.length) * 100) });
   }
   const total = datas.length;
+  const r1 = n => Math.round(n * 10) / 10;
   return {
-    manha: { feitas: manhaFeitas, planejadas: total, pct: total ? Math.round((manhaFeitas / total) * 100) : 0 },
-    noite: { feitas: noiteFeitas, planejadas: total, pct: total ? Math.round((noiteFeitas / total) * 100) : 0 },
+    manha: { feitas: r1(manhaFeitas), planejadas: total, pct: total ? Math.round((manhaFeitas / total) * 100) : 0 },
+    noite: { feitas: r1(noiteFeitas), planejadas: total, pct: total ? Math.round((noiteFeitas / total) * 100) : 0 },
     porSemana,
   };
+}
+
+// 1b. Aderência ao Rathleff — doses feitas vs devidas. A trava de 36h (progressao.js
+// rathleffStatus) já impede sessão diária; "devidas" assume cadência a cada 2 dias.
+export function aderenciaRathleff(eventos, desde, ate) {
+  const dias = agruparPorDia(eventos);
+  const datas = listaDatas(desde, ate);
+  let feitas = 0;
+  datas.forEach(iso => { const d = dias[iso]; if (d && d.periodos.includes("carga")) feitas++; });
+  const devidas = Math.max(1, Math.round(datas.length / 2));
+  return { feitas, devidas, pct: Math.round((feitas / devidas) * 100) };
 }
 
 function media(arr) { return arr.length ? Math.round((arr.reduce((s, n) => s + n, 0) / arr.length) * 10) / 10 : null; }

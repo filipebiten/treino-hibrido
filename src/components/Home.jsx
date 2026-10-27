@@ -1,4 +1,5 @@
 import Icon from "./Icon.jsx";
+import PlanoSeEntaoCard from "./PlanoSeEntaoCard.jsx";
 import { color, space, type as ty, radius, touch } from "../lib/tokens.js";
 
 const cardBase = { width: "100%", color: color.text, borderRadius: radius.lg, border: "1px solid " + color.border, background: color.surface, cursor: "pointer", textAlign: "left" };
@@ -60,8 +61,9 @@ export default function Home({
   proximaSessao, onIniciar, onPular,
   gateInfo,
   sessoes, onVerSessao,
-  onAbrirHistorico, onAbrirRelatorios, onRecalibrar,
+  onAbrirHistorico, onAbrirRelatorios, onRecalibrar, onAbrirLembretes,
   retomar, onRetomar, onDescartarRetomar,
+  planoSeEntao, onSalvarPlano, isSegunda, diasSemUso, instalarPwa,
 }) {
   return (
     <div style={{ background: color.bg, color: color.text, minHeight: "100vh", fontFamily: "system-ui", padding: space.xl + "px " + space.lg + "px", maxWidth: 480, margin: "0 auto" }}>
@@ -82,9 +84,27 @@ export default function Home({
         </div>
       )}
 
+      {diasSemUso >= 3 && (
+        <div style={{ ...cardBase, cursor: "default", padding: space.lg, marginBottom: space.md, border: "1px solid " + color.success + "66", background: color.success + "0e" }}>
+          <div style={{ fontSize: ty.md, fontWeight: 800, marginBottom: 2 }}>Bem-vindo de volta</div>
+          <div style={{ fontSize: ty.sm, color: color.textDim }}>Vamos realinhar — sem pressa, só retomar de onde parou.</div>
+        </div>
+      )}
+
+      {instalarPwa && (
+        <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.alert + "55", background: color.alert + "0e", display: "flex", alignItems: "flex-start", gap: 8 }}>
+          <Icon name="flag" size={16} color={color.alert} />
+          <div style={{ fontSize: ty.xs, color: color.textDim, lineHeight: 1.5 }}>
+            Instala na Tela de Início (compartilhar → "Adicionar à Tela de Início") pra não perder dados por limpeza automática do navegador e liberar tela sempre acesa durante o treino.
+          </div>
+        </div>
+      )}
+
       <DorCard dorHoje={dorHoje} diasSemRegistro={diasSemRegistroDor} onRegistrar={onRegistrarDor} />
 
       <RehabCard doses={doses} doseFeitaFn={doseFeitaFn} onAbrirDose={onAbrirDose} cargaDisponivel={cargaDisponivel} cargaFeita={cargaFeita} cargaTitulo={cargaTitulo} cargaBloqueada={cargaBloqueada} restanteRathleff={restanteRathleff} />
+
+      <PlanoSeEntaoCard plano={planoSeEntao} isSegunda={isSegunda} onSalvar={onSalvarPlano} />
 
       {proximaSessao && (
         <div style={{ background: color.surface, border: "1px solid " + color.border, borderRadius: radius.lg, padding: space.xl, textAlign: "center", marginBottom: space.md }}>
@@ -116,9 +136,10 @@ export default function Home({
         </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center", gap: space.lg, marginTop: space.xl }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: space.lg, marginTop: space.xl, flexWrap: "wrap" }}>
         <button onClick={onAbrirHistorico} style={{ background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer", minHeight: 44 }}>Histórico</button>
         <button onClick={onAbrirRelatorios} style={{ background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer", minHeight: 44 }}>Relatórios</button>
+        <button onClick={onAbrirLembretes} style={{ background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer", minHeight: 44 }}>Lembretes</button>
         <button onClick={onRecalibrar} style={{ background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer", minHeight: 44 }}>Recalibrar</button>
       </div>
     </div>

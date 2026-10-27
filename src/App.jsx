@@ -7,6 +7,7 @@ import { loadState, saveState } from "./lib/storage.js";
 import { calcularPosicao, verificarGate, checkRecuoAutomatico, rathleffStatus, formatarRestante } from "./lib/progressao.js";
 import { registrarCarga, registrarHistoricoTreino, registrarPeso } from "./lib/treino.js";
 import { registrar as registrarEvento } from "./lib/eventos.js";
+import { atualizarBadge } from "./lib/lembrete.js";
 import { color } from "./lib/tokens.js";
 
 import Onboarding from "./components/Onboarding.jsx";
@@ -16,6 +17,7 @@ import WorkoutScreen from "./components/WorkoutScreen.jsx";
 import RehabScreen from "./components/RehabScreen.jsx";
 import Historico from "./components/Historico/index.jsx";
 import Relatorios from "./components/Relatorios/index.jsx";
+import LembreteScreen from "./components/LembreteScreen.jsx";
 import TesteScreen from "./components/TesteScreen.jsx";
 import Icon from "./components/Icon.jsx";
 
@@ -98,6 +100,18 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state && state.dorLog && state.dorLog[isoHojeReal()]]);
 
+  // badge do PWA com nº de doses de rehab pendentes hoje (Badging API, sem permissão)
+  useEffect(() => {
+    if (!state) return;
+    const hoje = isoHojeReal();
+    const prog = state.progresso || { macrofase: 1, dorAlta: false };
+    const feitas = state.rehabLog[hoje] || {};
+    const chaves = prog.dorAlta ? ["manha", "tarde", "noite"] : prog.macrofase === 1 ? ["manha", "noite"] : ["unica"];
+    const pendentes = chaves.filter(k => !feitas[k]).length;
+    atualizarBadge(pendentes);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state && state.rehabLog && state.rehabLog[isoHojeReal()]]);
+
   if (!state) return <div style={{ background: color.bg, color: color.text, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "system-ui" }}><p style={{ opacity: .6 }}>Carregando...</p></div>;
 
   function patch(partial) { setState(s => { const n = { ...s, ...partial }; saveState(n); return n; }); }
@@ -162,14 +176,25 @@ export default function App() {
     return n;
   }
 
-  function markDose(key) {
+  // dias desde o último evento qualquer — pra "bem-vindo de volta" sem culpa, não é
+  // métrica de punição, é só pra saber se o retorno pede acolhimento.
+  function diasSemUsoApp() {
+    if (!state.eventos.length) return 0;
+    const ultimaData = state.eventos.reduce((max, e) => e.data > max ? e.data : max, state.eventos[0].data);
+    return Math.max(0, diffDias(ultimaData, hojeISO));
+  }
+
+  function salvarPlanoSeEntao(plano) { patch({ planoSeEntao: plano }); }
+
+  function markDose(key, completude) {
     const novo = { ...state.rehabLog, [hojeISO]: { ...(state.rehabLog[hojeISO] || {}), [key]: true } };
     const patchObj = { rehabLog: novo };
+    const extra = completude ? { completude } : {};
     if (key === "carga") {
       patchObj.rathleffLog = { ...state.rathleffLog, [hojeISO]: Date.now() };
-      patchObj.eventos = registrarEvento(state.eventos, "rathleff", {}, hojeISO);
+      patchObj.eventos = registrarEvento(state.eventos, "rathleff", extra, hojeISO);
     } else {
-      patchObj.eventos = registrarEvento(state.eventos, "rehab_dose", { periodo: key }, hojeISO);
+      patchObj.eventos = registrarEvento(state.eventos, "rehab_dose", { periodo: key, ...extra }, hojeISO);
     }
     patch(patchObj);
   }
@@ -231,7 +256,7 @@ export default function App() {
       pesoLog={state.pesoLog}
       hojeISO={hojeISO}
       onBack={() => { setScr("home"); setActiveDoseKey(null); }}
-      onRoutineComplete={() => markDose(activeDoseKey)}
+      onRoutineComplete={(completude) => markDose(activeDoseKey, completude)}
     />;
   }
 
@@ -240,6 +265,9 @@ export default function App() {
 
   // ══════════════════════ RELATÓRIOS ══════════════════════
   if (scr === "relatorios") return <Relatorios eventos={state.eventos} hojeISO={hojeISO} cargas={state.cargas} macrofase={progresso.macrofase} testesLog={state.testesLog} dorLog={state.dorLog} onBack={() => setScr("home")} />;
+
+  // ══════════════════════ LEMBRETES ══════════════════════
+  if (scr === "lembretes") return <LembreteScreen onBack={() => setScr("home")} />;
 
   // ══════════════════════ PREVIEW ══════════════════════
   if (scr === "preview" && sessaoAtual) {
@@ -294,8 +322,13 @@ export default function App() {
     onVerSessao={(i) => { const tipo = sessoesTipos[i]; const info = tipoInfo(tipo); const built = buildSessao(tipo, progresso.macrofase, progresso.semanaIdx, progresso.force3x15); setSessaoAtual({ tipo, ...info, ...built }); setScr("preview"); }}
     onAbrirHistorico={() => setScr("historico")}
     onAbrirRelatorios={() => setScr("relatorios")}
+    onAbrirLembretes={() => setScr("lembretes")}
     onRecalibrar={() => { setRecalibrando(true); setScr("onboarding"); }}
     retomar={resume ? { label: resume.label, passo: resume.sI + 1, total: resume.tot } : null}
     onRetomar={retomarSessao} onDescartarRetomar={limparResume}
+    planoSeEntao={state.planoSeEntao} onSalvarPlano={salvarPlanoSeEntao}
+    isSegunda={new Date(hojeISO + "T00:00:00").getDay() === 1}
+    diasSemUso={diasSemUsoApp()}
+    instalarPwa={!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) && !window.navigator.standalone}
   />;
 }

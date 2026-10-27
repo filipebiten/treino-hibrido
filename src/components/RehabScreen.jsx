@@ -103,7 +103,7 @@ export default function RehabScreen({ onBack, rotinas, onRoutineComplete, rathle
 
   function nxt() {
     setTmrOn(false); setRst(false); setCS(1);
-    if (sI + 1 >= tot) { if (onRoutineComplete) onRoutineComplete(activeKey); setActiveRoutine(null); return; }
+    if (sI + 1 >= tot) { if (onRoutineComplete) onRoutineComplete(); setActiveRoutine(null); return; }
     const n = exercises[sI + 1]; setSI(sI + 1); if (n && n.duration && n.type === "timer") setTmr(n.duration); else setTmr(0);
   }
   function dn() { if (cS < mx) { if (step.rest) { setRst(true); setTmr(step.rest); setTmrOn(true); } setCS(cS + 1); } else nxt(); }
@@ -112,7 +112,11 @@ export default function RehabScreen({ onBack, rotinas, onRoutineComplete, rathle
   return (
     <div style={{ background: color.bg, color: color.text, minHeight: "100vh", fontFamily: "system-ui", padding: space.lg, maxWidth: 480, margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: space.md }}>
-        <button onClick={() => { setTmrOn(false); setActiveRoutine(null); }} style={backBtn}><Icon name="chevronLeft" size={16} /> Sair</button>
+        <button onClick={() => {
+          setTmrOn(false);
+          if (sI > 0 && onRoutineComplete && window.confirm("Registrar o que já foi feito até aqui como dose parcial?")) onRoutineComplete("parcial");
+          setActiveRoutine(null);
+        }} style={backBtn}><Icon name="chevronLeft" size={16} /> Sair</button>
         <div style={{ fontSize: ty.sm, color: color.textFaint }}>{sI + 1}/{tot}</div>
       </div>
       <div style={{ height: 4, background: color.surfaceAlt, borderRadius: 2, marginBottom: space.md, overflow: "hidden" }}><div style={{ height: 4, borderRadius: 2, background: routine.color, width: "100%", transform: "scaleX(" + ((sI + 1) / tot) + ")", transformOrigin: "left", transition: "transform 0.3s" }} /></div>
