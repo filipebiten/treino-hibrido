@@ -171,8 +171,10 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
       )}
       {step.type === "exercise" && !rst && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: space.sm }}>
-          <input type="number" inputMode="decimal" value={kgInput} onChange={e => setKgInput(e.target.value)} placeholder="kg" style={{ width: 90, minHeight: 48, textAlign: "center", fontSize: ty.lg, fontWeight: 700, background: color.surface, border: "1px solid " + color.border, borderRadius: radius.md, color: color.text }} />
-          <span style={{ fontSize: ty.sm, color: color.textFaint }}>kg nesta série</span>
+          <button onClick={() => setKgInput(String(Math.max(0, (parseFloat(kgInput) || 0) - (grupoCarga === "inferior" ? 5 : 2.5))))} style={{ minHeight: 48, minWidth: 48, borderRadius: radius.md, border: "1px solid " + color.border, background: color.surface, color: color.text, fontSize: ty.lg, fontWeight: 700, cursor: "pointer" }}>−</button>
+          <input type="number" inputMode="decimal" value={kgInput} onChange={e => setKgInput(e.target.value)} placeholder="kg" style={{ width: 80, minHeight: 48, textAlign: "center", fontSize: ty.lg, fontWeight: 700, fontVariantNumeric: "tabular-nums", background: color.surface, border: "1px solid " + color.border, borderRadius: radius.md, color: color.text }} />
+          <button onClick={() => setKgInput(String((parseFloat(kgInput) || 0) + (grupoCarga === "inferior" ? 5 : 2.5)))} style={{ minHeight: 48, minWidth: 48, borderRadius: radius.md, border: "1px solid " + color.border, background: color.surface, color: color.text, fontSize: ty.lg, fontWeight: 700, cursor: "pointer" }}>+</button>
+          <span style={{ fontSize: ty.sm, color: color.textFaint }}>kg</span>
         </div>
       )}
       {sugestao && !rst && <div style={{ textAlign: "center", fontSize: ty.xs, color: color.success, marginBottom: space.sm }}>Bateu o topo 2x seguidas — sugestão: {sugestao.kg}kg (+{sugestao.incremento})</div>}
