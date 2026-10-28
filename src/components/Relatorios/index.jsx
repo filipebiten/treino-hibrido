@@ -80,7 +80,46 @@ function TenisCard({ tenis, onAdicionar, onRegistrarKm, onRemover }) {
   );
 }
 
-export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis }) {
+// Bloco 2.5 — marcar semanas futuras (eventos, retiros, viagens) sem esperar a segunda
+// chegar. Lista as próximas 6 segundas-feiras.
+function segundasFuturas(hojeISO, n) {
+  const out = [];
+  const d = new Date(hojeISO + "T00:00:00");
+  const offset = d.getDay() === 0 ? 6 : d.getDay() - 1;
+  const segundaAtual = new Date(d.getTime() - offset * 86400000);
+  for (let i = 0; i < n; i++) {
+    const dt = new Date(segundaAtual.getTime() + i * 7 * 86400000);
+    const y = dt.getFullYear(), m = String(dt.getMonth() + 1).padStart(2, "0"), dd = String(dt.getDate()).padStart(2, "0");
+    out.push(`${y}-${m}-${dd}`);
+  }
+  return out;
+}
+function SemanasFuturasCard({ hojeISO, semanasDeclaradas, onDeclarar }) {
+  const semanas = segundasFuturas(hojeISO, 6);
+  return (
+    <div style={{ background: color.surface, borderRadius: radius.lg, padding: space.md, marginBottom: space.lg }}>
+      <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm }}>Planejar semanas</div>
+      <div style={{ fontSize: ty.xs, color: color.textFaint, marginBottom: space.sm }}>Marca de antemão uma semana apertada (viagem, evento) — vira modo manutenção, sem contar como falha.</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {semanas.map(iso => {
+          const dataFmt = iso.split("-").reverse().join("/");
+          const atual = semanasDeclaradas[iso];
+          return (
+            <div key={iso} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: space.sm }}>
+              <span style={{ fontSize: ty.xs, color: color.textDim, minWidth: 70 }}>{dataFmt}</span>
+              <div style={{ display: "flex", gap: 4 }}>
+                <button onClick={() => onDeclarar(iso, "normal")} style={{ minHeight: 32, padding: "0 10px", borderRadius: radius.sm, border: "1px solid " + (atual === "normal" ? color.success : color.border), background: atual === "normal" ? color.success + "1a" : "transparent", color: color.text, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Normal</button>
+                <button onClick={() => onDeclarar(iso, "apertada")} style={{ minHeight: 32, padding: "0 10px", borderRadius: radius.sm, border: "1px solid " + (atual === "apertada" ? color.alert : color.border), background: atual === "apertada" ? color.alert + "1a" : "transparent", color: color.text, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Apertada</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis, semanasDeclaradas, onDeclararSemana }) {
   const [periodo, setPeriodo] = useState("30d");
   const { desde, ate } = periodoParaDatas(periodo, hojeISO);
 
@@ -105,7 +144,7 @@ export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testes
         ))}
       </div>
 
-      <Relatorio1Aderencia dados={aderenciaRehab(eventos, desde, ate)} rathleff={aderenciaRathleff(eventos, desde, ate)} />
+      <Relatorio1Aderencia dados={aderenciaRehab(eventos, desde, ate, semanasDeclaradas)} rathleff={aderenciaRathleff(eventos, desde, ate)} />
       <Relatorio2Dor dados={dorAoLongoDoTempo(eventos, desde, ate)} />
       <Relatorio3DorAderencia dados={dorPorAderencia(eventos, desde, ate)} />
       <Relatorio4DorPorTipo dados={dorPorTipoTreino(eventos, desde, ate)} />
@@ -113,10 +152,11 @@ export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testes
       <Relatorio6Progressao cargas={cargas} volumeGrupo={volumePorGrupo(eventos, desde, ate)} deload={sugerirDeload(cargas)} />
       <Relatorio7VolumeCorrida dados={volumeCorrida(eventos, desde, ate)} srpe={srpeCorrida(eventos, desde, ate)} />
       <Relatorio8Peso dados={pesoCorporal(eventos)} />
-      <Relatorio9Gate macrofase={macrofase} testesLog={testesLog} dorLog={dorLog} hojeISO={hojeISO} />
+      <Relatorio9Gate macrofase={macrofase} testesLog={testesLog} dorLog={dorLog} hojeISO={hojeISO} eventos={eventos} />
       <Relatorio10Export eventos={eventos} />
       <PassosSemanaCard valorAtual={passosSemanaAtual} onRegistrar={onRegistrarPassosSemana} />
       <TenisCard tenis={tenis} onAdicionar={onAdicionarTenis} onRegistrarKm={onRegistrarKmTenis} onRemover={onRemoverTenis} />
+      <SemanasFuturasCard hojeISO={hojeISO} semanasDeclaradas={semanasDeclaradas} onDeclarar={onDeclararSemana} />
       <Relatorio11CargaPe dados={dorPorCargaPe(eventos, hojeISO)} />
     </div>
   );

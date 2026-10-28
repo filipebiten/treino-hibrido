@@ -88,7 +88,8 @@ export default function Home({
   onAbrirHistorico, onAbrirRelatorios, onRecalibrar, onAbrirLembretes,
   retomar, onRetomar, onDescartarRetomar,
   planoSeEntao, onSalvarPlano, isSegunda, diasSemUso, instalarPwa,
-  precisaBackup, onFazerBackup,
+  precisaBackup, onFazerBackup, recaida,
+  semanaDeclarada, onDeclararSemana,
 }) {
   return (
     <div style={{ background: color.bg, color: color.text, minHeight: "100vh", fontFamily: "system-ui", padding: space.xl + "px " + space.lg + "px", maxWidth: 480, margin: "0 auto" }}>
@@ -132,7 +133,31 @@ export default function Home({
         </div>
       )}
 
+      {isSegunda && !semanaDeclarada && (
+        <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.border, background: color.surface }}>
+          <div style={{ fontSize: ty.sm, fontWeight: 700, marginBottom: space.sm }}>Essa semana é normal ou apertada?</div>
+          <div style={{ display: "flex", gap: space.sm }}>
+            <button onClick={() => onDeclararSemana("normal")} style={{ flex: 1, minHeight: 40, borderRadius: radius.sm, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontWeight: 700, fontSize: ty.sm, cursor: "pointer" }}>Normal</button>
+            <button onClick={() => onDeclararSemana("apertada")} style={{ flex: 1, minHeight: 40, borderRadius: radius.sm, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontWeight: 700, fontSize: ty.sm, cursor: "pointer" }}>Apertada</button>
+          </div>
+        </div>
+      )}
+      {semanaDeclarada === "apertada" && (
+        <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.textFaint + "55", background: "transparent" }}>
+          <div style={{ fontSize: ty.xs, color: color.textDim }}>Modo manutenção essa semana — só rehab + 1 treino contam. Não conta como falha.</div>
+        </div>
+      )}
+
       <DorCard dorHoje={dorHoje} diasSemRegistro={diasSemRegistroDor} onRegistrar={onRegistrarDor} />
+
+      {recaida && recaida.suficiente && recaida.elevada && recaida.vezes > 0 && (
+        <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.success + "55", background: color.success + "0e" }}>
+          <div style={{ fontSize: ty.xs, color: color.textDim, lineHeight: 1.5 }}>
+            Isso já aconteceu antes — você registrou {recaida.dorHoje}/10 em {recaida.vezes} {recaida.vezes === 1 ? "ocasião" : "ocasiões"} e a dor voltou a ≤2/10 em média em {recaida.diasMediaRecuperacao} {recaida.diasMediaRecuperacao === 1 ? "dia" : "dias"}.
+          </div>
+        </div>
+      )}
+
       <CargaPeCard cargaPeHoje={cargaPeHoje} onRegistrar={onRegistrarCargaPe} />
 
       <RehabCard doses={doses} doseFeitaFn={doseFeitaFn} onAbrirDose={onAbrirDose} cargaDisponivel={cargaDisponivel} cargaFeita={cargaFeita} cargaTitulo={cargaTitulo} cargaBloqueada={cargaBloqueada} restanteRathleff={restanteRathleff} />

@@ -21,12 +21,20 @@ function listaDatas(desde, ate) {
   return out;
 }
 
+function segundaFeiraDaSemana(iso) {
+  const d = new Date(iso + "T00:00:00");
+  const offset = d.getDay() === 0 ? 6 : d.getDay() - 1;
+  return toISO(new Date(d.getTime() - offset * 86400000));
+}
+
 // ponytail: "planejado" assume 1 dose de manhã + 1 de noite por dia — o regime
 // atual (macrofase 1, único vivido até aqui). Uma macrofase futura com dose
 // "unica"/"tarde" muda o que "planejado" significa — revisar quando chegar lá.
-export function aderenciaRehab(eventos, desde, ate) {
+// `semanasDeclaradas` (Bloco 2.5, opcional): dias de semana "apertada" saem do
+// denominador — modo manutenção não conta como déficit.
+export function aderenciaRehab(eventos, desde, ate, semanasDeclaradas = {}) {
   const dias = agruparPorDia(eventos);
-  const datas = listaDatas(desde, ate);
+  const datas = listaDatas(desde, ate).filter(iso => semanasDeclaradas[segundaFeiraDaSemana(iso)] !== "apertada");
   let manhaFeitas = 0, noiteFeitas = 0;
   const porSemana = [];
   for (let i = 0; i < datas.length; i += 7) {
@@ -231,6 +239,64 @@ export function pesoCorporal(eventos) {
   const mediaMovel = pontos.map((p, i) => ({ iso: p.iso, media: media(pontos.slice(Math.max(0, i - 6), i + 1).map(q => q.kg)) }));
   const tendencia = pontos.length >= 2 ? Math.round((pontos[pontos.length - 1].kg - pontos[0].kg) * 10) / 10 : null;
   return { pontos, mediaMovel, tendencia };
+}
+
+// 12. "Isso já aconteceu antes" — Bloco 2.1. Quando a dor de hoje sobe pelo menos até um
+// nível já visto antes, compara com episódios passados que chegaram no mesmo nível (ou
+// mais alto) e mede quantos dias levaram pra voltar a ≤2/10. Gate de 8 semanas — antes
+// disso o histórico é curto demais pra dizer "isso já aconteceu antes" com confiança.
+const MIN_DIAS_COMPARACAO_RECAIDA = 56;
+const LIMIAR_VOLTA_RECAIDA = 2;
+export function comparacaoRecaida(eventos, hojeISO) {
+  const pontos = listar(eventos).filter(e => e.tipo === "dor_checkin").map(e => ({ iso: e.data, nivel: e.payload.nivel })).sort((a, b) => a.iso < b.iso ? -1 : 1);
+  if (!pontos.length) return { suficiente: false, faltamDias: MIN_DIAS_COMPARACAO_RECAIDA };
+  const diasHistorico = diffDias(pontos[0].iso, hojeISO) + 1;
+  if (diasHistorico < MIN_DIAS_COMPARACAO_RECAIDA) return { suficiente: false, faltamDias: MIN_DIAS_COMPARACAO_RECAIDA - diasHistorico };
+
+  const dorHoje = pontos[pontos.length - 1].nivel;
+  const baseline = media(pontos.slice(0, -1).map(p => p.nivel));
+  if (baseline == null || dorHoje <= baseline) return { suficiente: true, elevada: false };
+
+  // Episódios passados (exclui o de hoje, que por definição ainda não fechou): sequência
+  // de dias com dor ≥ dorHoje até o primeiro dia seguinte com dor ≤2.
+  const episodios = [];
+  let emEpisodio = false, inicioEpisodio = null;
+  for (let i = 0; i < pontos.length - 1; i++) {
+    const p = pontos[i];
+    if (!emEpisodio && p.nivel >= dorHoje) { emEpisodio = true; inicioEpisodio = p; }
+    else if (emEpisodio && p.nivel <= LIMIAR_VOLTA_RECAIDA) {
+      episodios.push({ inicioISO: inicioEpisodio.iso, dias: diffDias(inicioEpisodio.iso, p.iso) });
+      emEpisodio = false;
+    }
+  }
+  if (!episodios.length) return { suficiente: true, elevada: true, dorHoje, vezes: 0 };
+  return { suficiente: true, elevada: true, dorHoje, vezes: episodios.length, diasMediaRecuperacao: Math.round(media(episodios.map(e => e.dias))) };
+}
+
+// 13. Projeção de gate — Bloco 2.4. Regressão linear simples sobre os últimos 14 pontos
+// de dor matinal; só projeta quando a tendência é de queda real (slope negativo) —
+// tendência plana ou subindo não projeta nada, pra não prometer o que o dado não mostra.
+export function projecaoDorAteLimiar(eventos, hojeISO, limiar) {
+  const pontos = listar(eventos).filter(e => e.tipo === "dor_checkin" && e.data <= hojeISO).map(e => ({ iso: e.data, nivel: e.payload.nivel }));
+  const recentes = pontos.slice(-14);
+  if (recentes.length < 6) return null;
+  const x0 = diffDias(MARCO_ZERO, recentes[0].iso);
+  const xs = recentes.map(p => diffDias(MARCO_ZERO, p.iso) - x0);
+  const ys = recentes.map(p => p.nivel);
+  const n = xs.length;
+  const sumX = xs.reduce((a, b) => a + b, 0), sumY = ys.reduce((a, b) => a + b, 0);
+  const sumXY = xs.reduce((a, x, i) => a + x * ys[i], 0);
+  const sumXX = xs.reduce((a, x) => a + x * x, 0);
+  const denom = n * sumXX - sumX * sumX;
+  if (denom === 0) return { tendencia: "sem dado suficiente", dias: null };
+  const slope = (n * sumXY - sumX * sumY) / denom;
+  if (slope >= 0) return { tendencia: "sem queda", dias: null };
+  const intercept = (sumY - slope * sumX) / n;
+  const dorProjetadaHoje = intercept + slope * xs[xs.length - 1];
+  if (dorProjetadaHoje <= limiar) return { tendencia: "já abaixo", dias: 0 };
+  const diasAteLimiar = (limiar - dorProjetadaHoje) / slope;
+  if (!isFinite(diasAteLimiar) || diasAteLimiar > 180) return { tendencia: "queda lenta demais pra projetar", dias: null };
+  return { tendencia: "caindo", dias: Math.ceil(diasAteLimiar) };
 }
 
 // 11. Dor matinal × carga de pé do dia anterior + dor por dia da semana. Bloco 1.3 do

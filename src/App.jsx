@@ -7,7 +7,7 @@ import { loadState, saveState } from "./lib/storage.js";
 import { calcularPosicao, verificarGate, checkRecuoAutomatico, rathleffStatus, formatarRestante } from "./lib/progressao.js";
 import { registrarCarga, registrarHistoricoTreino, registrarPeso, ehPR } from "./lib/treino.js";
 import { registrar as registrarEvento } from "./lib/eventos.js";
-import { eventosParaJSON } from "./lib/relatorios.js";
+import { eventosParaJSON, comparacaoRecaida } from "./lib/relatorios.js";
 import { atualizarBadge } from "./lib/lembrete.js";
 import { color } from "./lib/tokens.js";
 
@@ -249,6 +249,11 @@ export default function App() {
     } catch { /* usuário cancelou o share — não marca como feito, pergunta nas próximas vezes */ }
   }
 
+  // Bloco 2.5 — semana declarada. "Apertada" vira modo manutenção: exclui a semana do
+  // denominador de aderência nos relatórios (ver relatorios.js), sem marcar como falha.
+  function declararSemana(segundaISO, tipo) { patch({ semanasDeclaradas: { ...state.semanasDeclaradas, [segundaISO]: tipo } }); }
+  function semanaAtualDeclarada() { return state.semanasDeclaradas[segundaFeiraDaSemana(hojeISO)]; }
+
   // média de dor dos últimos 7 dias com registro — usada pra priorizar alternativa de
   // exercício sem impacto no pé (Bloco 2.5), não é métrica de risco nem gate.
   function dorMedia7d() {
@@ -348,7 +353,8 @@ export default function App() {
   // ══════════════════════ RELATÓRIOS ══════════════════════
   if (scr === "relatorios") return <Relatorios eventos={state.eventos} hojeISO={hojeISO} cargas={state.cargas} macrofase={progresso.macrofase} testesLog={state.testesLog} dorLog={state.dorLog} onBack={() => setScr("home")}
     passosSemanaAtual={passosSemanaAtual()} onRegistrarPassosSemana={registrarPassosSemana}
-    tenis={state.tenis} onAdicionarTenis={adicionarTenis} onRegistrarKmTenis={registrarKmTenis} onRemoverTenis={removerTenis} />;
+    tenis={state.tenis} onAdicionarTenis={adicionarTenis} onRegistrarKmTenis={registrarKmTenis} onRemoverTenis={removerTenis}
+    semanasDeclaradas={state.semanasDeclaradas} onDeclararSemana={declararSemana} />;
 
   // ══════════════════════ LEMBRETES ══════════════════════
   if (scr === "lembretes") return <LembreteScreen onBack={() => setScr("home")} />;
@@ -417,5 +423,7 @@ export default function App() {
     diasSemUso={diasSemUsoApp()}
     instalarPwa={!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) && !window.navigator.standalone}
     precisaBackup={precisaBackup()} onFazerBackup={fazerBackup}
+    recaida={comparacaoRecaida(state.eventos, hojeISO)}
+    semanaDeclarada={semanaAtualDeclarada()} onDeclararSemana={(tipo) => declararSemana(segundaFeiraDaSemana(hojeISO), tipo)}
   />;
 }

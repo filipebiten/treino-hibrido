@@ -24,6 +24,7 @@ export function defaultState() {
     planoSeEntao: null,        // { ancora, acao, barreira, atualizadoISO } — não é log, é configuração corrente
     tenis: [],                 // [{ id, nome, km }] — Bloco 1.4, inventário (não log). Sem auto-link a corridas.
     ultimoBackupISO: null,      // Bloco 2.6 — data do último backup feito (share/download).
+    semanasDeclaradas: {},      // Bloco 2.5 — { segundaISO: "normal" | "apertada" }. Semana apertada = modo manutenção.
   };
 }
 
