@@ -22,6 +22,7 @@ const ALT_AGACHAMENTO = { padrao: "squat", impactoPlantar: true, alternativas: [
   { nome: "Agachamento goblet", equipamento: "halter", obs: "menos carga axial na coluna, bom pra academia lotada" },
   { nome: "Leg press 45°", equipamento: "máquina", obs: "mesmo padrão, substitui direto" },
   { nome: "Agachamento na parede com bola suíça", equipamento: "bola de pilates", obs: "apoio nas costas, reduz exigência de equilíbrio" },
+  { nome: "Hack squat", equipamento: "máquina", obs: "trilho fixo, menos exigência de equilíbrio no pé que agachamento livre" },
 ]};
 const ALT_LEG_PRESS = { padrao: "squat", impactoPlantar: false, alternativas: [
   { nome: "Agachamento goblet", equipamento: "halter", obs: "" },
@@ -30,14 +31,17 @@ const ALT_LEG_PRESS = { padrao: "squat", impactoPlantar: false, alternativas: [
 const ALT_EXTENSORA = { padrao: "knee extension", impactoPlantar: false, alternativas: [
   { nome: "Búlgaro com halter", equipamento: "halter", obs: "carga unilateral — pular se a dor estiver alta" },
   { nome: "Extensão isométrica sentado", equipamento: "peso corporal", obs: "zero equipamento" },
+  { nome: "Cadeirinha na parede (wall sit)", equipamento: "peso corporal", obs: "isométrico, zero equipamento — bom pra dia de dor alta" },
 ]};
 const ALT_STIFF = { padrao: "hip hinge", impactoPlantar: false, alternativas: [
   { nome: "Terra romeno com halteres", equipamento: "halter", obs: "" },
   { nome: "Hip thrust/ponte de glúteo", equipamento: "peso corporal ou barra", obs: "sem ficar em pé" },
+  { nome: "Cable pull-through", equipamento: "cabo", obs: "ensina o hinge sem travar carga no pé parado" },
 ]};
 const ALT_TERRA = { padrao: "hip hinge", impactoPlantar: false, alternativas: [
   { nome: "Stiff com halteres", equipamento: "halter", obs: "" },
   { nome: "Hip thrust com barra", equipamento: "barra", obs: "" },
+  { nome: "Cable pull-through", equipamento: "cabo", obs: "ensina o hinge sem travar carga no pé parado" },
 ]};
 const ALT_UNILATERAL = { padrao: "single-leg", impactoPlantar: true, alternativas: [
   { nome: "Leg press unilateral", equipamento: "máquina", obs: "menos exigência de equilíbrio no pé" },
@@ -48,6 +52,7 @@ const ALT_PANTURRILHA_PE = { padrao: "calf raise", impactoPlantar: true, alterna
 ]};
 const ALT_FLEXORA = { padrao: "knee flexion", impactoPlantar: false, alternativas: [
   { nome: "Stiff com halteres", equipamento: "halter", obs: "" },
+  { nome: "Flexão de isquios na bola suíça", equipamento: "bola de pilates", obs: "deitado, zero carga no pé" },
 ]};
 
 export const MB = [
