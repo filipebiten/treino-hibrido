@@ -340,3 +340,9 @@ export function eventosParaCSV(eventos) {
   });
   return linhas.join("\r\n");
 }
+
+// 15. Bloco 5.2 — histórico de teste funcional (heel raise unilateral, mensal).
+export function historicoTesteFuncional(eventos) {
+  return listar(eventos).filter(e => e.tipo === "teste_funcional").reverse()
+    .map(e => ({ data: e.data, esq: e.payload.esq, dir: e.payload.dir }));
+}

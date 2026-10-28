@@ -77,11 +77,30 @@ function RehabCard({ doses, doseFeitaFn, onAbrirDose, cargaDisponivel, cargaFeit
   );
 }
 
+// Bloco 5.1 — força protetiva (opcional) e pliometria (gate de 4 semanas dor-baseline).
+function ForcaProtetivaCard({ feita, onAbrir, pliometriaFeita, pliometriaLiberada, pliometriaMotivoBloqueio, onAbrirPliometria }) {
+  return (
+    <div style={{ marginBottom: space.md }}>
+      <div style={{ fontSize: ty.xs, color: color.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm, display: "flex", alignItems: "center", gap: 6 }}><Icon name="dumbbell" size={14} />Força protetiva (opcional)</div>
+      <button onClick={onAbrir} style={{ ...cardBase, minHeight: touch.min, padding: space.md, marginBottom: space.sm, border: "1px solid " + (feita ? color.success + "55" : color.border), background: feita ? color.success + "12" : color.surfaceAlt, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: ty.md, fontWeight: 700 }}>Panturrilha, glúteo, nórdico, core</span>
+        {feita ? <Icon name="check" size={18} color={color.success} /> : <Icon name="play" size={16} color={color.textDim} />}
+      </button>
+      <button disabled={!pliometriaLiberada} onClick={() => pliometriaLiberada && onAbrirPliometria()} style={{ ...cardBase, minHeight: touch.min, padding: space.md, border: "1px solid " + (pliometriaFeita ? color.success + "55" : !pliometriaLiberada ? color.border : color.border), background: pliometriaFeita ? color.success + "12" : color.surfaceAlt, opacity: pliometriaLiberada ? 1 : 0.6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: ty.md, fontWeight: 700 }}>Pliometria leve</span>
+        {!pliometriaLiberada ? <Icon name="lock" size={14} color={color.textFaint} /> : (pliometriaFeita ? <Icon name="check" size={18} color={color.success} /> : <Icon name="play" size={16} color={color.textDim} />)}
+      </button>
+      {!pliometriaLiberada && <div style={{ fontSize: ty.xs, color: color.textFaint, marginTop: 4 }}>{pliometriaMotivoBloqueio}</div>}
+    </div>
+  );
+}
+
 export default function Home({
   macrofaseNome, semanaIdx, totalSemanas, hojeISO,
   dorHoje, diasSemRegistroDor, onRegistrarDor,
   cargaPeHoje, onRegistrarCargaPe,
   doses, doseFeitaFn, onAbrirDose, cargaDisponivel, cargaFeita, cargaTitulo, cargaBloqueada, restanteRathleff,
+  forcaProtetivaFeita, onAbrirForcaProtetiva, pliometriaFeita, pliometriaLiberada, pliometriaMotivoBloqueio, onAbrirPliometria,
   proximaSessao, onIniciar, onPular,
   gateInfo,
   sessoes, onVerSessao,
@@ -172,6 +191,7 @@ export default function Home({
       <CargaPeCard cargaPeHoje={cargaPeHoje} onRegistrar={onRegistrarCargaPe} />
 
       <RehabCard doses={doses} doseFeitaFn={doseFeitaFn} onAbrirDose={onAbrirDose} cargaDisponivel={cargaDisponivel} cargaFeita={cargaFeita} cargaTitulo={cargaTitulo} cargaBloqueada={cargaBloqueada} restanteRathleff={restanteRathleff} />
+      <ForcaProtetivaCard feita={forcaProtetivaFeita} onAbrir={onAbrirForcaProtetiva} pliometriaFeita={pliometriaFeita} pliometriaLiberada={pliometriaLiberada} pliometriaMotivoBloqueio={pliometriaMotivoBloqueio} onAbrirPliometria={onAbrirPliometria} />
 
       <PlanoSeEntaoCard plano={planoSeEntao} isSegunda={isSegunda} onSalvar={onSalvarPlano} />
 

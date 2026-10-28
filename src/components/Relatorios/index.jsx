@@ -14,10 +14,11 @@ import Relatorio11CargaPe from "./Relatorio11CargaPe.jsx";
 import Relatorio12Intensidade from "./Relatorio12Intensidade.jsx";
 import Relatorio13Corrida from "./Relatorio13Corrida.jsx";
 import Relatorio14Temporadas from "./Relatorio14Temporadas.jsx";
+import Relatorio15TesteFuncional from "./Relatorio15TesteFuncional.jsx";
 import {
   periodoParaDatas, aderenciaRehab, aderenciaRathleff, dorAoLongoDoTempo, dorPorAderencia,
   dorPorTipoTreino, acwr, volumeCorrida, pesoCorporal, volumePorGrupo, sugerirDeload, srpeCorrida,
-  dorPorCargaPe,
+  dorPorCargaPe, historicoTesteFuncional,
 } from "../../lib/relatorios.js";
 import { distribuicaoIntensidade } from "../../lib/agendamento.js";
 import { listar } from "../../lib/eventos.js";
@@ -140,7 +141,7 @@ function PrioridadeCard({ valor, onMudar }) {
   );
 }
 
-export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis, semanasDeclaradas, onDeclararSemana, onAbrirRelatorioMedico, prioridadeTemporada, onMudarPrioridade, testesCampo, onAdicionarTesteCampo, temporadas, onAdicionarTemporada, onRemoverTemporada }) {
+export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis, semanasDeclaradas, onDeclararSemana, onAbrirRelatorioMedico, prioridadeTemporada, onMudarPrioridade, testesCampo, onAdicionarTesteCampo, temporadas, onAdicionarTemporada, onRemoverTemporada, onRegistrarTesteFuncional }) {
   const [periodo, setPeriodo] = useState("30d");
   const { desde, ate } = periodoParaDatas(periodo, hojeISO);
 
@@ -194,6 +195,7 @@ export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testes
       <Relatorio12Intensidade dados={distribuicaoIntensidade(eventos, desde, ate)} />
       <Relatorio13Corrida testesCampo={testesCampo} onAdicionarTeste={onAdicionarTesteCampo} kmSemanaAtual={kmSemanaAtual} kmMedia4Semanas={kmMedia4Semanas} cadencias={cadencias} ultimaTemperatura={ultimaTemperatura} />
       <Relatorio14Temporadas temporadas={temporadas} hojeISO={hojeISO} onAdicionar={onAdicionarTemporada} onRemover={onRemoverTemporada} />
+      <Relatorio15TesteFuncional historico={historicoTesteFuncional(eventos)} onRegistrar={onRegistrarTesteFuncional} />
       <PrioridadeCard valor={prioridadeTemporada} onMudar={onMudarPrioridade} />
 
       <button onClick={onAbrirRelatorioMedico} style={{ width: "100%", minHeight: touch.min, borderRadius: 12, border: "1px solid " + color.border, background: color.surface, color: color.text, fontSize: ty.sm, fontWeight: 700, cursor: "pointer", marginBottom: space.lg }}>Relatório pra consulta médica</button>
