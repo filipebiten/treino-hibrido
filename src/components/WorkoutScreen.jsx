@@ -170,7 +170,9 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
           {substituto && <button onClick={desfazerTroca} style={{ minHeight: 44, fontSize: ty.xs, padding: "4px 12px", borderRadius: radius.sm, background: color.success + "18", color: color.success, border: "1px solid " + color.success + "44", cursor: "pointer" }}>Trocado — desfazer</button>}
         </div>
         {showHow && step.how && <div style={{ marginTop: 8, padding: space.md, background: color.surface, borderRadius: radius.md, fontSize: ty.sm, color: color.textDim, lineHeight: 1.5, textAlign: "left" }}>{step.how}</div>}
-        {showGif && gifUrl && <img src={gifUrl} alt={step.name} loading="lazy" style={{ marginTop: 8, maxWidth: "100%", maxHeight: 260, borderRadius: radius.md, border: "1px solid " + color.border }} />}
+        {showGif && gifUrl && (gifUrl.endsWith(".mp4")
+          ? <video src={gifUrl} autoPlay loop muted playsInline style={{ marginTop: 8, maxWidth: "100%", maxHeight: 260, borderRadius: radius.md, border: "1px solid " + color.border }} />
+          : <img src={gifUrl} alt={step.name} loading="lazy" style={{ marginTop: 8, maxWidth: "100%", maxHeight: 260, borderRadius: radius.md, border: "1px solid " + color.border }} />)}
         {stepOriginal.impactoPlantar && dorMedia7d != null && dorMedia7d >= 3 && !substituto && <div style={{ marginTop: 8, fontSize: ty.xs, color: color.alert }}>Dor alta essa semana — considera uma alternativa sem impacto no pé.</div>}
         {showTroca && stepOriginal.alternativas && (
           <div style={{ marginTop: 8, textAlign: "left" }}>

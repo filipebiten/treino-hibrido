@@ -70,6 +70,24 @@ const GIF_MAP = {
   "Supino inclinado BARRA": "Exercicios/Peitoral/Supino inclinado com barra.gif",
   "Mergulho banco": "Exercicios/Calistenia/Mergulho de tríceps.gif",
   "Tríceps francês EZ": "Exercicios/Tríceps/Tríceps francês com barra W acima da cabeça sentado.gif",
+
+  // MuscleWiki (vídeo mp4, extração 2026-10-27 — ver docs/musclewiki-extracao-2026-10-27.md)
+  "Remada Pendlay": "https://musclewiki.com/api-next/videos/male-barbell-pronated-pendlay-row-front.mp4",
+  "Remada T barra": "https://musclewiki.com/api-next/videos/male-Barbell-landmine-t-bar-rows-front.mp4",
+  "Remada baixa cabo": "https://musclewiki.com/api-next/videos/male-machine-seated-cable-row-front.mp4",
+  "Remada supinada": "https://musclewiki.com/api-next/videos/male-Machine-machine-underhand-row-front.mp4",
+  "Remada unilateral": "https://musclewiki.com/api-next/videos/male-Dumbbells-dumbbell-single-arm-row-front.mp4",
+  "Puxada aberta": "https://musclewiki.com/api-next/videos/male-machine-pulldown-front.mp4",
+  "Peck deck invertido": "https://musclewiki.com/api-next/videos/male-Machine-machine-reverse-fly-front.mp4",
+  "Tríceps kickback": "https://musclewiki.com/api-next/videos/male-dumbbell-tricep-kickback-front.mp4",
+  "Panturrilha em pé": "https://musclewiki.com/api-next/videos/male-Vitruvian-standing-calf-raise-front.mp4",
+  "Panturrilha sentado+pé": "https://musclewiki.com/api-next/videos/male-Vitruvian-seated-calf-raise-front.mp4",
+  "Panturrilha unilateral": "https://musclewiki.com/api-next/videos/male-Bodyweight-bodyweight-single-leg-calf-raise-front.mp4",
+  "Stiff halteres": "https://musclewiki.com/api-next/videos/male-Dumbbells-dumbbell-romanian-deadlift-front.mp4",
+  "Passada halteres": "https://musclewiki.com/api-next/videos/male-Recovery-lunge-walking-front.mp4",
+  "Leg Press pé alto+baixo": "https://musclewiki.com/api-next/videos/male-Machine-machine-leg-press-front.mp4",
+  "Prancha abdominal": "https://musclewiki.com/api-next/videos/male-Bodyweight-forearm-plank-front.mp4",
+  "Prancha lateral": "https://musclewiki.com/api-next/videos/male-bodyweight-elbow-side-plank-front.mp4",
 };
 
 export function getGifUrl(exerciseName) {
@@ -77,5 +95,6 @@ export function getGifUrl(exerciseName) {
   const nome = exerciseName.replace(/^↑\s*/, "").trim();
   const path = GIF_MAP[nome];
   if (!path) return null;
+  if (path.startsWith("http")) return path;
   return GIF_BASE + path.split("/").map(encodeURIComponent).join("/");
 }
