@@ -7,6 +7,7 @@ import { loadState, saveState } from "./lib/storage.js";
 import { calcularPosicao, verificarGate, checkRecuoAutomatico, rathleffStatus, formatarRestante } from "./lib/progressao.js";
 import { registrarCarga, registrarHistoricoTreino, registrarPeso, ehPR } from "./lib/treino.js";
 import { registrar as registrarEvento } from "./lib/eventos.js";
+import { eventosParaJSON } from "./lib/relatorios.js";
 import { atualizarBadge } from "./lib/lembrete.js";
 import { color } from "./lib/tokens.js";
 
@@ -223,6 +224,31 @@ export default function App() {
   }
   function removerTenis(id) { patch({ tenis: state.tenis.filter(t => t.id !== id) }); }
 
+  // Bloco 2.6 — backup automático. localStorage sem backend está a uma limpeza de Safari
+  // de perder tudo. Lembrete mensal, share nativo (iOS) com fallback de download.
+  const DIAS_LEMBRETE_BACKUP = 30;
+  function diasSemBackup() {
+    const base = state.ultimoBackupISO || (state.onboarding && state.onboarding.iso);
+    return base ? diffDias(base, hojeISO) : 0;
+  }
+  function precisaBackup() { return state.eventos.length > 0 && diasSemBackup() >= DIAS_LEMBRETE_BACKUP; }
+  async function fazerBackup() {
+    const nomeArquivo = `treino-eventos-${hojeISO}.json`;
+    const blob = new Blob([eventosParaJSON(state.eventos)], { type: "application/json" });
+    try {
+      const file = new File([blob], nomeArquivo, { type: "application/json" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Backup Treino Híbrido" });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = nomeArquivo; a.click();
+        URL.revokeObjectURL(url);
+      }
+      patch({ ultimoBackupISO: hojeISO });
+    } catch { /* usuário cancelou o share — não marca como feito, pergunta nas próximas vezes */ }
+  }
+
   // média de dor dos últimos 7 dias com registro — usada pra priorizar alternativa de
   // exercício sem impacto no pé (Bloco 2.5), não é métrica de risco nem gate.
   function dorMedia7d() {
@@ -390,5 +416,6 @@ export default function App() {
     isSegunda={new Date(hojeISO + "T00:00:00").getDay() === 1}
     diasSemUso={diasSemUsoApp()}
     instalarPwa={!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) && !window.navigator.standalone}
+    precisaBackup={precisaBackup()} onFazerBackup={fazerBackup}
   />;
 }

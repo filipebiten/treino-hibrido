@@ -88,6 +88,7 @@ export default function Home({
   onAbrirHistorico, onAbrirRelatorios, onRecalibrar, onAbrirLembretes,
   retomar, onRetomar, onDescartarRetomar,
   planoSeEntao, onSalvarPlano, isSegunda, diasSemUso, instalarPwa,
+  precisaBackup, onFazerBackup,
 }) {
   return (
     <div style={{ background: color.bg, color: color.text, minHeight: "100vh", fontFamily: "system-ui", padding: space.xl + "px " + space.lg + "px", maxWidth: 480, margin: "0 auto" }}>
@@ -121,6 +122,13 @@ export default function Home({
           <div style={{ fontSize: ty.xs, color: color.textDim, lineHeight: 1.5 }}>
             Instala na Tela de Início (compartilhar → "Adicionar à Tela de Início") pra não perder dados por limpeza automática do navegador e liberar tela sempre acesa durante o treino.
           </div>
+        </div>
+      )}
+
+      {precisaBackup && (
+        <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.border, background: color.surface, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <div style={{ fontSize: ty.xs, color: color.textDim, lineHeight: 1.5 }}>Faz um tempo sem backup — localStorage some numa limpeza do navegador.</div>
+          <button onClick={onFazerBackup} style={{ minHeight: 36, padding: "0 14px", borderRadius: radius.sm, border: "none", background: color.surfaceAlt, color: color.text, fontWeight: 700, fontSize: ty.xs, cursor: "pointer", whiteSpace: "nowrap" }}>Fazer backup</button>
         </div>
       )}
 
