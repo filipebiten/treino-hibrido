@@ -9,7 +9,7 @@ import { color, space, type as ty, touch } from "../../lib/tokens.js";
 
 const backBtn = { background: "none", border: "none", color: color.textDim, fontSize: ty.base, cursor: "pointer", padding: 4, minHeight: touch.min, display: "flex", alignItems: "center", gap: 6 };
 
-export default function Historico({ eventos, hojeISO, onBack, onEventosChange }) {
+export default function Historico({ eventos, hojeISO, onBack, onEventosChange, tenis }) {
   const [aba, setAba] = useState("calendario");
   const [mesCursor, setMesCursor] = useState({ ano: Number(hojeISO.slice(0, 4)), mes: Number(hojeISO.slice(5, 7)) - 1 });
   const [diaEditando, setDiaEditando] = useState(null);
@@ -57,7 +57,7 @@ export default function Historico({ eventos, hojeISO, onBack, onEventosChange })
         : <Timeline diasResumo={diasResumo} marcoZero={MARCO_ZERO} hojeISO={hojeISO} onSelecionarDia={setDiaEditando} />}
 
       {diaEditando && (
-        <DiaEdit iso={diaEditando} resumoDia={diasResumo[diaEditando]} onFechar={() => setDiaEditando(null)} onSalvar={salvarDia} />
+        <DiaEdit iso={diaEditando} resumoDia={diasResumo[diaEditando]} onFechar={() => setDiaEditando(null)} onSalvar={salvarDia} tenis={tenis} />
       )}
     </div>
   );

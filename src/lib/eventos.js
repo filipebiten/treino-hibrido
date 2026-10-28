@@ -84,7 +84,14 @@ export function agruparPorDia(eventos) {
       }
       case "rathleff": if (!d.periodos.includes("carga")) d.periodos.push("carga"); break;
       case "treino_concluido":
-        d.treino = { tipo: e.payload.tipo, label: e.payload.label, duracaoSeg: e.payload.duracaoSeg, volume: e.payload.volume, distanciaKm: e.payload.distanciaKm, tempoTotalMin: e.payload.tempoTotalMin, pse: e.payload.pse };
+        // Bloco 4.5 — registro de corrida mais rico: fcMedia, temperatura, umidade,
+        // superfície, tênis, cadência. Todos opcionais, undefined se nunca preenchidos.
+        d.treino = {
+          tipo: e.payload.tipo, label: e.payload.label, duracaoSeg: e.payload.duracaoSeg, volume: e.payload.volume,
+          distanciaKm: e.payload.distanciaKm, tempoTotalMin: e.payload.tempoTotalMin, pse: e.payload.pse,
+          fcMedia: e.payload.fcMedia, temperaturaC: e.payload.temperaturaC, umidadePct: e.payload.umidadePct,
+          superficie: e.payload.superficie, tenisId: e.payload.tenisId, cadencia: e.payload.cadencia,
+        };
         d.pulado = false;
         break;
       case "treino_pulado": d.pulado = true; break;
@@ -99,7 +106,8 @@ export function agruparPorDia(eventos) {
 function substituir(eventos, tipo, iso) { return eventos.filter(e => !(e.tipo === tipo && e.data === iso)); }
 
 // Aplica edição retroativa (ou do dia atual) vinda da tela de Histórico.
-// `edicao`: { dor, manha, noite, duracaoRehabMin, treinoStatus, treinoTipo, distanciaKm, tempoMin, nota }
+// `edicao`: { dor, manha, noite, duracaoRehabMin, treinoStatus, treinoTipo, distanciaKm,
+// tempoMin, nota, fcMedia, temperaturaC, umidadePct, superficie, tenisId, cadencia }
 // Nota: duracaoRehabMin só é gravado quando a dose é marcada nesta chamada (transição
 // false->true) — editar só a duração de uma dose já marcada exige desmarcar e remarcar.
 export function aplicarEdicaoDia(eventos, iso, edicao, retroativo) {
@@ -123,9 +131,18 @@ export function aplicarEdicaoDia(eventos, iso, edicao, retroativo) {
     if (!edicao[periodo] && tem) ev = ev.filter(e => !(e.tipo === "rehab_dose" && e.data === iso && e.payload.periodo === periodo));
   });
   if (edicao.treinoStatus === "feito") {
-    const payload = { tipo: edicao.treinoTipo || null, manual: true };
+    // Merge com o evento treino_concluido existente (se houver) — não descarta pse/
+    // duracaoSeg/volume/fcMedia/etc já registrados só porque essa edição não os toca.
+    const existente = ev.find(e => e.tipo === "treino_concluido" && e.data === iso);
+    const payload = { ...(existente ? existente.payload : {}), tipo: edicao.treinoTipo || null, manual: true };
     if (edicao.distanciaKm) payload.distanciaKm = edicao.distanciaKm;
     if (edicao.tempoMin) payload.tempoTotalMin = edicao.tempoMin;
+    if (edicao.fcMedia) payload.fcMedia = edicao.fcMedia;
+    if (edicao.temperaturaC != null) payload.temperaturaC = edicao.temperaturaC;
+    if (edicao.umidadePct != null) payload.umidadePct = edicao.umidadePct;
+    if (edicao.superficie) payload.superficie = edicao.superficie;
+    if (edicao.tenisId) payload.tenisId = edicao.tenisId;
+    if (edicao.cadencia) payload.cadencia = edicao.cadencia;
     ev = registrar(substituir(substituir(ev, "treino_concluido", iso), "treino_pulado", iso), "treino_concluido", payload, iso, opts);
   } else if (edicao.treinoStatus === "pulado") {
     ev = registrar(substituir(substituir(ev, "treino_concluido", iso), "treino_pulado", iso), "treino_pulado", { tipo: edicao.treinoTipo || null }, iso, opts);

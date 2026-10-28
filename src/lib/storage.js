@@ -26,6 +26,8 @@ export function defaultState() {
     ultimoBackupISO: null,      // Bloco 2.6 — data do último backup feito (share/download).
     semanasDeclaradas: {},      // Bloco 2.5 — { segundaISO: "normal" | "apertada" }. Semana apertada = modo manutenção.
     prioridadeTemporada: "equilibrio", // Bloco 3.2 — "corrida" | "musculacao" | "equilibrio". Nunca zera a outra modalidade.
+    temporadas: [],             // Bloco 4.1/4.8 — [{ id, nome, prova, dataProva, distanciaProvaKm, volumePicoSemanalKm, fase }]. Registro paralelo, não dirige a macrofase (plano.js continua intocado).
+    testesCampo: [],            // Bloco 4.2 — [{ id, data, distanciaKm, tempoSeg }]. Base pra projeção Riegel e zonas de ritmo.
   };
 }
 

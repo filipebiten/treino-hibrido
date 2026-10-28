@@ -253,6 +253,17 @@ export default function App() {
   }
   function removerTenis(id) { patch({ tenis: state.tenis.filter(t => t.id !== id) }); }
 
+  // Bloco 4.2 — teste de campo (base pra zonas de ritmo e projeção Riegel).
+  function adicionarTesteCampo({ distanciaKm, tempoSeg }) {
+    patch({ testesCampo: [...state.testesCampo, { id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, data: hojeISO, distanciaKm, tempoSeg }] });
+  }
+
+  // Bloco 4.1/4.8 — temporadas (registro paralelo, não dirige a macrofase).
+  function adicionarTemporada(temporada) {
+    patch({ temporadas: [...state.temporadas, { id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, ...temporada }] });
+  }
+  function removerTemporada(id) { patch({ temporadas: state.temporadas.filter(t => t.id !== id) }); }
+
   // Bloco 2.6 — backup automático. localStorage sem backend está a uma limpeza de Safari
   // de perder tudo. Lembrete mensal, share nativo (iOS) com fallback de download.
   const DIAS_LEMBRETE_BACKUP = 30;
@@ -377,7 +388,7 @@ export default function App() {
   }
 
   // ══════════════════════ HISTÓRICO ══════════════════════
-  if (scr === "historico") return <Historico eventos={state.eventos} hojeISO={hojeISO} onBack={() => setScr("home")} onEventosChange={(eventos) => patch({ eventos })} />;
+  if (scr === "historico") return <Historico eventos={state.eventos} hojeISO={hojeISO} onBack={() => setScr("home")} onEventosChange={(eventos) => patch({ eventos })} tenis={state.tenis} />;
 
   // ══════════════════════ RELATÓRIOS ══════════════════════
   if (scr === "relatorios") return <Relatorios eventos={state.eventos} hojeISO={hojeISO} cargas={state.cargas} macrofase={progresso.macrofase} testesLog={state.testesLog} dorLog={state.dorLog} onBack={() => setScr("home")}
@@ -385,7 +396,9 @@ export default function App() {
     tenis={state.tenis} onAdicionarTenis={adicionarTenis} onRegistrarKmTenis={registrarKmTenis} onRemoverTenis={removerTenis}
     semanasDeclaradas={state.semanasDeclaradas} onDeclararSemana={declararSemana}
     onAbrirRelatorioMedico={() => setScr("relatorioMedico")}
-    prioridadeTemporada={state.prioridadeTemporada} onMudarPrioridade={(v) => patch({ prioridadeTemporada: v })} />;
+    prioridadeTemporada={state.prioridadeTemporada} onMudarPrioridade={(v) => patch({ prioridadeTemporada: v })}
+    testesCampo={state.testesCampo} onAdicionarTesteCampo={adicionarTesteCampo}
+    temporadas={state.temporadas} onAdicionarTemporada={adicionarTemporada} onRemoverTemporada={removerTemporada} />;
 
   // ══════════════════════ RELATÓRIO MÉDICO (Bloco 6.2) ══════════════════════
   if (scr === "relatorioMedico") return <RelatorioMedico eventos={state.eventos} hojeISO={hojeISO} onboarding={state.onboarding} onBack={() => setScr("relatorios")} />;

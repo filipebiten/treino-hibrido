@@ -12,12 +12,15 @@ import Relatorio9Gate from "./Relatorio9Gate.jsx";
 import Relatorio10Export from "./Relatorio10Export.jsx";
 import Relatorio11CargaPe from "./Relatorio11CargaPe.jsx";
 import Relatorio12Intensidade from "./Relatorio12Intensidade.jsx";
+import Relatorio13Corrida from "./Relatorio13Corrida.jsx";
+import Relatorio14Temporadas from "./Relatorio14Temporadas.jsx";
 import {
   periodoParaDatas, aderenciaRehab, aderenciaRathleff, dorAoLongoDoTempo, dorPorAderencia,
   dorPorTipoTreino, acwr, volumeCorrida, pesoCorporal, volumePorGrupo, sugerirDeload, srpeCorrida,
   dorPorCargaPe,
 } from "../../lib/relatorios.js";
 import { distribuicaoIntensidade } from "../../lib/agendamento.js";
+import { listar } from "../../lib/eventos.js";
 import { color, space, type as ty, touch, radius } from "../../lib/tokens.js";
 
 const backBtn = { background: "none", border: "none", color: color.textDim, fontSize: ty.base, cursor: "pointer", padding: 4, minHeight: touch.min, display: "flex", alignItems: "center", gap: 6 };
@@ -137,9 +140,21 @@ function PrioridadeCard({ valor, onMudar }) {
   );
 }
 
-export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis, semanasDeclaradas, onDeclararSemana, onAbrirRelatorioMedico, prioridadeTemporada, onMudarPrioridade }) {
+export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis, semanasDeclaradas, onDeclararSemana, onAbrirRelatorioMedico, prioridadeTemporada, onMudarPrioridade, testesCampo, onAdicionarTesteCampo, temporadas, onAdicionarTemporada, onRemoverTemporada }) {
   const [periodo, setPeriodo] = useState("30d");
   const { desde, ate } = periodoParaDatas(periodo, hojeISO);
+
+  // Bloco 4.6/4.7/4.4 — volume semanal (período fixo de 90d, independente do seletor da
+  // tela) e cadência/temperatura dos últimos treinos de corrida registrados.
+  const desde90d = periodoParaDatas("90d", hojeISO).desde;
+  const volume90d = volumeCorrida(eventos, desde90d, hojeISO);
+  const kmSemanaAtual = volume90d.porSemana.length ? volume90d.porSemana[volume90d.porSemana.length - 1].km : null;
+  const semanasAnteriores = volume90d.porSemana.slice(0, -1).slice(-4);
+  const kmMedia4Semanas = semanasAnteriores.length ? Math.round((semanasAnteriores.reduce((s, w) => s + w.km, 0) / semanasAnteriores.length) * 10) / 10 : null;
+  const treinosCorridaRecentes = listar(eventos).filter(e => e.tipo === "treino_concluido" && ["caminhada", "walkrun", "qualidade", "longao"].includes(e.payload.tipo)).slice(-10);
+  const cadencias = treinosCorridaRecentes.map(e => e.payload.cadencia).filter(c => c != null);
+  const comTemperatura = [...treinosCorridaRecentes].reverse().find(e => e.payload.temperaturaC != null);
+  const ultimaTemperatura = comTemperatura ? comTemperatura.payload.temperaturaC : null;
 
   return (
     <div style={{ background: color.bg, color: color.text, minHeight: "100vh", fontFamily: "system-ui", padding: space.xl + "px " + space.lg + "px", maxWidth: 480, margin: "0 auto" }}>
@@ -177,6 +192,8 @@ export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testes
       <SemanasFuturasCard hojeISO={hojeISO} semanasDeclaradas={semanasDeclaradas} onDeclarar={onDeclararSemana} />
       <Relatorio11CargaPe dados={dorPorCargaPe(eventos, hojeISO)} />
       <Relatorio12Intensidade dados={distribuicaoIntensidade(eventos, desde, ate)} />
+      <Relatorio13Corrida testesCampo={testesCampo} onAdicionarTeste={onAdicionarTesteCampo} kmSemanaAtual={kmSemanaAtual} kmMedia4Semanas={kmMedia4Semanas} cadencias={cadencias} ultimaTemperatura={ultimaTemperatura} />
+      <Relatorio14Temporadas temporadas={temporadas} hojeISO={hojeISO} onAdicionar={onAdicionarTemporada} onRemover={onRemoverTemporada} />
       <PrioridadeCard valor={prioridadeTemporada} onMudar={onMudarPrioridade} />
 
       <button onClick={onAbrirRelatorioMedico} style={{ width: "100%", minHeight: touch.min, borderRadius: 12, border: "1px solid " + color.border, background: color.surface, color: color.text, fontSize: ty.sm, fontWeight: 700, cursor: "pointer", marginBottom: space.lg }}>Relatório pra consulta médica</button>
