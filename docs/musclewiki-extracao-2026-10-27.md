@@ -62,6 +62,47 @@ joelho travado; RDL = joelho quase travado). `how` do app já está alinhado.
 **Leg Press pé alto+baixo** — vídeo é do leg press padrão (pé neutro); não achei variação "pé alto" vs "pé
 baixo" com slug próprio no MuscleWiki.
 
+## Lote 2 — resto do gap (76 → 43)
+
+Depois do núcleo de 16, fui no resto dos 76. Resultado: 72 mapeados no total (115/158),
+43 ficaram sem fonte boa — documentado por quê, pra não ficar tentando de novo depois.
+
+**10 exercícios reais novos** (achados direto por slug no sitemap):
+Puxada supinada, Tríceps barra reta DROPSET (→ Puxada de Tríceps na Polia), Abdominal
+c/ carga (→ Máquina para Abdominais com Placas), Tibial anterior sentado, Fibulares
+elástico (→ Eversões), Tibial posterior elástico (→ Inversões Sentadas com Banda),
+Along. bíceps, Along. lat, Along. costas, Along. ombro, Along. tríceps.
+
+**22 combos/alongamentos compostos** — reaproveitam o gif do exercício-base (mesmo
+padrão que o arquivo já usa pra Agachamento PIRÂMIDE/PESADO/FORÇA apontarem pro mesmo
+gif): Pulldown DROPSET, Pulldown invertido DROPSET, Puxada leve, Crossover DROPSET,
+Extensora DROPSET, Extensora+Flexora BI-SET, Lateral DROPSET, Lateral+Frontal BI-SET,
+Concentrada+Martelo BI-SET, Martelo+Concentrado SUPERSET, Corda+Barra SUPERSET,
+Encolhimento+Peck inv BI-SET, Pullover+Pulldown SUPERSET, Rosca 21s,
+Abdutora+Panturrilha BI-SET, Along. adutores+panturrilha, Along. costas+lat,
+Along. glúteo+adutores, Along. ombro+bíceps, Along. panturrilha (joelho reto+dobrado),
+Along. posterior+glúteo, Along. tríceps+ombro.
+
+**Tentei e não achei match real** (busquei no sitemap, não existe equivalente):
+Bombas de tornozelo (só achei "ankle-circle", movimento diferente — rejeitei por ser
+reabilitação, prefiro sem gif a gif errado), Alongamento com toalha (panturrilha) (só
+achei variação com caixa, não toalha).
+
+**Decidido não buscar** (sem valor em forçar match):
+- Combos mistos sem exercício-base único: Abdominal Tabata, Abdominal infra+Roda,
+  Fly+Flexão SUPERSET, Circuito Core
+- Aquecimento/cardio/mobilidade genérico (23 itens): Esteira/bike, Caminhada*,
+  Corrida Z2, Fartlek, Tempo Run Z3, Tiro, Volta à calma, Recuperação, Respiração
+  profunda, Rotação* (6 variantes), Saltitos/Saltos leves, Flexão leve, Elevação
+  joelhos, Equilíbrio unipodal, Aquec. punhos, Balanço pernas, Aquecimento: Caminhada
+- Protocolo de fascite plantar — específico de fisioterapia, não é exercício de
+  catálogo fitness: 4-vias tornozelo c/ elástico, Alongamento DiGiovanni (fáscia),
+  Along. fáscia plantar (×2), Bolinha de tênis na sola, Catador de toalha, Equilíbrio
+  unilateral c/ Short Foot, Gelo nos pés, Heel Raise Rathleff (PROTOCOLO PRINCIPAL),
+  Massagem bolinha, Short Foot (encurtamento do pé), Toe Yoga (piano com os dedos)
+
+Resultado final: **115/158 exercícios com gif/vídeo** (antes do lote 1 eram 66).
+
 ## Pendências / não extraído
 
 - `machine-plate-loaded-t-bar-row` (variação máquina da Remada T) — alternativa pro ALT_* se quiser.
