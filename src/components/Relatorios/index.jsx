@@ -10,16 +10,36 @@ import Relatorio7VolumeCorrida from "./Relatorio7VolumeCorrida.jsx";
 import Relatorio8Peso from "./Relatorio8Peso.jsx";
 import Relatorio9Gate from "./Relatorio9Gate.jsx";
 import Relatorio10Export from "./Relatorio10Export.jsx";
+import Relatorio11CargaPe from "./Relatorio11CargaPe.jsx";
 import {
   periodoParaDatas, aderenciaRehab, aderenciaRathleff, dorAoLongoDoTempo, dorPorAderencia,
   dorPorTipoTreino, acwr, volumeCorrida, pesoCorporal, volumePorGrupo, sugerirDeload, srpeCorrida,
+  dorPorCargaPe,
 } from "../../lib/relatorios.js";
-import { color, space, type as ty, touch } from "../../lib/tokens.js";
+import { color, space, type as ty, touch, radius } from "../../lib/tokens.js";
 
 const backBtn = { background: "none", border: "none", color: color.textDim, fontSize: ty.base, cursor: "pointer", padding: 4, minHeight: touch.min, display: "flex", alignItems: "center", gap: 6 };
 const PERIODOS = [["7d", "7 dias"], ["30d", "30 dias"], ["90d", "90 dias"], ["tudo", "Tudo"]];
 
-export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack }) {
+// Bloco 1.2 — entrada manual da média de passos/dia que o app Saúde do iPhone já exibe.
+// Deliberadamente magro: sem parsing de export, campo semanal só.
+function PassosSemanaCard({ valorAtual, onRegistrar }) {
+  const [valor, setValor] = useState(valorAtual != null ? String(valorAtual) : "");
+  return (
+    <div style={{ background: color.surface, borderRadius: radius.lg, padding: space.md, marginBottom: space.lg }}>
+      <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm }}>Passos/dia essa semana</div>
+      <div style={{ fontSize: ty.xs, color: color.textFaint, marginBottom: space.sm }}>Média que o app Saúde do iPhone já mostra — só copiar o número.</div>
+      <div style={{ display: "flex", gap: space.sm }}>
+        <input type="number" inputMode="numeric" value={valor} onChange={e => setValor(e.target.value)} placeholder="ex: 6500"
+          style={{ flex: 1, minHeight: touch.min, borderRadius: radius.md, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontSize: ty.md, padding: "0 12px" }} />
+        <button onClick={() => valor && onRegistrar(Number(valor))}
+          style={{ minHeight: touch.min, padding: "0 20px", borderRadius: radius.md, border: "none", background: color.success, color: "#0f1115", fontWeight: 700, cursor: "pointer" }}>Salvar</button>
+      </div>
+    </div>
+  );
+}
+
+export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana }) {
   const [periodo, setPeriodo] = useState("30d");
   const { desde, ate } = periodoParaDatas(periodo, hojeISO);
 
@@ -54,6 +74,8 @@ export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testes
       <Relatorio8Peso dados={pesoCorporal(eventos)} />
       <Relatorio9Gate macrofase={macrofase} testesLog={testesLog} dorLog={dorLog} hojeISO={hojeISO} />
       <Relatorio10Export eventos={eventos} />
+      <PassosSemanaCard valorAtual={passosSemanaAtual} onRegistrar={onRegistrarPassosSemana} />
+      <Relatorio11CargaPe dados={dorPorCargaPe(eventos, hojeISO)} />
     </div>
   );
 }

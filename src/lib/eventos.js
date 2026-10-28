@@ -67,11 +67,12 @@ export function migrarParaEventos(state) {
 // já devolve em ordem cronológica, então o forEach naturalmente aplica "mais recente ganha").
 export function agruparPorDia(eventos) {
   const dias = {};
-  function dia(iso) { return dias[iso] || (dias[iso] = { periodos: [], pesoPeriodo: {}, treino: null, pulado: false, dor: null, testes: [], recuo: null, rehabMinutos: null }); }
+  function dia(iso) { return dias[iso] || (dias[iso] = { periodos: [], pesoPeriodo: {}, treino: null, pulado: false, dor: null, cargaPe: null, testes: [], recuo: null, rehabMinutos: null }); }
   listar(eventos).forEach(e => {
     const d = dia(e.data);
     switch (e.tipo) {
       case "dor_checkin": d.dor = e.payload.nivel; break;
+      case "carga_pe": d.cargaPe = e.payload.nivel; break;
       case "rehab_dose": {
         if (!d.periodos.includes(e.payload.periodo)) d.periodos.push(e.payload.periodo);
         // dose parcial (saiu no meio da rotina) conta meio ponto; sem o campo (eventos antigos), conta cheia.

@@ -165,6 +165,32 @@ export default function App() {
   }
 
   function registrarDor(nota) { patch({ dorLog: { ...state.dorLog, [hojeISO]: nota }, eventos: registrarEvento(state.eventos, "dor_checkin", { nivel: nota }, hojeISO) }); }
+
+  // carga de pé — Bloco 1.1 do plano de evolução híbrida. Puramente eventos (sem log
+  // paralelo, diferente de dorLog que é legado) — "hoje" lido direto do próprio eventos.
+  function cargaPeHoje() {
+    const e = state.eventos.filter(e => e.tipo === "carga_pe" && e.data === hojeISO).pop();
+    return e ? e.payload.nivel : undefined;
+  }
+  function registrarCargaPe(nivel) { patch({ eventos: registrarEvento(state.eventos, "carga_pe", { nivel }, hojeISO) }); }
+
+  // passos semanais — Bloco 1.2. Entrada manual (sem parsing de export do Apple Saúde,
+  // deliberado — ver spec). Um evento por semana, identificado pela segunda-feira.
+  function segundaFeiraDaSemana(iso) {
+    const d = new Date(iso + "T00:00:00");
+    const offset = d.getDay() === 0 ? 6 : d.getDay() - 1;
+    return toISO(new Date(d.getTime() - offset * 86400000));
+  }
+  function passosSemanaAtual() {
+    const semanaISO = segundaFeiraDaSemana(hojeISO);
+    const e = state.eventos.filter(e => e.tipo === "passos_semana" && e.data === semanaISO).pop();
+    return e ? e.payload.mediaDia : undefined;
+  }
+  function registrarPassosSemana(mediaDia) {
+    const semanaISO = segundaFeiraDaSemana(hojeISO);
+    const semEssaSemana = state.eventos.filter(e => !(e.tipo === "passos_semana" && e.data === semanaISO));
+    patch({ eventos: registrarEvento(semEssaSemana, "passos_semana", { mediaDia }, semanaISO) });
+  }
   function diasSemRegistroDor() {
     const piso = (state.onboarding && state.onboarding.iso) || hojeISO;
     let n = 0, d = new Date(hojeISO + "T00:00:00");
@@ -283,7 +309,8 @@ export default function App() {
   if (scr === "historico") return <Historico eventos={state.eventos} hojeISO={hojeISO} onBack={() => setScr("home")} onEventosChange={(eventos) => patch({ eventos })} />;
 
   // ══════════════════════ RELATÓRIOS ══════════════════════
-  if (scr === "relatorios") return <Relatorios eventos={state.eventos} hojeISO={hojeISO} cargas={state.cargas} macrofase={progresso.macrofase} testesLog={state.testesLog} dorLog={state.dorLog} onBack={() => setScr("home")} />;
+  if (scr === "relatorios") return <Relatorios eventos={state.eventos} hojeISO={hojeISO} cargas={state.cargas} macrofase={progresso.macrofase} testesLog={state.testesLog} dorLog={state.dorLog} onBack={() => setScr("home")}
+    passosSemanaAtual={passosSemanaAtual()} onRegistrarPassosSemana={registrarPassosSemana} />;
 
   // ══════════════════════ LEMBRETES ══════════════════════
   if (scr === "lembretes") return <LembreteScreen onBack={() => setScr("home")} />;
@@ -330,6 +357,7 @@ export default function App() {
   return <Home
     macrofaseNome={macInfo.nome} semanaIdx={progresso.semanaIdx} totalSemanas={totSem} hojeISO={hojeISO}
     dorHoje={state.dorLog[hojeISO]} diasSemRegistroDor={diasSemRegistroDor()} onRegistrarDor={registrarDor}
+    cargaPeHoje={cargaPeHoje()} onRegistrarCargaPe={registrarCargaPe}
     doses={doses} doseFeitaFn={doseFeita}
     onAbrirDose={(key) => { setActiveDoseKey(key); setScr("rehabDose"); }}
     cargaDisponivel={!!rehabDoses.carga} cargaFeita={doseFeita("carga")} cargaTitulo={rehabDoses.carga ? rehabDoses.carga.title : ""}

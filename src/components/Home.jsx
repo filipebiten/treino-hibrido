@@ -30,6 +30,28 @@ function DorCard({ dorHoje, diasSemRegistro, onRegistrar }) {
   );
 }
 
+const NIVEL_CARGA_PE_LABEL = { leve: "Leve (sentado maior parte)", normal: "Normal", muito: "Muito tempo em pé" };
+
+function CargaPeCard({ cargaPeHoje, onRegistrar }) {
+  if (cargaPeHoje !== undefined) {
+    return (
+      <div style={{ ...cardBase, padding: space.md, marginBottom: space.md, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Icon name="foot" size={16} color={color.textDim} /><span style={{ fontSize: ty.sm, color: color.textDim }}>Carga de pé hoje: <b style={{ color: color.text }}>{NIVEL_CARGA_PE_LABEL[cargaPeHoje]}</b></span></div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ ...cardBase, padding: space.lg, marginBottom: space.md, cursor: "default" }}>
+      <div style={{ fontSize: ty.sm, fontWeight: 700, marginBottom: space.sm }}>Quanto tempo em pé hoje?</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {Object.entries(NIVEL_CARGA_PE_LABEL).map(([nivel, label]) => (
+          <button key={nivel} onClick={() => onRegistrar(nivel)} style={{ minHeight: 44, borderRadius: radius.sm, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontWeight: 600, fontSize: ty.sm, cursor: "pointer", textAlign: "left", padding: "0 12px" }}>{label}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function RehabCard({ doses, doseFeitaFn, onAbrirDose, cargaDisponivel, cargaFeita, cargaTitulo, cargaBloqueada, restanteRathleff }) {
   return (
     <div style={{ marginBottom: space.md }}>
@@ -58,6 +80,7 @@ function RehabCard({ doses, doseFeitaFn, onAbrirDose, cargaDisponivel, cargaFeit
 export default function Home({
   macrofaseNome, semanaIdx, totalSemanas, hojeISO,
   dorHoje, diasSemRegistroDor, onRegistrarDor,
+  cargaPeHoje, onRegistrarCargaPe,
   doses, doseFeitaFn, onAbrirDose, cargaDisponivel, cargaFeita, cargaTitulo, cargaBloqueada, restanteRathleff,
   proximaSessao, onIniciar, onPular,
   gateInfo,
@@ -102,6 +125,7 @@ export default function Home({
       )}
 
       <DorCard dorHoje={dorHoje} diasSemRegistro={diasSemRegistroDor} onRegistrar={onRegistrarDor} />
+      <CargaPeCard cargaPeHoje={cargaPeHoje} onRegistrar={onRegistrarCargaPe} />
 
       <RehabCard doses={doses} doseFeitaFn={doseFeitaFn} onAbrirDose={onAbrirDose} cargaDisponivel={cargaDisponivel} cargaFeita={cargaFeita} cargaTitulo={cargaTitulo} cargaBloqueada={cargaBloqueada} restanteRathleff={restanteRathleff} />
 

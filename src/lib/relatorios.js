@@ -233,6 +233,36 @@ export function pesoCorporal(eventos) {
   return { pontos, mediaMovel, tendencia };
 }
 
+// 11. Dor matinal × carga de pé do dia anterior + dor por dia da semana. Bloco 1.3 do
+// plano de evolução híbrida — "a variável que falta" (carga de pé fora do treino, não
+// só o treino em si). Mínimo 4 semanas corridas desde o primeiro registro de carga_pe,
+// mesmo gate de ACWR — abaixo disso o número mente, não plota correlação com n pequeno.
+const MIN_DIAS_CARGA_PE = 28;
+const DIA_SEMANA_LABEL = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+export function dorPorCargaPe(eventos, hojeISO) {
+  const cargaPeEventos = listar(eventos).filter(e => e.tipo === "carga_pe");
+  if (!cargaPeEventos.length) return { suficiente: false, faltamDias: MIN_DIAS_CARGA_PE };
+  const diasDesde = diffDias(cargaPeEventos[0].data, hojeISO) + 1;
+  if (diasDesde < MIN_DIAS_CARGA_PE) return { suficiente: false, faltamDias: MIN_DIAS_CARGA_PE - diasDesde };
+
+  const dias = agruparPorDia(eventos);
+  const porNivel = { leve: [], normal: [], muito: [] };
+  const porDiaSemana = DIA_SEMANA_LABEL.map(() => []);
+  Object.keys(dias).forEach(iso => {
+    const d = dias[iso];
+    if (d.dor == null) return;
+    porDiaSemana[new Date(iso + "T00:00:00").getDay()].push(d.dor);
+    const ontem = toISO(new Date(new Date(iso + "T00:00:00").getTime() - 86400000));
+    const nivelOntem = dias[ontem] && dias[ontem].cargaPe;
+    if (nivelOntem) porNivel[nivelOntem].push(d.dor);
+  });
+  return {
+    suficiente: true,
+    porNivel: Object.fromEntries(Object.entries(porNivel).map(([k, arr]) => [k, { n: arr.length, dorMedia: media(arr) }])),
+    porDiaSemana: DIA_SEMANA_LABEL.map((label, i) => ({ label, n: porDiaSemana[i].length, dorMedia: media(porDiaSemana[i]) })),
+  };
+}
+
 // 10. Exportação — CSV (`;`, dd/mm/yyyy, CRLF — abre certo no Excel pt-BR) e JSON de todos os eventos.
 export function eventosParaJSON(eventos) { return JSON.stringify(eventos, null, 2); }
 
