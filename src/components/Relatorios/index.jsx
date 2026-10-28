@@ -39,7 +39,48 @@ function PassosSemanaCard({ valorAtual, onRegistrar }) {
   );
 }
 
-export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana }) {
+// Bloco 1.4 — rastreio de calçado. Só km (sem horas — versão magra, km é a métrica que
+// importa pro alerta de troca). Lista + alerta só aparecem com 2+ pares cadastrados,
+// como pede a spec — com 1 par só não há decisão a tomar.
+const ALERTA_KM = 600;
+function TenisCard({ tenis, onAdicionar, onRegistrarKm, onRemover }) {
+  const [nomeNovo, setNomeNovo] = useState("");
+  const [kmAdicional, setKmAdicional] = useState({});
+  return (
+    <div style={{ background: color.surface, borderRadius: radius.lg, padding: space.md, marginBottom: space.lg }}>
+      <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm }}>Calçado de corrida</div>
+      {tenis.length >= 2 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: space.md }}>
+          {tenis.map(t => (
+            <div key={t.id} style={{ padding: space.sm, borderRadius: radius.md, border: "1px solid " + (t.km >= ALERTA_KM ? color.alert : color.border), background: t.km >= ALERTA_KM ? color.alert + "12" : "transparent" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <span style={{ fontSize: ty.sm, fontWeight: 700 }}>{t.nome}</span>
+                <span style={{ fontSize: ty.sm, fontWeight: 700, color: t.km >= ALERTA_KM ? color.alert : color.text }}>{t.km}km</span>
+              </div>
+              {t.km >= ALERTA_KM && <div style={{ fontSize: ty.xs, color: color.alert, marginBottom: 6 }}>Passou de 600km — amortecimento já deve estar comprometido, considera trocar.</div>}
+              <div style={{ display: "flex", gap: 6 }}>
+                <input type="number" inputMode="decimal" value={kmAdicional[t.id] || ""} onChange={e => setKmAdicional({ ...kmAdicional, [t.id]: e.target.value })} placeholder="+km"
+                  style={{ flex: 1, minHeight: 36, borderRadius: radius.sm, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontSize: ty.sm, padding: "0 8px" }} />
+                <button onClick={() => { const v = Number(kmAdicional[t.id]); if (v) { onRegistrarKm(t.id, v); setKmAdicional({ ...kmAdicional, [t.id]: "" }); } }}
+                  style={{ minHeight: 36, padding: "0 14px", borderRadius: radius.sm, border: "none", background: color.surfaceAlt, color: color.text, fontWeight: 700, cursor: "pointer" }}>+</button>
+                <button onClick={() => onRemover(t.id)} style={{ minHeight: 36, padding: "0 10px", borderRadius: radius.sm, border: "1px solid " + color.border, background: "transparent", color: color.textFaint, cursor: "pointer" }}>✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {tenis.length === 1 && <div style={{ fontSize: ty.xs, color: color.textFaint, marginBottom: space.md }}>Cadastre um 2º par pra ativar o rastreio de km e o alerta de troca.</div>}
+      <div style={{ display: "flex", gap: space.sm }}>
+        <input type="text" value={nomeNovo} onChange={e => setNomeNovo(e.target.value)} placeholder="ex: Asics Gel 2026"
+          style={{ flex: 1, minHeight: touch.min, borderRadius: radius.md, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontSize: ty.sm, padding: "0 12px" }} />
+        <button onClick={() => { if (nomeNovo.trim()) { onAdicionar(nomeNovo.trim()); setNomeNovo(""); } }}
+          style={{ minHeight: touch.min, padding: "0 16px", borderRadius: radius.md, border: "none", background: color.surfaceAlt, color: color.text, fontWeight: 700, cursor: "pointer" }}>+ par</button>
+      </div>
+    </div>
+  );
+}
+
+export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis }) {
   const [periodo, setPeriodo] = useState("30d");
   const { desde, ate } = periodoParaDatas(periodo, hojeISO);
 
@@ -75,6 +116,7 @@ export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testes
       <Relatorio9Gate macrofase={macrofase} testesLog={testesLog} dorLog={dorLog} hojeISO={hojeISO} />
       <Relatorio10Export eventos={eventos} />
       <PassosSemanaCard valorAtual={passosSemanaAtual} onRegistrar={onRegistrarPassosSemana} />
+      <TenisCard tenis={tenis} onAdicionar={onAdicionarTenis} onRegistrarKm={onRegistrarKmTenis} onRemover={onRemoverTenis} />
       <Relatorio11CargaPe dados={dorPorCargaPe(eventos, hojeISO)} />
     </div>
   );

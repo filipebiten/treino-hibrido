@@ -22,6 +22,7 @@ export function defaultState() {
     eventos: [],               // [{ id, data, timestamp, tipo, payload }] — log append-only, ver lib/eventos.js
     eventosMigrados: false,
     planoSeEntao: null,        // { ancora, acao, barreira, atualizadoISO } — não é log, é configuração corrente
+    tenis: [],                 // [{ id, nome, km }] — Bloco 1.4, inventário (não log). Sem auto-link a corridas.
   };
 }
 

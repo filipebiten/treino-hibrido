@@ -212,6 +212,17 @@ export default function App() {
 
   function salvarPlanoSeEntao(plano) { patch({ planoSeEntao: plano }); }
 
+  // Bloco 1.4 — rastreio de calçado. Inventário simples, sem auto-link a corridas
+  // (deliberado, versão magra). Alerta aos 600km fica na UI (Relatorios).
+  function adicionarTenis(nome) {
+    const tenis = [...state.tenis, { id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, nome, km: 0 }];
+    patch({ tenis });
+  }
+  function registrarKmTenis(id, kmAdicional) {
+    patch({ tenis: state.tenis.map(t => t.id === id ? { ...t, km: Math.round((t.km + kmAdicional) * 10) / 10 } : t) });
+  }
+  function removerTenis(id) { patch({ tenis: state.tenis.filter(t => t.id !== id) }); }
+
   // média de dor dos últimos 7 dias com registro — usada pra priorizar alternativa de
   // exercício sem impacto no pé (Bloco 2.5), não é métrica de risco nem gate.
   function dorMedia7d() {
@@ -310,7 +321,8 @@ export default function App() {
 
   // ══════════════════════ RELATÓRIOS ══════════════════════
   if (scr === "relatorios") return <Relatorios eventos={state.eventos} hojeISO={hojeISO} cargas={state.cargas} macrofase={progresso.macrofase} testesLog={state.testesLog} dorLog={state.dorLog} onBack={() => setScr("home")}
-    passosSemanaAtual={passosSemanaAtual()} onRegistrarPassosSemana={registrarPassosSemana} />;
+    passosSemanaAtual={passosSemanaAtual()} onRegistrarPassosSemana={registrarPassosSemana}
+    tenis={state.tenis} onAdicionarTenis={adicionarTenis} onRegistrarKmTenis={registrarKmTenis} onRemoverTenis={removerTenis} />;
 
   // ══════════════════════ LEMBRETES ══════════════════════
   if (scr === "lembretes") return <LembreteScreen onBack={() => setScr("home")} />;
