@@ -8,6 +8,7 @@ import { calcularPosicao, verificarGate, checkRecuoAutomatico, rathleffStatus, f
 import { registrarCarga, registrarHistoricoTreino, registrarPeso, ehPR } from "./lib/treino.js";
 import { registrar as registrarEvento } from "./lib/eventos.js";
 import { eventosParaJSON, comparacaoRecaida } from "./lib/relatorios.js";
+import { validarAgendamento } from "./lib/agendamento.js";
 import { atualizarBadge } from "./lib/lembrete.js";
 import { color } from "./lib/tokens.js";
 
@@ -168,9 +169,16 @@ export default function App() {
   }
 
   function iniciarSessao(tipo) {
-    limparResume();
     const info = tipoInfo(tipo);
     const built = buildSessao(tipo, progresso.macrofase, progresso.semanaIdx, progresso.force3x15);
+    // R1 bloqueia (ver lib/agendamento.js) — manda pro Preview em vez do treino direto,
+    // que é onde o aviso/bloqueio é mostrado de verdade.
+    if (validarAgendamento(state.eventos, hojeISO, tipo).bloqueado) {
+      setSessaoAtual({ tipo, ...info, ...built });
+      setScr("preview");
+      return;
+    }
+    limparResume();
     setSessaoAtual({ tipo, ...info, ...built });
     setScr("workout");
   }
@@ -376,7 +384,8 @@ export default function App() {
     passosSemanaAtual={passosSemanaAtual()} onRegistrarPassosSemana={registrarPassosSemana}
     tenis={state.tenis} onAdicionarTenis={adicionarTenis} onRegistrarKmTenis={registrarKmTenis} onRemoverTenis={removerTenis}
     semanasDeclaradas={state.semanasDeclaradas} onDeclararSemana={declararSemana}
-    onAbrirRelatorioMedico={() => setScr("relatorioMedico")} />;
+    onAbrirRelatorioMedico={() => setScr("relatorioMedico")}
+    prioridadeTemporada={state.prioridadeTemporada} onMudarPrioridade={(v) => patch({ prioridadeTemporada: v })} />;
 
   // ══════════════════════ RELATÓRIO MÉDICO (Bloco 6.2) ══════════════════════
   if (scr === "relatorioMedico") return <RelatorioMedico eventos={state.eventos} hojeISO={hojeISO} onboarding={state.onboarding} onBack={() => setScr("relatorios")} />;
@@ -387,6 +396,7 @@ export default function App() {
   // ══════════════════════ PREVIEW ══════════════════════
   if (scr === "preview" && sessaoAtual) {
     return <Preview steps={sessaoAtual.steps} label={sessaoAtual.label} cor={sessaoAtual.cor} icon={sessaoAtual.icon} resumo={sessaoAtual.resumo}
+      aviso={validarAgendamento(state.eventos, hojeISO, sessaoAtual.tipo)}
       onBack={() => setScr("home")} onIniciar={() => { limparResume(); setScr("workout"); }} />;
   }
 

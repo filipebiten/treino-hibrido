@@ -11,11 +11,13 @@ import Relatorio8Peso from "./Relatorio8Peso.jsx";
 import Relatorio9Gate from "./Relatorio9Gate.jsx";
 import Relatorio10Export from "./Relatorio10Export.jsx";
 import Relatorio11CargaPe from "./Relatorio11CargaPe.jsx";
+import Relatorio12Intensidade from "./Relatorio12Intensidade.jsx";
 import {
   periodoParaDatas, aderenciaRehab, aderenciaRathleff, dorAoLongoDoTempo, dorPorAderencia,
   dorPorTipoTreino, acwr, volumeCorrida, pesoCorporal, volumePorGrupo, sugerirDeload, srpeCorrida,
   dorPorCargaPe,
 } from "../../lib/relatorios.js";
+import { distribuicaoIntensidade } from "../../lib/agendamento.js";
 import { color, space, type as ty, touch, radius } from "../../lib/tokens.js";
 
 const backBtn = { background: "none", border: "none", color: color.textDim, fontSize: ty.base, cursor: "pointer", padding: 4, minHeight: touch.min, display: "flex", alignItems: "center", gap: 6 };
@@ -119,7 +121,23 @@ function SemanasFuturasCard({ hojeISO, semanasDeclaradas, onDeclarar }) {
   );
 }
 
-export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis, semanasDeclaradas, onDeclararSemana, onAbrirRelatorioMedico }) {
+// 3.2 — prioridade da temporada. Nunca zera a outra modalidade, só afeta a ordem
+// sugerida quando dois treinos caem no mesmo dia (ver R3 em lib/agendamento.js).
+const PRIORIDADES = [["corrida", "Corrida"], ["equilibrio", "Equilíbrio"], ["musculacao", "Musculação"]];
+function PrioridadeCard({ valor, onMudar }) {
+  return (
+    <div style={{ background: color.surface, borderRadius: radius.lg, padding: space.md, marginBottom: space.lg }}>
+      <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm }}>Esta temporada prioriza</div>
+      <div style={{ display: "flex", gap: 6 }}>
+        {PRIORIDADES.map(([key, label]) => (
+          <button key={key} onClick={() => onMudar(key)} style={{ flex: 1, minHeight: 40, borderRadius: radius.sm, border: "1px solid " + (valor === key ? color.musc : color.border), background: valor === key ? color.musc + "1a" : "transparent", color: color.text, fontWeight: 700, fontSize: ty.xs, cursor: "pointer" }}>{label}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis, semanasDeclaradas, onDeclararSemana, onAbrirRelatorioMedico, prioridadeTemporada, onMudarPrioridade }) {
   const [periodo, setPeriodo] = useState("30d");
   const { desde, ate } = periodoParaDatas(periodo, hojeISO);
 
@@ -158,6 +176,8 @@ export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testes
       <TenisCard tenis={tenis} onAdicionar={onAdicionarTenis} onRegistrarKm={onRegistrarKmTenis} onRemover={onRemoverTenis} />
       <SemanasFuturasCard hojeISO={hojeISO} semanasDeclaradas={semanasDeclaradas} onDeclarar={onDeclararSemana} />
       <Relatorio11CargaPe dados={dorPorCargaPe(eventos, hojeISO)} />
+      <Relatorio12Intensidade dados={distribuicaoIntensidade(eventos, desde, ate)} />
+      <PrioridadeCard valor={prioridadeTemporada} onMudar={onMudarPrioridade} />
 
       <button onClick={onAbrirRelatorioMedico} style={{ width: "100%", minHeight: touch.min, borderRadius: 12, border: "1px solid " + color.border, background: color.surface, color: color.text, fontSize: ty.sm, fontWeight: 700, cursor: "pointer", marginBottom: space.lg }}>Relatório pra consulta médica</button>
     </div>
