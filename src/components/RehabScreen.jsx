@@ -9,7 +9,7 @@ import { formatarRestante } from "../lib/progressao.js";
 
 const backBtn = { background: "none", border: "none", color: color.textDim, fontSize: ty.base, cursor: "pointer", padding: 4, display: "flex", alignItems: "center", gap: 6, minHeight: touch.min };
 
-export default function RehabScreen({ onBack, rotinas, onRoutineComplete, rathleff, dorLog, pesoLog, hojeISO }) {
+export default function RehabScreen({ onBack, rotinas, onRoutineComplete, rathleff, dorLog, pesoLog, hojeISO, feitaKeys = {} }) {
   const [activeRoutine, setActiveRoutine] = useState(null);
   const [activeKey, setActiveKey] = useState(null);
   const [tab, setTab] = useState("rotinas");
@@ -86,12 +86,16 @@ export default function RehabScreen({ onBack, rotinas, onRoutineComplete, rathle
             </div>
             {rotinas.map(r => {
               const locked = r.key === "carga" && rathleff && !rathleff.liberado;
+              const feita = !!feitaKeys[r.key];
               return (
-                <button key={r.key} disabled={locked} onClick={() => !locked && abrir(r.key, r.rotina)} style={{ width: "100%", minHeight: touch.min, padding: space.lg, marginBottom: space.sm, borderRadius: radius.lg, border: "1px solid " + color.border, background: locked ? color.surfaceAlt : color.surface, cursor: locked ? "default" : "pointer", textAlign: "left", opacity: locked ? 0.6 : 1 }}>
+                <button key={r.key} disabled={locked} onClick={() => !locked && abrir(r.key, r.rotina)} style={{ width: "100%", minHeight: touch.min, padding: space.lg, marginBottom: space.sm, borderRadius: radius.lg, border: "1px solid " + (feita ? color.success + "55" : color.border), background: locked ? color.surfaceAlt : feita ? color.success + "12" : color.surface, cursor: locked ? "default" : "pointer", textAlign: "left", opacity: locked ? 0.6 : 1 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <div style={{ fontSize: ty.md, fontWeight: 800, color: color.text }}>{r.rotina.title}</div>
-                      <div style={{ fontSize: ty.xs, color: color.textDim, marginTop: 2 }}>{r.rotina.subtitle}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {feita && <Icon name="check" size={18} color={color.success} />}
+                      <div>
+                        <div style={{ fontSize: ty.md, fontWeight: 800, color: color.text }}>{r.rotina.title}</div>
+                        <div style={{ fontSize: ty.xs, color: color.textDim, marginTop: 2 }}>{r.rotina.subtitle}</div>
+                      </div>
                     </div>
                     {locked
                       ? <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: ty.xs, color: color.textFaint }}><Icon name="lock" size={14} />{formatarRestante(rathleff.restanteMs)}</div>

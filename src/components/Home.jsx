@@ -25,6 +25,7 @@ function DorCard({ dorHoje, diasSemRegistro, onRegistrar }) {
           <button key={n} onClick={() => onRegistrar(n)} style={{ minHeight: 44, borderRadius: radius.sm, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontWeight: 700, fontSize: ty.sm, cursor: "pointer" }}>{n}</button>
         ))}
       </div>
+      <div style={{ fontSize: ty.xs, color: color.textDim, textAlign: "center", marginTop: space.sm }}>0 = sem dor · 10 = pior dor possível</div>
     </div>
   );
 }

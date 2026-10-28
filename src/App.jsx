@@ -273,6 +273,7 @@ export default function App() {
       dorLog={state.dorLog}
       pesoLog={state.pesoLog}
       hojeISO={hojeISO}
+      feitaKeys={{ [activeDoseKey]: doseFeita(activeDoseKey) }}
       onBack={() => { setScr("home"); setActiveDoseKey(null); }}
       onRoutineComplete={(completude) => markDose(activeDoseKey, completude)}
     />;
