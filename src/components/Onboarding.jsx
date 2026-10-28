@@ -14,7 +14,7 @@ export default function Onboarding({ onFinish, recalibrando }) {
   const [step, setStep] = useState(0);
   const [dor, setDor] = useState(null);
   const [semanasParado, setSemanasParado] = useState(null);
-  const [peso, setPeso] = useState("");
+  const [peso, setPeso] = useState("89");
 
   const wrap = { background: color.bg, color: color.text, minHeight: "100vh", fontFamily: "system-ui", padding: space.xl + "px " + space.lg + "px", maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column", justifyContent: "center" };
   const title = { fontSize: ty.xl, fontWeight: 800, marginBottom: space.sm, textAlign: "center" };
