@@ -112,6 +112,7 @@ const GIF_MAP = {
   "Concentrada+Martelo BI-SET": "Exercicios/Bíceps/Rosca concentrada.gif",
   "Martelo+Concentrado SUPERSET": "Exercicios/Bíceps/Rosca martelo.gif",
   "Tibial posterior elástico": "https://musclewiki.com/api-next/videos/male-Recovery-inversions-resisted-seated-side.mp4",
+  "Rotação tornozelos": "Exercicios/Mobilidade/Rotação de Pé e Tornozelo.gif",
   "Corda+Barra SUPERSET": "Exercicios/Tríceps/Tríceps pulley corda.gif",
   "Encolhimento+Peck inv BI-SET": "Exercicios/Trapézio/Encolhimento com Halteres.gif",
   "Pullover+Pulldown SUPERSET": "Exercicios/Peitoral/Pullover com haltere.gif",
