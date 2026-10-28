@@ -23,6 +23,7 @@ const ALT_AGACHAMENTO = { padrao: "squat", impactoPlantar: true, alternativas: [
   { nome: "Leg press 45°", equipamento: "máquina", obs: "mesmo padrão, substitui direto" },
   { nome: "Agachamento na parede com bola suíça", equipamento: "bola de pilates", obs: "apoio nas costas, reduz exigência de equilíbrio" },
   { nome: "Hack squat", equipamento: "máquina", obs: "trilho fixo, menos exigência de equilíbrio no pé que agachamento livre" },
+  { nome: "Agachamento no Smith", equipamento: "máquina Smith", obs: "barra guiada, remove exigência de estabilização do pé/tornozelo" },
 ]};
 const ALT_LEG_PRESS = { padrao: "squat", impactoPlantar: false, alternativas: [
   { nome: "Agachamento goblet", equipamento: "halter", obs: "" },
@@ -37,18 +38,22 @@ const ALT_STIFF = { padrao: "hip hinge", impactoPlantar: false, alternativas: [
   { nome: "Terra romeno com halteres", equipamento: "halter", obs: "" },
   { nome: "Hip thrust/ponte de glúteo", equipamento: "peso corporal ou barra", obs: "sem ficar em pé" },
   { nome: "Cable pull-through", equipamento: "cabo", obs: "ensina o hinge sem travar carga no pé parado" },
+  { nome: "Extensão lombar 45° na máquina", equipamento: "máquina", obs: "deitado na almofada, zero carga no pé em pé" },
 ]};
 const ALT_TERRA = { padrao: "hip hinge", impactoPlantar: false, alternativas: [
   { nome: "Stiff com halteres", equipamento: "halter", obs: "" },
   { nome: "Hip thrust com barra", equipamento: "barra", obs: "" },
   { nome: "Cable pull-through", equipamento: "cabo", obs: "ensina o hinge sem travar carga no pé parado" },
+  { nome: "Extensão lombar 45° na máquina", equipamento: "máquina", obs: "deitado na almofada, zero carga no pé em pé" },
 ]};
 const ALT_UNILATERAL = { padrao: "single-leg", impactoPlantar: true, alternativas: [
   { nome: "Leg press unilateral", equipamento: "máquina", obs: "menos exigência de equilíbrio no pé" },
   { nome: "Cadeira extensora", equipamento: "máquina", obs: "sentado, zero equilíbrio" },
+  { nome: "Ponte de glúteo unilateral c/ calcanhar elevado", equipamento: "peso corporal + banco", obs: "deitado, zero carga em pé" },
 ]};
 const ALT_PANTURRILHA_PE = { padrao: "calf raise", impactoPlantar: true, alternativas: [
   { nome: "Panturrilha sentado (sóleo)", equipamento: "máquina", obs: "menos carga direta no arco plantar" },
+  { nome: "Panturrilha na prensa horizontal", equipamento: "máquina", obs: "reclinado, sem peso corporal passando pelo pé em pé" },
 ]};
 const ALT_FLEXORA = { padrao: "knee flexion", impactoPlantar: false, alternativas: [
   { nome: "Stiff com halteres", equipamento: "halter", obs: "" },
