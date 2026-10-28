@@ -67,12 +67,13 @@ export function migrarParaEventos(state) {
 // já devolve em ordem cronológica, então o forEach naturalmente aplica "mais recente ganha").
 export function agruparPorDia(eventos) {
   const dias = {};
-  function dia(iso) { return dias[iso] || (dias[iso] = { periodos: [], pesoPeriodo: {}, treino: null, pulado: false, dor: null, cargaPe: null, testes: [], recuo: null, rehabMinutos: null }); }
+  function dia(iso) { return dias[iso] || (dias[iso] = { periodos: [], pesoPeriodo: {}, treino: null, pulado: false, dor: null, cargaPe: null, testes: [], recuo: null, rehabMinutos: null, nota: null }); }
   listar(eventos).forEach(e => {
     const d = dia(e.data);
     switch (e.tipo) {
       case "dor_checkin": d.dor = e.payload.nivel; break;
       case "carga_pe": d.cargaPe = e.payload.nivel; break;
+      case "nota_dia": d.nota = e.payload.texto; break;
       case "rehab_dose": {
         if (!d.periodos.includes(e.payload.periodo)) d.periodos.push(e.payload.periodo);
         // dose parcial (saiu no meio da rotina) conta meio ponto; sem o campo (eventos antigos), conta cheia.
@@ -98,7 +99,7 @@ export function agruparPorDia(eventos) {
 function substituir(eventos, tipo, iso) { return eventos.filter(e => !(e.tipo === tipo && e.data === iso)); }
 
 // Aplica edição retroativa (ou do dia atual) vinda da tela de Histórico.
-// `edicao`: { dor, manha, noite, duracaoRehabMin, treinoStatus, treinoTipo, distanciaKm, tempoMin }
+// `edicao`: { dor, manha, noite, duracaoRehabMin, treinoStatus, treinoTipo, distanciaKm, tempoMin, nota }
 // Nota: duracaoRehabMin só é gravado quando a dose é marcada nesta chamada (transição
 // false->true) — editar só a duração de uma dose já marcada exige desmarcar e remarcar.
 export function aplicarEdicaoDia(eventos, iso, edicao, retroativo) {
@@ -107,6 +108,10 @@ export function aplicarEdicaoDia(eventos, iso, edicao, retroativo) {
 
   if (edicao.dor !== null && edicao.dor !== undefined) {
     ev = registrar(substituir(ev, "dor_checkin", iso), "dor_checkin", { nivel: edicao.dor }, iso, opts);
+  }
+  if (edicao.nota !== undefined) {
+    ev = substituir(ev, "nota_dia", iso);
+    if (edicao.nota && edicao.nota.trim()) ev = registrar(ev, "nota_dia", { texto: edicao.nota.trim() }, iso, opts);
   }
   ["manha", "noite"].forEach(periodo => {
     const tem = ev.some(e => e.tipo === "rehab_dose" && e.data === iso && e.payload.periodo === periodo);

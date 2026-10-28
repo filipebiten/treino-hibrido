@@ -26,6 +26,7 @@ export default function DiaEdit({ iso, resumoDia, onSalvar, onFechar }) {
   const [duracaoRehabMin, setDuracaoRehabMin] = useState((resumoDia && resumoDia.rehabMinutos) || null);
   const [distanciaKm, setDistanciaKm] = useState((resumoDia && resumoDia.treino && resumoDia.treino.distanciaKm) || null);
   const [tempoMin, setTempoMin] = useState((resumoDia && resumoDia.treino && resumoDia.treino.tempoTotalMin) || null);
+  const [nota, setNota] = useState((resumoDia && resumoDia.nota) || "");
 
   const dataFmt = iso.split("-").reverse().join("/");
 
@@ -88,7 +89,13 @@ export default function DiaEdit({ iso, resumoDia, onSalvar, onFechar }) {
           )}
         </div>
 
-        <button onClick={() => onSalvar({ dor, manha, noite, duracaoRehabMin, treinoStatus, treinoTipo, distanciaKm, tempoMin })}
+        <div style={field}>
+          <span style={label}>Nota (opcional)</span>
+          <input type="text" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="ex: viagem, dormi mal, evento na igreja"
+            style={{ width: "100%", minHeight: touch.min * 0.7, borderRadius: radius.md, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontSize: ty.sm, padding: "0 12px" }} />
+        </div>
+
+        <button onClick={() => onSalvar({ dor, manha, noite, duracaoRehabMin, treinoStatus, treinoTipo, distanciaKm, tempoMin, nota })}
           style={{ width: "100%", minHeight: touch.min, borderRadius: radius.md, border: "none", background: color.musc, color: "#08120c", fontSize: ty.md, fontWeight: 800, cursor: "pointer" }}>
           Salvar
         </button>

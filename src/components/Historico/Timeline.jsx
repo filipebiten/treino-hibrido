@@ -41,6 +41,7 @@ export default function Timeline({ diasResumo, marcoZero, hojeISO, onSelecionarD
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: ty.xs, fontWeight: 700, color: color.textDim, marginBottom: 2 }}>{dataFmt}</div>
               <div style={{ fontSize: ty.xs, color: color.text }}><ResumoDia resumo={resumo} /></div>
+              {resumo && resumo.nota && <div style={{ fontSize: ty.xs, color: color.textFaint, fontStyle: "italic", marginTop: 2 }}>{resumo.nota}</div>}
             </div>
             <Icon name="edit" size={14} color={color.textFaint} />
           </div>
