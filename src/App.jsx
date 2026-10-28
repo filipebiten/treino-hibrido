@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { toISO, diffDias, MARCO_ZERO, getMacrofaseInfo, totalSemanas, META_OFICIAL } from "./data/plano.js";
+import { toISO, diffDias, MARCO_ZERO, MACRO_PHASES, getMacrofaseInfo, totalSemanas, META_OFICIAL } from "./data/plano.js";
 import { MA, MB, MC, buildMuscSession } from "./data/musculacao.js";
-import { getRehabForMacrofase } from "./data/rehab.js";
+import { getRehabForMacrofase, getRehabManutencaoVitalicia, precisaReativarManutencao } from "./data/rehab.js";
 import { buildCaminhadaSession, buildWalkRunSession, buildContinuoSession, buildMetaSession } from "./data/corrida.js";
 import { loadState, saveState } from "./lib/storage.js";
 import { calcularPosicao, verificarGate, checkRecuoAutomatico, rathleffStatus, formatarRestante } from "./lib/progressao.js";
@@ -18,6 +18,7 @@ import WorkoutScreen from "./components/WorkoutScreen.jsx";
 import RehabScreen from "./components/RehabScreen.jsx";
 import Historico from "./components/Historico/index.jsx";
 import Relatorios from "./components/Relatorios/index.jsx";
+import RelatorioMedico from "./components/RelatorioMedico.jsx";
 import LembreteScreen from "./components/LembreteScreen.jsx";
 import TesteScreen from "./components/TesteScreen.jsx";
 import Icon from "./components/Icon.jsx";
@@ -123,7 +124,16 @@ export default function App() {
   const macInfo = getMacrofaseInfo(progresso.macrofase);
   const totSem = totalSemanas(progresso.macrofase);
   const diaAlternado = diffDias(MARCO_ZERO, hojeISO) % 2 === 0;
-  const rehabDoses = getRehabForMacrofase(progresso.macrofase, progresso.semanaIdx, diaAlternado, progresso.dorAlta);
+  // Bloco 6.1 — manutenção vitalícia assume quando o plano de 15 semanas termina.
+  const planoAcabou = hojeISO > MACRO_PHASES[MACRO_PHASES.length - 1].fim;
+  const dorPontos = state.eventos.filter(e => e.tipo === "dor_checkin").map(e => ({ iso: e.data, nivel: e.payload.nivel }));
+  const baselineDor = dorPontos.length ? dorPontos.reduce((s, p) => s + p.nivel, 0) / dorPontos.length : null;
+  const dorUltimos3Dias = [0, 1, 2].map(n => toISO(new Date(new Date(hojeISO + "T00:00:00").getTime() - n * 86400000)))
+    .map(iso => { const p = dorPontos.find(p => p.iso === iso); return p ? p.nivel : null; });
+  const reativadoManutencao = planoAcabou && precisaReativarManutencao(dorUltimos3Dias, baselineDor);
+  const rehabDoses = planoAcabou
+    ? getRehabManutencaoVitalicia(new Date(hojeISO + "T00:00:00").getDay(), reativadoManutencao)
+    : getRehabForMacrofase(progresso.macrofase, progresso.semanaIdx, diaAlternado, progresso.dorAlta);
   const ultimoRathleffMs = Object.keys(state.rathleffLog).length ? Math.max(...Object.values(state.rathleffLog)) : 0;
   const rathleff = rathleffStatus(ultimoRathleffMs, Date.now());
 
@@ -166,6 +176,17 @@ export default function App() {
   }
 
   function registrarDor(nota) { patch({ dorLog: { ...state.dorLog, [hojeISO]: nota }, eventos: registrarEvento(state.eventos, "dor_checkin", { nivel: nota }, hojeISO) }); }
+  // Bloco 6.1 — em modo manutenção o check-in de dor é semanal, não diário: procura
+  // qualquer registro desde a segunda-feira da semana atual, não só hoje.
+  function dorDaSemanaAtual() {
+    const d = new Date(hojeISO + "T00:00:00");
+    const offset = d.getDay() === 0 ? 6 : d.getDay() - 1;
+    for (let i = 0; i <= offset; i++) {
+      const iso = toISO(new Date(d.getTime() - i * 86400000));
+      if (state.dorLog[iso] !== undefined) return state.dorLog[iso];
+    }
+    return undefined;
+  }
 
   // carga de pé — Bloco 1.1 do plano de evolução híbrida. Puramente eventos (sem log
   // paralelo, diferente de dorLog que é legado) — "hoje" lido direto do próprio eventos.
@@ -354,7 +375,11 @@ export default function App() {
   if (scr === "relatorios") return <Relatorios eventos={state.eventos} hojeISO={hojeISO} cargas={state.cargas} macrofase={progresso.macrofase} testesLog={state.testesLog} dorLog={state.dorLog} onBack={() => setScr("home")}
     passosSemanaAtual={passosSemanaAtual()} onRegistrarPassosSemana={registrarPassosSemana}
     tenis={state.tenis} onAdicionarTenis={adicionarTenis} onRegistrarKmTenis={registrarKmTenis} onRemoverTenis={removerTenis}
-    semanasDeclaradas={state.semanasDeclaradas} onDeclararSemana={declararSemana} />;
+    semanasDeclaradas={state.semanasDeclaradas} onDeclararSemana={declararSemana}
+    onAbrirRelatorioMedico={() => setScr("relatorioMedico")} />;
+
+  // ══════════════════════ RELATÓRIO MÉDICO (Bloco 6.2) ══════════════════════
+  if (scr === "relatorioMedico") return <RelatorioMedico eventos={state.eventos} hojeISO={hojeISO} onboarding={state.onboarding} onBack={() => setScr("relatorios")} />;
 
   // ══════════════════════ LEMBRETES ══════════════════════
   if (scr === "lembretes") return <LembreteScreen onBack={() => setScr("home")} />;
@@ -400,7 +425,8 @@ export default function App() {
 
   return <Home
     macrofaseNome={macInfo.nome} semanaIdx={progresso.semanaIdx} totalSemanas={totSem} hojeISO={hojeISO}
-    dorHoje={state.dorLog[hojeISO]} diasSemRegistroDor={diasSemRegistroDor()} onRegistrarDor={registrarDor}
+    dorHoje={planoAcabou ? dorDaSemanaAtual() : state.dorLog[hojeISO]} diasSemRegistroDor={diasSemRegistroDor()} onRegistrarDor={registrarDor}
+    modoManutencao={planoAcabou} reativadoManutencao={reativadoManutencao}
     cargaPeHoje={cargaPeHoje()} onRegistrarCargaPe={registrarCargaPe}
     doses={doses} doseFeitaFn={doseFeita}
     onAbrirDose={(key) => { setActiveDoseKey(key); setScr("rehabDose"); }}

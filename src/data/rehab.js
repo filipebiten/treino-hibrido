@@ -84,3 +84,21 @@ export function getRehabForMacrofase(macrofase, semanaIdx, diaAlternado, dorAlta
   const carga = diaAlternado ? cargaComVolume(5, 8, true) : null;
   return { base: REHAB_MANUTENCAO_1X, carga, gelo: REHAB_GELO_POS_CORRIDA, reforcado: false };
 }
+
+// ══════════════════════ MANUTENÇÃO VITALÍCIA (Bloco 6.1) ══════════════════════
+// Ativa quando o plano de 15 semanas termina (03/01/2027, ver App.jsx). Fascite recidiva,
+// e a recaída clássica é parar o protocolo assim que melhora — isso existe pra isso nunca
+// precisar de decisão manual. Rathleff cai pra 2x/semana fixo (segunda+quinta, indefinido).
+// Reativa o protocolo intensivo sozinho se a dor ficar acima da linha de base 3 dias seguidos.
+export function diaRathleffManutencao(diaSemana) { return diaSemana === 1 || diaSemana === 4; }
+
+export function precisaReativarManutencao(dorUltimos3Dias, baseline) {
+  if (dorUltimos3Dias.length < 3 || baseline == null) return false;
+  return dorUltimos3Dias.every(d => d != null && d > baseline);
+}
+
+export function getRehabManutencaoVitalicia(diaSemana, reativado) {
+  if (reativado) return { base: REHAB_BASE_2X, carga: null, gelo: null, reforcado: true };
+  const carga = diaRathleffManutencao(diaSemana) ? cargaComVolume(5, 8, true) : null;
+  return { base: REHAB_MANUTENCAO_1X, carga, gelo: REHAB_GELO_POS_CORRIDA, reforcado: false };
+}

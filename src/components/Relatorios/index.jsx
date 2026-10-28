@@ -119,7 +119,7 @@ function SemanasFuturasCard({ hojeISO, semanasDeclaradas, onDeclarar }) {
   );
 }
 
-export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis, semanasDeclaradas, onDeclararSemana }) {
+export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis, semanasDeclaradas, onDeclararSemana, onAbrirRelatorioMedico }) {
   const [periodo, setPeriodo] = useState("30d");
   const { desde, ate } = periodoParaDatas(periodo, hojeISO);
 
@@ -158,6 +158,8 @@ export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testes
       <TenisCard tenis={tenis} onAdicionar={onAdicionarTenis} onRegistrarKm={onRegistrarKmTenis} onRemover={onRemoverTenis} />
       <SemanasFuturasCard hojeISO={hojeISO} semanasDeclaradas={semanasDeclaradas} onDeclarar={onDeclararSemana} />
       <Relatorio11CargaPe dados={dorPorCargaPe(eventos, hojeISO)} />
+
+      <button onClick={onAbrirRelatorioMedico} style={{ width: "100%", minHeight: touch.min, borderRadius: 12, border: "1px solid " + color.border, background: color.surface, color: color.text, fontSize: ty.sm, fontWeight: 700, cursor: "pointer", marginBottom: space.lg }}>Relatório pra consulta médica</button>
     </div>
   );
 }

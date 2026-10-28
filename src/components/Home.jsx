@@ -4,20 +4,20 @@ import { color, space, type as ty, radius, touch } from "../lib/tokens.js";
 
 const cardBase = { width: "100%", color: color.text, borderRadius: radius.lg, border: "1px solid " + color.border, background: color.surface, cursor: "pointer", textAlign: "left" };
 
-function DorCard({ dorHoje, diasSemRegistro, onRegistrar }) {
+function DorCard({ dorHoje, diasSemRegistro, onRegistrar, modoManutencao }) {
   if (dorHoje !== undefined) {
     return (
       <div style={{ ...cardBase, padding: space.md, marginBottom: space.md, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Icon name="drop" size={16} color={color.pain} /><span style={{ fontSize: ty.sm, color: color.textDim }}>Dor hoje: <b style={{ color: color.text }}>{dorHoje}/10</b></span></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Icon name="drop" size={16} color={color.pain} /><span style={{ fontSize: ty.sm, color: color.textDim }}>Dor {modoManutencao ? "essa semana" : "hoje"}: <b style={{ color: color.text }}>{dorHoje}/10</b></span></div>
       </div>
     );
   }
-  const insistente = diasSemRegistro >= 2;
+  const insistente = !modoManutencao && diasSemRegistro >= 2;
   return (
     <div style={{ ...cardBase, padding: space.lg, marginBottom: space.md, border: "2px solid " + (insistente ? color.pain : color.alert), background: (insistente ? color.pain : color.alert) + "14" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: space.sm }}>
         <Icon name="drop" size={20} color={insistente ? color.pain : color.alert} />
-        <div style={{ fontSize: ty.lg, fontWeight: 800 }}>Dor no calcanhar hoje?</div>
+        <div style={{ fontSize: ty.lg, fontWeight: 800 }}>Dor no calcanhar {modoManutencao ? "essa semana" : "hoje"}?</div>
       </div>
       {insistente && <div style={{ fontSize: ty.xs, color: color.pain, marginBottom: space.sm }}>Sem registro há {diasSemRegistro} dias — tenta não pular.</div>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 6 }}>
@@ -90,6 +90,7 @@ export default function Home({
   planoSeEntao, onSalvarPlano, isSegunda, diasSemUso, instalarPwa,
   precisaBackup, onFazerBackup, recaida,
   semanaDeclarada, onDeclararSemana,
+  modoManutencao, reativadoManutencao,
 }) {
   return (
     <div style={{ background: color.bg, color: color.text, minHeight: "100vh", fontFamily: "system-ui", padding: space.xl + "px " + space.lg + "px", maxWidth: 480, margin: "0 auto" }}>
@@ -148,7 +149,17 @@ export default function Home({
         </div>
       )}
 
-      <DorCard dorHoje={dorHoje} diasSemRegistro={diasSemRegistroDor} onRegistrar={onRegistrarDor} />
+      {modoManutencao && (
+        <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + (reativadoManutencao ? color.alert + "88" : color.textFaint + "55"), background: reativadoManutencao ? color.alert + "0e" : "transparent" }}>
+          <div style={{ fontSize: ty.xs, color: reativadoManutencao ? color.alert : color.textDim, lineHeight: 1.5 }}>
+            {reativadoManutencao
+              ? "Dor acima do normal por 3 dias seguidos — protocolo intensivo reativado automaticamente."
+              : "Modo manutenção (plano de 15 semanas concluído) — Rathleff 2x/semana, check-in de dor semanal."}
+          </div>
+        </div>
+      )}
+
+      <DorCard dorHoje={dorHoje} diasSemRegistro={diasSemRegistroDor} onRegistrar={onRegistrarDor} modoManutencao={modoManutencao} />
 
       {recaida && recaida.suficiente && recaida.elevada && recaida.vezes > 0 && (
         <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.success + "55", background: color.success + "0e" }}>
