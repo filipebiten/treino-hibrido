@@ -1,10 +1,15 @@
+import { useState } from "react";
 import Icon from "./Icon.jsx";
 import PlanoSeEntaoCard from "./PlanoSeEntaoCard.jsx";
 import { color, space, type as ty, radius, touch } from "../lib/tokens.js";
 
 const cardBase = { width: "100%", color: color.text, borderRadius: radius.lg, border: "1px solid " + color.border, background: color.surface, cursor: "pointer", textAlign: "left" };
 
-function DorCard({ dorHoje, diasSemRegistro, onRegistrar, modoManutencao }) {
+// Bloco 1 — fora do modo manutenção, a pergunta diária de dor virou parte da fila de
+// perguntas (FilaPerguntasCard); aqui só mostra a confirmação depois de respondida. O
+// modo manutenção (check-in semanal) ainda não foi migrado pra fila — mantém seu próprio
+// grid de resposta.
+function DorCard({ dorHoje, onRegistrar, modoManutencao }) {
   if (dorHoje !== undefined) {
     return (
       <div style={{ ...cardBase, padding: space.md, marginBottom: space.md, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -12,14 +17,13 @@ function DorCard({ dorHoje, diasSemRegistro, onRegistrar, modoManutencao }) {
       </div>
     );
   }
-  const insistente = !modoManutencao && diasSemRegistro >= 2;
+  if (!modoManutencao) return null;
   return (
-    <div style={{ ...cardBase, padding: space.lg, marginBottom: space.md, border: "2px solid " + (insistente ? color.pain : color.alert), background: (insistente ? color.pain : color.alert) + "14" }}>
+    <div style={{ ...cardBase, padding: space.lg, marginBottom: space.md, border: "2px solid " + color.alert, background: color.alert + "14" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: space.sm }}>
-        <Icon name="drop" size={20} color={insistente ? color.pain : color.alert} />
-        <div style={{ fontSize: ty.lg, fontWeight: 800 }}>Dor no calcanhar {modoManutencao ? "essa semana" : "hoje"}?</div>
+        <Icon name="drop" size={20} color={color.alert} />
+        <div style={{ fontSize: ty.lg, fontWeight: 800 }}>Dor no calcanhar essa semana?</div>
       </div>
-      {insistente && <div style={{ fontSize: ty.xs, color: color.pain, marginBottom: space.sm }}>Sem registro há {diasSemRegistro} dias — tenta não pular.</div>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 6 }}>
         {Array.from({ length: 11 }, (_, i) => i).map(n => (
           <button key={n} onClick={() => onRegistrar(n)} style={{ minHeight: 44, borderRadius: radius.sm, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontWeight: 700, fontSize: ty.sm, cursor: "pointer" }}>{n}</button>
@@ -32,22 +36,12 @@ function DorCard({ dorHoje, diasSemRegistro, onRegistrar, modoManutencao }) {
 
 const NIVEL_CARGA_PE_LABEL = { leve: "Leve (sentado maior parte)", normal: "Normal", muito: "Muito tempo em pé" };
 
-function CargaPeCard({ cargaPeHoje, onRegistrar }) {
-  if (cargaPeHoje !== undefined) {
-    return (
-      <div style={{ ...cardBase, padding: space.md, marginBottom: space.md, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Icon name="foot" size={16} color={color.textDim} /><span style={{ fontSize: ty.sm, color: color.textDim }}>Carga de pé hoje: <b style={{ color: color.text }}>{NIVEL_CARGA_PE_LABEL[cargaPeHoje]}</b></span></div>
-      </div>
-    );
-  }
+// Bloco 1 — pergunta virou parte da fila (FilaPerguntasCard). Aqui só confirma depois.
+function CargaPeCard({ cargaPeHoje }) {
+  if (cargaPeHoje === undefined) return null;
   return (
-    <div style={{ ...cardBase, padding: space.lg, marginBottom: space.md, cursor: "default" }}>
-      <div style={{ fontSize: ty.sm, fontWeight: 700, marginBottom: space.sm }}>Quanto tempo em pé hoje?</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {Object.entries(NIVEL_CARGA_PE_LABEL).map(([nivel, label]) => (
-          <button key={nivel} onClick={() => onRegistrar(nivel)} style={{ minHeight: 44, borderRadius: radius.sm, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontWeight: 600, fontSize: ty.sm, cursor: "pointer", textAlign: "left", padding: "0 12px" }}>{label}</button>
-        ))}
-      </div>
+    <div style={{ ...cardBase, padding: space.md, marginBottom: space.md, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}><Icon name="foot" size={16} color={color.textDim} /><span style={{ fontSize: ty.sm, color: color.textDim }}>Carga de pé hoje: <b style={{ color: color.text }}>{NIVEL_CARGA_PE_LABEL[cargaPeHoje]}</b></span></div>
     </div>
   );
 }
@@ -95,10 +89,69 @@ function ForcaProtetivaCard({ feita, onAbrir, pliometriaFeita, pliometriaLiberad
   );
 }
 
+function NumeroInline({ onConfirmar, placeholder }) {
+  const [valor, setValor] = useState("");
+  return (
+    <div style={{ display: "flex", gap: space.sm }}>
+      <input type="number" inputMode="decimal" value={valor} onChange={e => setValor(e.target.value)} placeholder={placeholder}
+        style={{ flex: 1, minHeight: touch.min, borderRadius: radius.md, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontSize: ty.md, padding: "0 12px", textAlign: "center" }} />
+      <button disabled={!valor} onClick={() => valor && onConfirmar(parseFloat(valor))}
+        style={{ minHeight: touch.min, padding: "0 20px", borderRadius: radius.md, border: "none", background: valor ? color.success : color.surfaceAlt, color: valor ? "#0f1115" : color.textFaint, fontWeight: 700, cursor: valor ? "pointer" : "default" }}>OK</button>
+    </div>
+  );
+}
+
+// Bloco 1 — card único "Responder agora". Mostra no máximo 2 perguntas por visita à Home
+// (estado local, reseta a cada montagem — cada vez que o usuário volta pra Home conta como
+// uma "abertura" nova); perguntas além dessas 2 esperam a próxima. `fila` já vem filtrada
+// e ordenada por prioridade (lib/perguntas.js) — aqui só decide COMO mostrar cada tipo.
+function FilaPerguntasCard({ fila, tenis, onResponder, onPular }) {
+  const [resolvidasNestaVisita, setResolvidasNestaVisita] = useState(0);
+  if (resolvidasNestaVisita >= 2 || !fila.length) return null;
+  const atual = fila[0];
+
+  function responder(valor) { onResponder(atual.id, valor); setResolvidasNestaVisita(n => n + 1); }
+  function pular() { onPular(atual.id); setResolvidasNestaVisita(n => n + 1); }
+
+  const opcoes = atual.tipo === "opcoes-tenis" ? tenis.map(t => [t.id, t.nome]) : atual.opcoes;
+
+  return (
+    <div style={{ ...cardBase, cursor: "default", padding: space.lg, marginBottom: space.md, border: "1px solid " + color.border, background: color.surface }}>
+      <div style={{ fontSize: ty.xs, color: color.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm }}>Responder agora</div>
+      <div style={{ fontSize: ty.md, fontWeight: 700, marginBottom: space.md }}>{atual.pergunta}</div>
+
+      {atual.tipo === "escala0a10" && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 6 }}>
+          {Array.from({ length: 11 }, (_, i) => i).map(n => (
+            <button key={n} onClick={() => responder(n)} style={{ minHeight: 48, borderRadius: radius.sm, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontWeight: 700, fontSize: ty.sm, cursor: "pointer" }}>{n}</button>
+          ))}
+        </div>
+      )}
+
+      {(atual.tipo === "opcoes" || atual.tipo === "opcoes-tenis") && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {opcoes.map(([v, l]) => (
+            <button key={v} onClick={() => responder(v)} style={{ minHeight: 48, borderRadius: radius.sm, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontWeight: 600, fontSize: ty.sm, cursor: "pointer", textAlign: "left", padding: "0 12px" }}>{l}</button>
+          ))}
+        </div>
+      )}
+
+      {atual.tipo === "numero" && <NumeroInline onConfirmar={responder} />}
+
+      {atual.tipo === "convite" && (
+        <button onClick={() => responder(true)} style={{ width: "100%", minHeight: touch.min, borderRadius: radius.md, border: "none", background: color.success, color: "#0f1115", fontWeight: 700, cursor: "pointer" }}>Abrir</button>
+      )}
+
+      <button onClick={pular} style={{ width: "100%", marginTop: space.md, background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer", minHeight: 44 }}>Pular</button>
+    </div>
+  );
+}
+
 export default function Home({
   macrofaseNome, semanaIdx, totalSemanas, hojeISO,
-  dorHoje, diasSemRegistroDor, onRegistrarDor,
-  cargaPeHoje, onRegistrarCargaPe,
+  dorHoje, onRegistrarDor,
+  cargaPeHoje,
+  fila, tenis = [], onResponderPergunta, onPularPergunta,
   doses, doseFeitaFn, onAbrirDose, cargaDisponivel, cargaFeita, cargaTitulo, cargaBloqueada, restanteRathleff,
   forcaProtetivaFeita, onAbrirForcaProtetiva, pliometriaFeita, pliometriaLiberada, pliometriaMotivoBloqueio, onAbrirPliometria,
   proximaSessao, onIniciar, onPular,
@@ -178,7 +231,7 @@ export default function Home({
         </div>
       )}
 
-      <DorCard dorHoje={dorHoje} diasSemRegistro={diasSemRegistroDor} onRegistrar={onRegistrarDor} modoManutencao={modoManutencao} />
+      <DorCard dorHoje={dorHoje} onRegistrar={onRegistrarDor} modoManutencao={modoManutencao} />
 
       {recaida && recaida.suficiente && recaida.elevada && recaida.vezes > 0 && (
         <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.success + "55", background: color.success + "0e" }}>
@@ -188,9 +241,10 @@ export default function Home({
         </div>
       )}
 
-      <CargaPeCard cargaPeHoje={cargaPeHoje} onRegistrar={onRegistrarCargaPe} />
+      <CargaPeCard cargaPeHoje={cargaPeHoje} />
 
       <RehabCard doses={doses} doseFeitaFn={doseFeitaFn} onAbrirDose={onAbrirDose} cargaDisponivel={cargaDisponivel} cargaFeita={cargaFeita} cargaTitulo={cargaTitulo} cargaBloqueada={cargaBloqueada} restanteRathleff={restanteRathleff} />
+      <FilaPerguntasCard fila={fila} tenis={tenis} onResponder={onResponderPergunta} onPular={onPularPergunta} />
       <ForcaProtetivaCard feita={forcaProtetivaFeita} onAbrir={onAbrirForcaProtetiva} pliometriaFeita={pliometriaFeita} pliometriaLiberada={pliometriaLiberada} pliometriaMotivoBloqueio={pliometriaMotivoBloqueio} onAbrirPliometria={onAbrirPliometria} />
 
       <PlanoSeEntaoCard plano={planoSeEntao} isSegunda={isSegunda} onSalvar={onSalvarPlano} />

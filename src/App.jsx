@@ -10,6 +10,7 @@ import { registrarCarga, registrarHistoricoTreino, registrarPeso, ehPR } from ".
 import { registrar as registrarEvento } from "./lib/eventos.js";
 import { eventosParaJSON, comparacaoRecaida, ultimosValoresCorrida } from "./lib/relatorios.js";
 import { validarAgendamento } from "./lib/agendamento.js";
+import { filaCandidatos } from "./lib/perguntas.js";
 import { atualizarBadge } from "./lib/lembrete.js";
 import { color } from "./lib/tokens.js";
 
@@ -133,6 +134,9 @@ export default function App() {
   const dorUltimos3Dias = [0, 1, 2].map(n => toISO(new Date(new Date(hojeISO + "T00:00:00").getTime() - n * 86400000)))
     .map(iso => { const p = dorPontos.find(p => p.iso === iso); return p ? p.nivel : null; });
   const reativadoManutencao = planoAcabou && precisaReativarManutencao(dorUltimos3Dias, baselineDor);
+  // Bloco 1 (fila de perguntas) — bloqueio do convite de teste funcional em semana de dor
+  // acima da baseline, mesma régua usada pra reativar o modo manutenção.
+  const dorAcimaBaseline = state.dorLog[hojeISO] != null && baselineDor != null && state.dorLog[hojeISO] > baselineDor;
   const rehabDoses = planoAcabou
     ? getRehabManutencaoVitalicia(new Date(hojeISO + "T00:00:00").getDay(), reativadoManutencao)
     : getRehabForMacrofase(progresso.macrofase, progresso.semanaIdx, diaAlternado, progresso.dorAlta);
@@ -226,16 +230,36 @@ export default function App() {
     const semEssaSemana = state.eventos.filter(e => !(e.tipo === "passos_semana" && e.data === semanaISO));
     patch({ eventos: registrarEvento(semEssaSemana, "passos_semana", { mediaDia }, semanaISO) });
   }
-  function diasSemRegistroDor() {
-    const piso = (state.onboarding && state.onboarding.iso) || hojeISO;
-    let n = 0, d = new Date(hojeISO + "T00:00:00");
-    for (;;) {
-      const iso = toISO(d);
-      if (state.dorLog[iso] !== undefined || iso < piso) break;
-      n++; d = new Date(d.getTime() - 86400000);
-    }
-    return n;
+  // Bloco 1 — fila de perguntas. Merge no treino_concluido de hoje (nunca cria um segundo
+  // evento) pros campos de corrida pendentes; o motor (lib/perguntas.js) decide o quê, o
+  // dispatcher aqui sabe só o como gravar cada id.
+  function mesclarCampoTreinoHoje(campos) {
+    const existente = state.eventos.find(e => e.tipo === "treino_concluido" && e.data === hojeISO);
+    if (!existente) return;
+    const semEsse = state.eventos.filter(e => e.id !== existente.id);
+    patch({ eventos: registrarEvento(semEsse, "treino_concluido", { ...existente.payload, ...campos }, hojeISO) });
   }
+  function responderPergunta(perguntaId, valor) {
+    switch (perguntaId) {
+      case "dor_matinal": registrarDor(valor); break;
+      case "carga_pe": registrarCargaPe(valor); break;
+      case "semana_declarada": declararSemana(segundaFeiraDaSemana(hojeISO), valor); break;
+      case "peso_corporal": patch({ pesoLog: registrarPeso(state.pesoLog, hojeISO, valor), eventos: registrarEvento(state.eventos, "peso", { kg: valor }, hojeISO) }); break;
+      case "passos_media": registrarPassosSemana(valor); break;
+      case "distancia_km": mesclarCampoTreinoHoje({ distanciaKm: valor }); break;
+      case "tempo_min": mesclarCampoTreinoHoje({ tempoTotalMin: valor }); break;
+      case "temperatura": mesclarCampoTreinoHoje({ temperaturaC: valor }); break;
+      case "umidade": mesclarCampoTreinoHoje({ umidadePct: valor }); break;
+      case "superficie": mesclarCampoTreinoHoje({ superficie: valor }); break;
+      case "tenis_usado": mesclarCampoTreinoHoje({ tenisId: valor }); break;
+      case "cadencia": mesclarCampoTreinoHoje({ cadencia: valor }); break;
+      case "teste_funcional": setScr("relatorios"); break; // convite — abre o formulário existente
+      case "teste_campo": setScr("relatorios"); break;
+      default: break;
+    }
+  }
+  function pularPergunta(perguntaId) { patch({ eventos: registrarEvento(state.eventos, "pergunta_pulada", { perguntaId }, hojeISO) }); }
+
 
   // dias desde o último evento qualquer — pra "bem-vindo de volta" sem culpa, não é
   // métrica de punição, é só pra saber se o retorno pede acolhimento.
@@ -472,6 +496,13 @@ export default function App() {
   const ultimaSessaoDaSemana = progresso.sessaoIdx === sessoesTipos.length - 1;
   const gateInfo = (ultimaSemana && ultimaSessaoDaSemana) ? verificarGate(progresso.macrofase, { testesLog: state.testesLog, dorLog: state.dorLog, hojeISO }) : null;
 
+  // Bloco 1 — fila de perguntas (lib/perguntas.js decide o quê; Home aplica o limite de 2).
+  const filaHoje = filaCandidatos({
+    eventos: state.eventos, hojeISO, modoManutencao: planoAcabou,
+    semanasDeclaradas: state.semanasDeclaradas, tenis: state.tenis, testesCampo: state.testesCampo,
+    isSegunda: new Date(hojeISO + "T00:00:00").getDay() === 1, dorAcimaBaseline,
+  });
+
   const doses = progresso.dorAlta
     ? [{ key: "manha", label: "Rotina — Manhã" }, { key: "tarde", label: "Rotina — Tarde" }, { key: "noite", label: "Rotina — Noite" }]
     : progresso.macrofase === 1
@@ -480,9 +511,10 @@ export default function App() {
 
   return <Home
     macrofaseNome={macInfo.nome} semanaIdx={progresso.semanaIdx} totalSemanas={totSem} hojeISO={hojeISO}
-    dorHoje={planoAcabou ? dorDaSemanaAtual() : state.dorLog[hojeISO]} diasSemRegistroDor={diasSemRegistroDor()} onRegistrarDor={registrarDor}
+    dorHoje={planoAcabou ? dorDaSemanaAtual() : state.dorLog[hojeISO]} onRegistrarDor={registrarDor}
     modoManutencao={planoAcabou} reativadoManutencao={reativadoManutencao}
-    cargaPeHoje={cargaPeHoje()} onRegistrarCargaPe={registrarCargaPe}
+    cargaPeHoje={cargaPeHoje()}
+    fila={filaHoje} tenis={state.tenis} onResponderPergunta={responderPergunta} onPularPergunta={pularPergunta}
     doses={doses} doseFeitaFn={doseFeita}
     onAbrirDose={(key) => { setActiveDoseKey(key); setScr("rehabDose"); }}
     cargaDisponivel={!!rehabDoses.carga} cargaFeita={doseFeita("carga")} cargaTitulo={rehabDoses.carga ? rehabDoses.carga.title : ""}
