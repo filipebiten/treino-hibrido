@@ -180,7 +180,7 @@ function Secao({ titulo, abertaPadrao, children }) {
   );
 }
 
-export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis, semanasDeclaradas, onDeclararSemana, onAbrirRelatorioMedico, prioridadeTemporada, onMudarPrioridade, testesCampo, onAdicionarTesteCampo, temporadas, onAdicionarTemporada, onRemoverTemporada, onRegistrarTesteFuncional }) {
+export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis, semanasDeclaradas, onDeclararSemana, onAbrirRelatorioMedico, prioridadeTemporada, onMudarPrioridade, testesCampo, onAdicionarTesteCampo, temporadas, onAdicionarTemporada, onRemoverTemporada, onRegistrarTesteFuncional, onAbrirImportacao }) {
   const [periodo, setPeriodo] = useState("30d");
   const { desde, ate } = periodoParaDatas(periodo, hojeISO);
 
@@ -247,6 +247,7 @@ export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testes
         <Relatorio10Export eventos={eventos} />
         <PassosSemanaCard valorAtual={passosSemanaAtual} onRegistrar={onRegistrarPassosSemana} />
         <TenisCard tenis={tenis} onAdicionar={onAdicionarTenis} onRegistrarKm={onRegistrarKmTenis} onRemover={onRemoverTenis} />
+        <button onClick={onAbrirImportacao} style={{ width: "100%", minHeight: touch.min, borderRadius: radius.md, border: "1px solid " + color.border, background: color.surface, color: color.text, fontWeight: 700, fontSize: ty.sm, cursor: "pointer", marginBottom: space.lg }}>Importar dados do iPhone</button>
       </Secao>
 
       <SemanasFuturasCard hojeISO={hojeISO} semanasDeclaradas={semanasDeclaradas} onDeclarar={onDeclararSemana} />

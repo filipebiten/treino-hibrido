@@ -24,6 +24,8 @@ import Relatorios from "./components/Relatorios/index.jsx";
 import RelatorioMedico from "./components/RelatorioMedico.jsx";
 import LembreteScreen from "./components/LembreteScreen.jsx";
 import AjustesScreen from "./components/AjustesScreen.jsx";
+import ImportarScreen from "./components/ImportarScreen.jsx";
+import { aplicarImportacao, mesclarTreinoImportado } from "./lib/importacao.js";
 import TesteScreen from "./components/TesteScreen.jsx";
 import Icon from "./components/Icon.jsx";
 
@@ -221,8 +223,12 @@ export default function App() {
     const offset = d.getDay() === 0 ? 6 : d.getDay() - 1;
     return toISO(new Date(d.getTime() - offset * 86400000));
   }
+  // Bloco 3 — passos_dia importado (Atalho) tem prioridade sobre a média manual da semana,
+  // quando houver dado cobrindo a semana atual.
   function passosSemanaAtual() {
     const semanaISO = segundaFeiraDaSemana(hojeISO);
+    const diasImportados = state.eventos.filter(e => e.tipo === "passos_dia" && e.data >= semanaISO && e.data <= hojeISO);
+    if (diasImportados.length) return Math.round(diasImportados.reduce((s, e) => s + e.payload.total, 0) / diasImportados.length);
     const e = state.eventos.filter(e => e.tipo === "passos_semana" && e.data === semanaISO).pop();
     return e ? e.payload.mediaDia : undefined;
   }
@@ -260,6 +266,10 @@ export default function App() {
     }
   }
   function pularPergunta(perguntaId) { patch({ eventos: registrarEvento(state.eventos, "pergunta_pulada", { perguntaId }, hojeISO) }); }
+
+  // Bloco 3 — importação do Atalho do iPhone.
+  function importarDados(dados) { patch({ eventos: aplicarImportacao(state.eventos, dados) }); }
+  function mesclarTreino(iso) { patch({ eventos: mesclarTreinoImportado(state.eventos, iso) }); }
 
 
   // dias desde o último evento qualquer — pra "bem-vindo de volta" sem culpa, não é
@@ -454,7 +464,7 @@ export default function App() {
     prioridadeTemporada={state.prioridadeTemporada} onMudarPrioridade={(v) => patch({ prioridadeTemporada: v })}
     testesCampo={state.testesCampo} onAdicionarTesteCampo={adicionarTesteCampo}
     temporadas={state.temporadas} onAdicionarTemporada={adicionarTemporada} onRemoverTemporada={removerTemporada}
-    onRegistrarTesteFuncional={registrarTesteFuncional} />;
+    onRegistrarTesteFuncional={registrarTesteFuncional} onAbrirImportacao={() => setScr("importar")} />;
 
   // ══════════════════════ RELATÓRIO MÉDICO (Bloco 6.2) ══════════════════════
   if (scr === "relatorioMedico") return <RelatorioMedico eventos={state.eventos} hojeISO={hojeISO} onboarding={state.onboarding} onBack={() => setScr("relatorios")} />;
@@ -463,7 +473,10 @@ export default function App() {
   if (scr === "lembretes") return <LembreteScreen onBack={() => setScr("ajustes")} />;
 
   // ══════════════════════ AJUSTES (Bloco 5.2) ══════════════════════
-  if (scr === "ajustes") return <AjustesScreen onBack={() => setScr("home")} onAbrirLembretes={() => setScr("lembretes")} onRecalibrar={() => { setRecalibrando(true); setScr("onboarding"); }} />;
+  if (scr === "ajustes") return <AjustesScreen onBack={() => setScr("home")} onAbrirLembretes={() => setScr("lembretes")} onRecalibrar={() => { setRecalibrando(true); setScr("onboarding"); }} onAbrirImportacao={() => setScr("importar")} />;
+
+  // ══════════════════════ IMPORTAÇÃO (Bloco 3) ══════════════════════
+  if (scr === "importar") return <ImportarScreen eventos={state.eventos} onBack={() => setScr("ajustes")} onImportar={importarDados} onMesclarTreino={mesclarTreino} />;
 
   // ══════════════════════ PREVIEW ══════════════════════
   if (scr === "preview" && sessaoAtual) {
