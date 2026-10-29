@@ -62,8 +62,70 @@ isso nunca deve depender de decisão manual.
 
 `dor_checkin, carga_pe, nota_dia, rehab_dose, rathleff, treino_concluido,
 treino_pulado, teste, recuo_automatico, passos_semana, forca_protetiva,
-pliometria, teste_funcional` — mais os campos ricos de `treino_concluido` pra
-corrida: `fcMedia, temperaturaC, umidadePct, superficie, tenisId, cadencia`.
+pliometria, teste_funcional, pergunta_pulada, passos_dia, treino_importado`
+— mais os campos ricos de `treino_concluido` pra corrida: `fcMedia,
+temperaturaC, umidadePct, superficie, tenisId, cadencia`.
+
+- `pergunta_pulada { perguntaId }` — Bloco 1, usuário tocou "pular" na fila.
+- `passos_dia { total }` — Bloco 3, um por dia, vem da importação do Atalho.
+- `treino_importado { tipo, distanciaKm, duracaoMin, fcMedia, cadencia }` —
+  Bloco 3, registro do iPhone pro dia. Nunca sobrescreve `treino_concluido`
+  sozinho — mesclar é ação explícita do usuário (`lib/importacao.js
+  mesclarTreinoImportado`).
+- `cargas[exName].historico[].reps` (não é evento, vive em `state.cargas`) —
+  Bloco 5.3, reps realmente feitas por série (opcional, null se não
+  preenchido). Base do e1RM (`lib/treino.js e1rm`, Epley, só até 10 reps).
+
+## Fila de perguntas (Bloco 1, `lib/perguntas.js`)
+
+Motor puro: `CATALOGO` (13 perguntas — dor, carga de pé, 7 campos pós-corrida,
+semana declarada, peso, passos, teste de campo, teste funcional), cada uma
+com `deveriaPerguntar(ctx)` e `prioridade`. `filaCandidatos(ctx)` devolve a
+fila ordenada; quem aplica o limite de **2 por visita à Home** é o
+`FilaPerguntasCard` (estado local, reseta a cada montagem do componente —
+cada volta pra Home conta como "abertura"). "Pular" sempre grava
+`pergunta_pulada` e não reaparece no mesmo dia; **3 pulos seguidos sem
+resposta depois** (`pulosConsecutivos`) tira a pergunta da fila até ela ser
+respondida uma vez (modo discreto — fica só em Histórico/Relatórios).
+
+Campos pós-corrida (distância, tempo, temperatura, umidade, superfície,
+tênis, cadência) são o fallback de quem pulou tudo na captura do
+WorkoutScreen (Bloco 2) — fazem merge no `treino_concluido` do dia, nunca
+criam evento duplicado.
+
+## Home — no máximo 5 blocos (Bloco 5.1)
+
+Ordem fixa: 1) rehab pendente + força protetiva, 2) fila de perguntas
+(máx 2), 3) treino em andamento ou próximo treino, 4) no máximo 1 alerta
+ativo (reativação de manutenção > gate de macrofase > recaída, nessa
+ordem), 5) grid de treinos. Tudo mais (instalar PWA, backup, plano
+se-então, bem-vindo de volta, nota de manutenção/semana apertada) vai pro
+card "Mais", recolhido por padrão. Rodapé é tab bar fixa (Hoje · Histórico
+· Relatórios · Ajustes) — Lembretes e Recalibrar vivem em Ajustes.
+
+## Importação do Atalho do iPhone (Bloco 3, `lib/importacao.js`)
+
+**Não existe API web pra HealthKit — isso não é contornável.** O Atalho
+(app nativo do iOS) lê o Saúde e copia um JSON pra área de transferência;
+o app só lê esse JSON com `navigator.clipboard.readText()` (gesto do
+usuário obrigatório) — fallback textarea, fallback `<input type=file>`.
+Isso é diferente de parsear o `export.xml` do Apple Saúde (continua
+proibido, ver "o que NÃO fazer" — arquivo gigante, trava navegador).
+
+Contrato do JSON (**mudar quebra o Atalho já montado no iPhone**):
+```json
+{
+  "versao": 1,
+  "gerado": "AAAA-MM-DD",
+  "passos": [{ "data": "AAAA-MM-DD", "total": 7421 }],
+  "treinos": [{ "data": "AAAA-MM-DD", "tipo": "corrida", "distanciaKm": 4.2, "duracaoMin": 32, "fcMedia": 138, "cadencia": 168 }],
+  "peso": [{ "data": "AAAA-MM-DD", "kg": 86.8 }]
+}
+```
+Idempotente por (data, tipo) — reimportar não duplica. Peso manual sempre
+vence o importado (`payload.importado` marca a diferença); passos e
+treinos não têm essa noção de conflito (ver comentário em
+`prepararPreview`).
 
 ## Ajuste de calor (`lib/corrida-temporada.js`)
 
@@ -75,7 +137,11 @@ Sem API de clima — entrada manual de temperatura/umidade no `DiaEdit`. Acima d
 - Virar app de corredor puro — musculação continua pilar até 2028.
 - Regressão estatística dor~carga (n pequeno, variáveis confundidas) — só dispersão
   descritiva.
-- Parsear export do Apple Health.
+- Parsear export.xml do Apple Health (arquivo gigante, trava navegador) OU
+  fingir que existe acesso direto ao HealthKit via web — não existe, ponto
+  final, não é falta de biblioteca. A única ponte é o Atalho do iPhone +
+  clipboard (ver "Importação do Atalho", Bloco 3). Não tentar "integrar com
+  o Saúde" de outro jeito numa sessão futura.
 - Integrar API de clima, Strava, Darebee, MuscleWiki ou qualquer fonte externa.
 - Streak que reseta, badge de culpa, alarme de dia perdido (Lally 2010).
 - ACWR como alerta de risco.
