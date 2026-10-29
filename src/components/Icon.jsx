@@ -21,6 +21,9 @@ const PATHS = {
   list: "M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01",
   edit: "M4 20l4-1 10.5-10.5-3-3L5 16z M13 5l3 3",
   close: "M6 6l12 12M18 6L6 18",
+  home: "M4 11l8-7 8 7M6 10v9h12v-9M10 19v-5h4v5",
+  settings: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1l2.1-2.1M17 7l2.1-2.1",
+  more: "M5 12h.01M12 12h.01M19 12h.01",
 };
 
 export default function Icon({ name, size = 18, color = "currentColor", strokeWidth = 1.8 }) {

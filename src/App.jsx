@@ -23,6 +23,7 @@ import Historico from "./components/Historico/index.jsx";
 import Relatorios from "./components/Relatorios/index.jsx";
 import RelatorioMedico from "./components/RelatorioMedico.jsx";
 import LembreteScreen from "./components/LembreteScreen.jsx";
+import AjustesScreen from "./components/AjustesScreen.jsx";
 import TesteScreen from "./components/TesteScreen.jsx";
 import Icon from "./components/Icon.jsx";
 
@@ -459,7 +460,10 @@ export default function App() {
   if (scr === "relatorioMedico") return <RelatorioMedico eventos={state.eventos} hojeISO={hojeISO} onboarding={state.onboarding} onBack={() => setScr("relatorios")} />;
 
   // ══════════════════════ LEMBRETES ══════════════════════
-  if (scr === "lembretes") return <LembreteScreen onBack={() => setScr("home")} />;
+  if (scr === "lembretes") return <LembreteScreen onBack={() => setScr("ajustes")} />;
+
+  // ══════════════════════ AJUSTES (Bloco 5.2) ══════════════════════
+  if (scr === "ajustes") return <AjustesScreen onBack={() => setScr("home")} onAbrirLembretes={() => setScr("lembretes")} onRecalibrar={() => { setRecalibrando(true); setScr("onboarding"); }} />;
 
   // ══════════════════════ PREVIEW ══════════════════════
   if (scr === "preview" && sessaoAtual) {
@@ -527,8 +531,7 @@ export default function App() {
     onVerSessao={(i) => { const tipo = sessoesTipos[i]; const info = tipoInfo(tipo); const built = buildSessao(tipo, progresso.macrofase, progresso.semanaIdx, progresso.force3x15); setSessaoAtual({ tipo, ...info, ...built }); setScr("preview"); }}
     onAbrirHistorico={() => setScr("historico")}
     onAbrirRelatorios={() => setScr("relatorios")}
-    onAbrirLembretes={() => setScr("lembretes")}
-    onRecalibrar={() => { setRecalibrando(true); setScr("onboarding"); }}
+    onAbrirAjustes={() => setScr("ajustes")}
     retomar={resume ? { label: resume.label, passo: resume.sI + 1, total: resume.tot } : null}
     onRetomar={retomarSessao} onDescartarRetomar={limparResume}
     planoSeEntao={state.planoSeEntao} onSalvarPlano={salvarPlanoSeEntao}
@@ -537,7 +540,7 @@ export default function App() {
     instalarPwa={!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) && !window.navigator.standalone}
     precisaBackup={precisaBackup()} onFazerBackup={fazerBackup}
     recaida={comparacaoRecaida(state.eventos, hojeISO)}
-    semanaDeclarada={semanaAtualDeclarada()} onDeclararSemana={(tipo) => declararSemana(segundaFeiraDaSemana(hojeISO), tipo)}
+    semanaDeclarada={semanaAtualDeclarada()}
     forcaProtetivaFeita={forcaProtetivaFeitaHoje} onAbrirForcaProtetiva={() => setScr("forcaProtetiva")}
     pliometriaFeita={pliometriaFeitaHoje} pliometriaLiberada={gatePlio.liberado} pliometriaMotivoBloqueio={gatePlio.motivo} onAbrirPliometria={() => setScr("pliometria")}
   />;

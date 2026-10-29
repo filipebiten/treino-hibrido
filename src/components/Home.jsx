@@ -147,6 +147,76 @@ function FilaPerguntasCard({ fila, tenis, onResponder, onPular }) {
   );
 }
 
+// Bloco 5.2 — tab bar fixa no rodapé, troca os 4 links de texto. Respeita a safe-area do
+// iOS (barra de gestos) via `env(safe-area-inset-bottom)`.
+function TabBar({ onAbrirHistorico, onAbrirRelatorios, onAbrirAjustes }) {
+  const tabs = [
+    ["home", "Hoje", null],
+    ["history", "Histórico", onAbrirHistorico],
+    ["chart", "Relatórios", onAbrirRelatorios],
+    ["settings", "Ajustes", onAbrirAjustes],
+  ];
+  return (
+    <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, background: color.surface, borderTop: "1px solid " + color.border, display: "flex", paddingBottom: "env(safe-area-inset-bottom)", zIndex: 10 }}>
+      {tabs.map(([icon, label, onClick]) => (
+        <button key={label} onClick={onClick || undefined} disabled={!onClick} style={{ flex: 1, minHeight: 56, background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, color: onClick ? color.textFaint : color.text, cursor: onClick ? "pointer" : "default" }}>
+          <Icon name={icon} size={20} />
+          <span style={{ fontSize: 10, fontWeight: 600 }}>{label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Bloco 5.1 — avisos de baixa prioridade (instalar PWA, lembrete de backup, plano
+// se-então, bem-vindo de volta, nota de modo manutenção/semana apertada) saem do fluxo
+// principal e vão pra cá, atrás de um toggle — a Home não empilha mais de 5 blocos.
+function MaisCard({ instalarPwa, precisaBackup, onFazerBackup, diasSemUso, planoSeEntao, onSalvarPlano, isSegunda, modoManutencao, reativadoManutencao, semanaDeclarada }) {
+  const [aberto, setAberto] = useState(false);
+  const temAlgo = instalarPwa || precisaBackup || diasSemUso >= 3 || (modoManutencao && !reativadoManutencao) || semanaDeclarada === "apertada";
+  if (!temAlgo) return null;
+  return (
+    <div style={{ marginBottom: space.md }}>
+      <button onClick={() => setAberto(!aberto)} style={{ width: "100%", background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, fontWeight: 700, cursor: "pointer", minHeight: 36, textAlign: "left" }}>{aberto ? "▴ Menos" : "▾ Mais"}</button>
+      {aberto && (
+        <div style={{ marginTop: space.sm }}>
+          {diasSemUso >= 3 && (
+            <div style={{ ...cardBase, cursor: "default", padding: space.lg, marginBottom: space.md, border: "1px solid " + color.success + "66", background: color.success + "0e" }}>
+              <div style={{ fontSize: ty.md, fontWeight: 800, marginBottom: 2 }}>Bem-vindo de volta</div>
+              <div style={{ fontSize: ty.sm, color: color.textDim }}>Vamos realinhar — sem pressa, só retomar de onde parou.</div>
+            </div>
+          )}
+          {instalarPwa && (
+            <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.alert + "55", background: color.alert + "0e", display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <Icon name="flag" size={16} color={color.alert} />
+              <div style={{ fontSize: ty.xs, color: color.textDim, lineHeight: 1.5 }}>
+                Instala na Tela de Início (compartilhar → "Adicionar à Tela de Início") pra não perder dados por limpeza automática do navegador e liberar tela sempre acesa durante o treino.
+              </div>
+            </div>
+          )}
+          {precisaBackup && (
+            <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.border, background: color.surface, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <div style={{ fontSize: ty.xs, color: color.textDim, lineHeight: 1.5 }}>Faz um tempo sem backup — localStorage some numa limpeza do navegador.</div>
+              <button onClick={onFazerBackup} style={{ minHeight: 36, padding: "0 14px", borderRadius: radius.sm, border: "none", background: color.surfaceAlt, color: color.text, fontWeight: 700, fontSize: ty.xs, cursor: "pointer", whiteSpace: "nowrap" }}>Fazer backup</button>
+            </div>
+          )}
+          {modoManutencao && !reativadoManutencao && (
+            <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.textFaint + "55", background: "transparent" }}>
+              <div style={{ fontSize: ty.xs, color: color.textDim, lineHeight: 1.5 }}>Modo manutenção (plano de 15 semanas concluído) — Rathleff 2x/semana, check-in de dor semanal.</div>
+            </div>
+          )}
+          {semanaDeclarada === "apertada" && (
+            <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.textFaint + "55", background: "transparent" }}>
+              <div style={{ fontSize: ty.xs, color: color.textDim }}>Modo manutenção essa semana — só rehab + 1 treino contam. Não conta como falha.</div>
+            </div>
+          )}
+          <PlanoSeEntaoCard plano={planoSeEntao} isSegunda={isSegunda} onSalvar={onSalvarPlano} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Home({
   macrofaseNome, semanaIdx, totalSemanas, hojeISO,
   dorHoje, onRegistrarDor,
@@ -157,22 +227,43 @@ export default function Home({
   proximaSessao, onIniciar, onPular,
   gateInfo,
   sessoes, onVerSessao,
-  onAbrirHistorico, onAbrirRelatorios, onRecalibrar, onAbrirLembretes,
+  onAbrirHistorico, onAbrirRelatorios, onAbrirAjustes,
   retomar, onRetomar, onDescartarRetomar,
   planoSeEntao, onSalvarPlano, isSegunda, diasSemUso, instalarPwa,
   precisaBackup, onFazerBackup, recaida,
-  semanaDeclarada, onDeclararSemana,
+  semanaDeclarada,
   modoManutencao, reativadoManutencao,
 }) {
+  // Bloco 5.1 — no máximo 1 alerta ativo por vez, nesta ordem de urgência: reativação de
+  // manutenção (dor voltando) > gate de macrofase (fim de semana sem critério) > recaída
+  // (contexto histórico, menos urgente que os outros dois).
+  const alertaAtivo = reativadoManutencao
+    ? { tipo: "manutencao" }
+    : (gateInfo && !gateInfo.ok)
+      ? { tipo: "gate" }
+      : (recaida && recaida.suficiente && recaida.elevada && recaida.vezes > 0)
+        ? { tipo: "recaida" }
+        : null;
+
   return (
-    <div style={{ background: color.bg, color: color.text, minHeight: "100vh", fontFamily: "system-ui", padding: space.xl + "px " + space.lg + "px", maxWidth: 480, margin: "0 auto" }}>
+    <div style={{ background: color.bg, color: color.text, minHeight: "100vh", fontFamily: "system-ui", padding: space.xl + "px " + space.lg + "px calc(72px + env(safe-area-inset-bottom)) " + space.lg + "px", maxWidth: 480, margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginBottom: space.lg }}>
         <div style={{ fontSize: ty.xs, color: color.textFaint, letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>Treino Híbrido</div>
         <h1 style={{ fontSize: ty.display, fontWeight: 800 }}>{macrofaseNome}</h1>
         <div style={{ fontSize: ty.xs, color: color.textFaint, marginTop: 4 }}>Semana {semanaIdx + 1}/{totalSemanas} · {hojeISO.split("-").reverse().slice(0, 2).join("/")}</div>
       </div>
 
-      {retomar && (
+      {/* Bloco 1 — rehab pendente (inclui força protetiva/pliometria, mesma família de conteúdo diário) */}
+      <RehabCard doses={doses} doseFeitaFn={doseFeitaFn} onAbrirDose={onAbrirDose} cargaDisponivel={cargaDisponivel} cargaFeita={cargaFeita} cargaTitulo={cargaTitulo} cargaBloqueada={cargaBloqueada} restanteRathleff={restanteRathleff} />
+      <ForcaProtetivaCard feita={forcaProtetivaFeita} onAbrir={onAbrirForcaProtetiva} pliometriaFeita={pliometriaFeita} pliometriaLiberada={pliometriaLiberada} pliometriaMotivoBloqueio={pliometriaMotivoBloqueio} onAbrirPliometria={onAbrirPliometria} />
+
+      {/* Bloco 2 — fila de perguntas (as confirmações de dor/carga de pé já respondidas ficam juntas, não contam como blocos à parte) */}
+      <DorCard dorHoje={dorHoje} onRegistrar={onRegistrarDor} modoManutencao={modoManutencao} />
+      <CargaPeCard cargaPeHoje={cargaPeHoje} />
+      <FilaPerguntasCard fila={fila} tenis={tenis} onResponder={onResponderPergunta} onPular={onPularPergunta} />
+
+      {/* Bloco 3 — treino em andamento (se houver) ou próximo treino */}
+      {retomar ? (
         <div style={{ ...cardBase, cursor: "default", padding: space.lg, marginBottom: space.md, border: "1px solid " + color.success + "88", background: color.success + "12" }}>
           <div style={{ fontSize: ty.md, fontWeight: 800, marginBottom: 2 }}>Treino em andamento</div>
           <div style={{ fontSize: ty.sm, color: color.textDim, marginBottom: space.md }}>{retomar.label} · passo {retomar.passo}/{retomar.total}</div>
@@ -181,59 +272,34 @@ export default function Home({
             <button onClick={onDescartarRetomar} style={{ minHeight: 48, padding: "0 16px", borderRadius: radius.md, border: "1px solid " + color.border, background: "transparent", color: color.textDim, fontSize: ty.sm, cursor: "pointer" }}>Descartar</button>
           </div>
         </div>
+      ) : (
+        <>
+          {proximaSessao && (
+            <div style={{ background: color.surface, border: "1px solid " + color.border, borderRadius: radius.lg, padding: space.xl, textAlign: "center", marginBottom: space.md }}>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: space.sm }}><Icon name={proximaSessao.icon} size={30} color={proximaSessao.cor} /></div>
+              <div style={{ fontSize: ty.xs, color: color.textFaint, textTransform: "uppercase", letterSpacing: 2, marginBottom: 4 }}>Próximo treino</div>
+              <div style={{ fontSize: ty.xl, fontWeight: 800, marginBottom: 6 }}>{proximaSessao.label}</div>
+              {proximaSessao.resumo && <div style={{ fontSize: ty.sm, color: proximaSessao.cor, fontWeight: 600, background: proximaSessao.cor + "18", borderRadius: radius.sm, padding: "6px 14px", display: "inline-block" }}>{proximaSessao.resumo}</div>}
+            </div>
+          )}
+          <button onClick={onIniciar} style={{ width: "100%", minHeight: touch.min, fontSize: ty.md, fontWeight: 800, background: proximaSessao ? proximaSessao.cor : color.success, color: color.bg, border: "none", borderRadius: radius.lg, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase", marginBottom: space.sm }}>Iniciar treino</button>
+          <button onClick={() => window.confirm("Pular este treino e ir para o próximo?") && onPular()} style={{ width: "100%", minHeight: 44, fontSize: ty.xs, background: "transparent", color: color.textFaint, border: "none", cursor: "pointer", marginBottom: space.md }}>Pular treino</button>
+        </>
       )}
 
-      {diasSemUso >= 3 && (
-        <div style={{ ...cardBase, cursor: "default", padding: space.lg, marginBottom: space.md, border: "1px solid " + color.success + "66", background: color.success + "0e" }}>
-          <div style={{ fontSize: ty.md, fontWeight: 800, marginBottom: 2 }}>Bem-vindo de volta</div>
-          <div style={{ fontSize: ty.sm, color: color.textDim }}>Vamos realinhar — sem pressa, só retomar de onde parou.</div>
+      {/* Bloco 4 — alerta ativo (no máximo 1) */}
+      {alertaAtivo && alertaAtivo.tipo === "manutencao" && (
+        <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.alert + "88", background: color.alert + "0e" }}>
+          <div style={{ fontSize: ty.xs, color: color.alert, lineHeight: 1.5 }}>Dor acima do normal por 3 dias seguidos — protocolo intensivo reativado automaticamente.</div>
         </div>
       )}
-
-      {instalarPwa && (
-        <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.alert + "55", background: color.alert + "0e", display: "flex", alignItems: "flex-start", gap: 8 }}>
-          <Icon name="flag" size={16} color={color.alert} />
-          <div style={{ fontSize: ty.xs, color: color.textDim, lineHeight: 1.5 }}>
-            Instala na Tela de Início (compartilhar → "Adicionar à Tela de Início") pra não perder dados por limpeza automática do navegador e liberar tela sempre acesa durante o treino.
-          </div>
+      {alertaAtivo && alertaAtivo.tipo === "gate" && (
+        <div style={{ padding: space.md, marginBottom: space.md, background: color.alert + "14", border: "1px solid " + color.alert + "44", borderRadius: radius.lg }}>
+          <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.alert, marginBottom: 6 }}>Fim da semana — ainda falta pra avançar de macrofase</div>
+          <div style={{ fontSize: ty.xs, color: color.textDim, lineHeight: 1.6 }}>{gateInfo.faltando.map((f, i) => <div key={i}>• {f}</div>)}</div>
         </div>
       )}
-
-      {precisaBackup && (
-        <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.border, background: color.surface, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-          <div style={{ fontSize: ty.xs, color: color.textDim, lineHeight: 1.5 }}>Faz um tempo sem backup — localStorage some numa limpeza do navegador.</div>
-          <button onClick={onFazerBackup} style={{ minHeight: 36, padding: "0 14px", borderRadius: radius.sm, border: "none", background: color.surfaceAlt, color: color.text, fontWeight: 700, fontSize: ty.xs, cursor: "pointer", whiteSpace: "nowrap" }}>Fazer backup</button>
-        </div>
-      )}
-
-      {isSegunda && !semanaDeclarada && (
-        <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.border, background: color.surface }}>
-          <div style={{ fontSize: ty.sm, fontWeight: 700, marginBottom: space.sm }}>Essa semana é normal ou apertada?</div>
-          <div style={{ display: "flex", gap: space.sm }}>
-            <button onClick={() => onDeclararSemana("normal")} style={{ flex: 1, minHeight: 40, borderRadius: radius.sm, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontWeight: 700, fontSize: ty.sm, cursor: "pointer" }}>Normal</button>
-            <button onClick={() => onDeclararSemana("apertada")} style={{ flex: 1, minHeight: 40, borderRadius: radius.sm, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontWeight: 700, fontSize: ty.sm, cursor: "pointer" }}>Apertada</button>
-          </div>
-        </div>
-      )}
-      {semanaDeclarada === "apertada" && (
-        <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.textFaint + "55", background: "transparent" }}>
-          <div style={{ fontSize: ty.xs, color: color.textDim }}>Modo manutenção essa semana — só rehab + 1 treino contam. Não conta como falha.</div>
-        </div>
-      )}
-
-      {modoManutencao && (
-        <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + (reativadoManutencao ? color.alert + "88" : color.textFaint + "55"), background: reativadoManutencao ? color.alert + "0e" : "transparent" }}>
-          <div style={{ fontSize: ty.xs, color: reativadoManutencao ? color.alert : color.textDim, lineHeight: 1.5 }}>
-            {reativadoManutencao
-              ? "Dor acima do normal por 3 dias seguidos — protocolo intensivo reativado automaticamente."
-              : "Modo manutenção (plano de 15 semanas concluído) — Rathleff 2x/semana, check-in de dor semanal."}
-          </div>
-        </div>
-      )}
-
-      <DorCard dorHoje={dorHoje} onRegistrar={onRegistrarDor} modoManutencao={modoManutencao} />
-
-      {recaida && recaida.suficiente && recaida.elevada && recaida.vezes > 0 && (
+      {alertaAtivo && alertaAtivo.tipo === "recaida" && (
         <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.success + "55", background: color.success + "0e" }}>
           <div style={{ fontSize: ty.xs, color: color.textDim, lineHeight: 1.5 }}>
             Isso já aconteceu antes — você registrou {recaida.dorHoje}/10 em {recaida.vezes} {recaida.vezes === 1 ? "ocasião" : "ocasiões"} e a dor voltou a ≤2/10 em média em {recaida.diasMediaRecuperacao} {recaida.diasMediaRecuperacao === 1 ? "dia" : "dias"}.
@@ -241,33 +307,8 @@ export default function Home({
         </div>
       )}
 
-      <CargaPeCard cargaPeHoje={cargaPeHoje} />
-
-      <RehabCard doses={doses} doseFeitaFn={doseFeitaFn} onAbrirDose={onAbrirDose} cargaDisponivel={cargaDisponivel} cargaFeita={cargaFeita} cargaTitulo={cargaTitulo} cargaBloqueada={cargaBloqueada} restanteRathleff={restanteRathleff} />
-      <FilaPerguntasCard fila={fila} tenis={tenis} onResponder={onResponderPergunta} onPular={onPularPergunta} />
-      <ForcaProtetivaCard feita={forcaProtetivaFeita} onAbrir={onAbrirForcaProtetiva} pliometriaFeita={pliometriaFeita} pliometriaLiberada={pliometriaLiberada} pliometriaMotivoBloqueio={pliometriaMotivoBloqueio} onAbrirPliometria={onAbrirPliometria} />
-
-      <PlanoSeEntaoCard plano={planoSeEntao} isSegunda={isSegunda} onSalvar={onSalvarPlano} />
-
-      {proximaSessao && (
-        <div style={{ background: color.surface, border: "1px solid " + color.border, borderRadius: radius.lg, padding: space.xl, textAlign: "center", marginBottom: space.md }}>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: space.sm }}><Icon name={proximaSessao.icon} size={30} color={proximaSessao.cor} /></div>
-          <div style={{ fontSize: ty.xs, color: color.textFaint, textTransform: "uppercase", letterSpacing: 2, marginBottom: 4 }}>Próximo treino</div>
-          <div style={{ fontSize: ty.xl, fontWeight: 800, marginBottom: 6 }}>{proximaSessao.label}</div>
-          {proximaSessao.resumo && <div style={{ fontSize: ty.sm, color: proximaSessao.cor, fontWeight: 600, background: proximaSessao.cor + "18", borderRadius: radius.sm, padding: "6px 14px", display: "inline-block" }}>{proximaSessao.resumo}</div>}
-        </div>
-      )}
-      <button onClick={onIniciar} style={{ width: "100%", minHeight: touch.min, fontSize: ty.md, fontWeight: 800, background: proximaSessao ? proximaSessao.cor : color.success, color: color.bg, border: "none", borderRadius: radius.lg, cursor: "pointer", letterSpacing: 1, textTransform: "uppercase", marginBottom: space.sm }}>Iniciar treino</button>
-      <button onClick={() => window.confirm("Pular este treino e ir para o próximo?") && onPular()} style={{ width: "100%", minHeight: 44, fontSize: ty.xs, background: "transparent", color: color.textFaint, border: "none", cursor: "pointer" }}>Pular treino</button>
-
-      {gateInfo && !gateInfo.ok && (
-        <div style={{ marginTop: space.lg, padding: space.md, background: color.alert + "14", border: "1px solid " + color.alert + "44", borderRadius: radius.lg }}>
-          <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.alert, marginBottom: 6 }}>Fim da semana — ainda falta pra avançar de macrofase</div>
-          <div style={{ fontSize: ty.xs, color: color.textDim, lineHeight: 1.6 }}>{gateInfo.faltando.map((f, i) => <div key={i}>• {f}</div>)}</div>
-        </div>
-      )}
-
-      <div style={{ marginTop: space.xl }}>
+      {/* Bloco 5 — grid de treinos da macrofase */}
+      <div style={{ marginTop: space.sm, marginBottom: space.md }}>
         <div style={{ fontSize: ty.xs, color: color.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm }}>Treinos desta macrofase</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
           {sessoes.map((s, i) => (
@@ -279,12 +320,11 @@ export default function Home({
         </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center", gap: space.lg, marginTop: space.xl, flexWrap: "wrap" }}>
-        <button onClick={onAbrirHistorico} style={{ background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer", minHeight: 44 }}>Histórico</button>
-        <button onClick={onAbrirRelatorios} style={{ background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer", minHeight: 44 }}>Relatórios</button>
-        <button onClick={onAbrirLembretes} style={{ background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer", minHeight: 44 }}>Lembretes</button>
-        <button onClick={onRecalibrar} style={{ background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer", minHeight: 44 }}>Recalibrar</button>
-      </div>
+      <MaisCard instalarPwa={instalarPwa} precisaBackup={precisaBackup} onFazerBackup={onFazerBackup} diasSemUso={diasSemUso}
+        planoSeEntao={planoSeEntao} onSalvarPlano={onSalvarPlano} isSegunda={isSegunda}
+        modoManutencao={modoManutencao} reativadoManutencao={reativadoManutencao} semanaDeclarada={semanaDeclarada} />
+
+      <TabBar onAbrirHistorico={onAbrirHistorico} onAbrirRelatorios={onAbrirRelatorios} onAbrirAjustes={onAbrirAjustes} />
     </div>
   );
 }
