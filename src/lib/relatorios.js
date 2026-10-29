@@ -196,9 +196,9 @@ export function volumePorGrupo(eventos, desde, ate) {
   return { superior: Math.round(superior), inferior: Math.round(inferior) };
 }
 
-// 7. Volume de corrida — km/semana. O app não captura distância automaticamente ao finalizar
-// sessões de corrida — `distanciaKm` só existe quando o usuário preenche manualmente na edição
-// de dia (Histórico). Sem isso, reporta "sem dados" honestamente, em vez de inventar.
+// 7. Volume de corrida — km/semana. `distanciaKm` vem da captura pós-corrida (WorkoutScreen,
+// Bloco 2) ou da edição manual de dia (Histórico) — nenhuma automática. Sem nenhum dos dois,
+// reporta "sem dados" honestamente, em vez de inventar.
 export function volumeCorrida(eventos, desde, ate) {
   const dias = agruparPorDia(eventos);
   const datas = listaDatas(desde, ate);
@@ -327,6 +327,15 @@ export function dorPorCargaPe(eventos, hojeISO) {
     porNivel: Object.fromEntries(Object.entries(porNivel).map(([k, arr]) => [k, { n: arr.length, dorMedia: media(arr) }])),
     porDiaSemana: DIA_SEMANA_LABEL.map((label, i) => ({ label, n: porDiaSemana[i].length, dorMedia: media(porDiaSemana[i]) })),
   };
+}
+
+// Bloco 2 (evolução híbrida) — últimos valores de corrida pra pré-preencher a
+// captura pós-treino (WorkoutScreen) e a edição retroativa (DiaEdit).
+const TIPOS_CORRIDA = ["caminhada", "walkrun", "qualidade", "longao"];
+export function ultimosValoresCorrida(eventos) {
+  const recentes = listar(eventos).filter(e => e.tipo === "treino_concluido" && TIPOS_CORRIDA.includes(e.payload.tipo)).reverse();
+  const achar = campo => { const e = recentes.find(ev => ev.payload[campo] != null); return e ? e.payload[campo] : null; };
+  return { temperaturaC: achar("temperaturaC"), umidadePct: achar("umidadePct") };
 }
 
 // 10. Exportação — CSV (`;`, dd/mm/yyyy, CRLF — abre certo no Excel pt-BR) e JSON de todos os eventos.

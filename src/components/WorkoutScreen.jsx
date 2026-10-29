@@ -9,7 +9,7 @@ import { color, space, type as ty, radius, touch } from "../lib/tokens.js";
 
 const backBtn = { background: "none", border: "none", color: color.textDim, fontSize: ty.base, cursor: "pointer", padding: 4, minHeight: touch.min, display: "flex", alignItems: "center", gap: 6 };
 
-export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, cargas, onRegistrarCarga, onBack, onFinish, resume, onProgress, dorMedia7d, isCorrida }) {
+export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, cargas, onRegistrarCarga, onBack, onFinish, resume, onProgress, dorMedia7d, isCorrida, tenis = [], ultimosValores = {} }) {
   const all = steps, list = all.filter(s => !s.section);
   const i0 = resume ? Math.min(resume.sI, list.length - 1) : 0;
   const [sI, setSI] = useState(i0);
@@ -26,7 +26,14 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
   const [showTroca, setShowTroca] = useState(false);
   const [substitutoPorIdx, setSubstitutoPorIdx] = useState({}); // { idx: {nome, equipamento} }
   const [prAviso, setPrAviso] = useState(null);
-  const [pedindoPSE, setPedindoPSE] = useState(false);
+  const [pedindoDetalhes, setPedindoDetalhes] = useState(false);
+  const [distanciaKm, setDistanciaKm] = useState("");
+  const [tempoMin, setTempoMin] = useState("");
+  const [pse, setPse] = useState(null);
+  const [temperaturaC, setTemperaturaC] = useState("");
+  const [umidadePct, setUmidadePct] = useState("");
+  const [superficie, setSuperficie] = useState(null);
+  const [tenisId, setTenisId] = useState(null);
   const entryPendenteRef = useRef(null);
   const iR = useRef(null), cR = useRef(null);
   const startRef = useRef(null);
@@ -95,12 +102,28 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
   function finalizarTreino() {
     const duracaoSeg = Math.round((Date.now() - startRef.current) / 1000);
     const entry = { label: sessionLabel, duracaoSeg, volume: Math.round(volumeRef.current), substituicoes: substituicoesRef.current };
-    if (isCorrida) { entryPendenteRef.current = entry; setPedindoPSE(true); return; }
+    if (isCorrida) {
+      entryPendenteRef.current = entry;
+      setTempoMin(String(Math.round(duracaoSeg / 60)));
+      if (ultimosValores.temperaturaC != null) setTemperaturaC(String(ultimosValores.temperaturaC));
+      if (ultimosValores.umidadePct != null) setUmidadePct(String(ultimosValores.umidadePct));
+      setPedindoDetalhes(true);
+      return;
+    }
     onFinish(entry);
   }
-  function finalizarComPSE(pse) {
-    onFinish({ ...entryPendenteRef.current, pse });
+  function concluirComDetalhes() {
+    const entry = { ...entryPendenteRef.current };
+    if (distanciaKm) entry.distanciaKm = parseFloat(distanciaKm);
+    if (tempoMin) entry.tempoTotalMin = parseFloat(tempoMin);
+    if (pse != null) entry.pse = pse;
+    if (temperaturaC) entry.temperaturaC = parseFloat(temperaturaC);
+    if (umidadePct) entry.umidadePct = parseFloat(umidadePct);
+    if (superficie) entry.superficie = superficie;
+    if (tenisId) entry.tenisId = tenisId;
+    onFinish(entry);
   }
+  function pularDetalhes() { onFinish(entryPendenteRef.current); }
 
   function trocarExercicio(alt) {
     setSubstitutoPorIdx(s => ({ ...s, [sI]: alt }));
@@ -126,17 +149,66 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
     if (cS < mx) { if (step.rest) { setRst(true); setTmr(step.rest); setTmrOn(true); } setCS(cS + 1); } else nxt();
   }
 
-  if (pedindoPSE) {
+  if (pedindoDetalhes) {
+    const dKm = parseFloat(distanciaKm), tMin = parseFloat(tempoMin);
+    const ritmo = dKm > 0 && tMin > 0 ? tMin / dKm : null;
+    const ritmoFmt = ritmo != null ? `${Math.floor(ritmo)}:${String(Math.round((ritmo % 1) * 60)).padStart(2, "0")}/km` : null;
+    const inputStyle = { width: "100%", minHeight: 48, borderRadius: radius.md, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontSize: ty.md, padding: "0 12px", textAlign: "center" };
+    const optBtn = (ativo) => ({ flex: 1, minHeight: 48, borderRadius: radius.sm, border: "1px solid " + (ativo ? color.success : color.border), background: ativo ? color.success + "1a" : "transparent", color: color.text, fontWeight: 700, fontSize: ty.sm, cursor: "pointer" });
     return (
-      <div style={{ background: color.bg, color: color.text, minHeight: "100dvh", fontFamily: "system-ui", padding: space.lg, maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center" }}>
-        <h1 style={{ fontSize: ty.xl, fontWeight: 800, marginBottom: 8 }}>Como foi o esforço?</h1>
-        <div style={{ fontSize: ty.sm, color: color.textDim, marginBottom: space.lg }}>0 = muito fácil · 10 = esforço máximo</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 6, width: "100%" }}>
+      <div style={{ background: color.bg, color: color.text, minHeight: "100dvh", fontFamily: "system-ui", padding: space.lg, maxWidth: 480, margin: "0 auto", overflowY: "auto" }}>
+        <h1 style={{ fontSize: ty.xl, fontWeight: 800, marginBottom: space.lg, textAlign: "center" }}>Como foi a corrida?</h1>
+
+        <div style={{ display: "flex", gap: space.sm, marginBottom: space.sm }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: ty.xs, color: color.textDim, marginBottom: 4 }}>Distância (km)</div>
+            <input type="number" inputMode="decimal" value={distanciaKm} onChange={e => setDistanciaKm(e.target.value)} placeholder="ex: 4.2" style={inputStyle} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: ty.xs, color: color.textDim, marginBottom: 4 }}>Tempo (min)</div>
+            <input type="number" inputMode="decimal" value={tempoMin} onChange={e => setTempoMin(e.target.value)} style={inputStyle} />
+          </div>
+        </div>
+        {ritmoFmt && <div style={{ textAlign: "center", fontSize: ty.sm, color: color.success, marginBottom: space.md }}>Ritmo: {ritmoFmt}</div>}
+
+        <div style={{ fontSize: ty.xs, color: color.textDim, marginBottom: 6, marginTop: space.sm }}>Esforço (0 = muito fácil · 10 = esforço máximo)</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 6, marginBottom: space.md }}>
           {Array.from({ length: 11 }, (_, i) => i).map(n => (
-            <button key={n} onClick={() => finalizarComPSE(n)} style={{ minHeight: 48, borderRadius: radius.sm, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontWeight: 700, fontSize: ty.sm, cursor: "pointer" }}>{n}</button>
+            <button key={n} onClick={() => setPse(n)} style={{ minHeight: 44, borderRadius: radius.sm, border: "1px solid " + (pse === n ? color.success : color.border), background: pse === n ? color.success + "1a" : color.surfaceAlt, color: color.text, fontWeight: 700, fontSize: ty.sm, cursor: "pointer" }}>{n}</button>
           ))}
         </div>
-        <button onClick={() => finalizarComPSE(null)} style={{ marginTop: space.lg, background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer", minHeight: 44 }}>Pular</button>
+
+        <div style={{ display: "flex", gap: space.sm, marginBottom: space.md }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: ty.xs, color: color.textDim, marginBottom: 4 }}>Temperatura (°C)</div>
+            <input type="number" inputMode="decimal" value={temperaturaC} onChange={e => setTemperaturaC(e.target.value)} style={inputStyle} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: ty.xs, color: color.textDim, marginBottom: 4 }}>Umidade (%)</div>
+            <input type="number" inputMode="decimal" value={umidadePct} onChange={e => setUmidadePct(e.target.value)} style={inputStyle} />
+          </div>
+        </div>
+
+        <div style={{ fontSize: ty.xs, color: color.textDim, marginBottom: 6 }}>Superfície</div>
+        <div style={{ display: "flex", gap: 6, marginBottom: space.md }}>
+          {[["asfalto", "Asfalto"], ["esteira", "Esteira"], ["terra", "Terra"]].map(([v, l]) => (
+            <button key={v} onClick={() => setSuperficie(v)} style={optBtn(superficie === v)}>{l}</button>
+          ))}
+        </div>
+
+        {tenis.length >= 2 && (
+          <>
+            <div style={{ fontSize: ty.xs, color: color.textDim, marginBottom: 6 }}>Tênis usado</div>
+            <div style={{ display: "flex", gap: 6, marginBottom: space.md, flexWrap: "wrap" }}>
+              {tenis.map(t => (
+                <button key={t.id} onClick={() => setTenisId(t.id)} style={optBtn(tenisId === t.id)}>{t.nome}</button>
+              ))}
+            </div>
+          </>
+        )}
+
+        <button onClick={concluirComDetalhes} style={{ width: "100%", minHeight: touch.min, borderRadius: radius.md, border: "none", background: color.success, color: "#0f1115", fontWeight: 800, fontSize: ty.md, cursor: "pointer", marginTop: space.sm }}>Concluir</button>
+        <button onClick={pularDetalhes} style={{ width: "100%", marginTop: space.sm, background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer", minHeight: 44 }}>Pular tudo</button>
       </div>
     );
   }

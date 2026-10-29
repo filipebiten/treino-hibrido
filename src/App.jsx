@@ -8,7 +8,7 @@ import { loadState, saveState } from "./lib/storage.js";
 import { calcularPosicao, verificarGate, checkRecuoAutomatico, rathleffStatus, formatarRestante } from "./lib/progressao.js";
 import { registrarCarga, registrarHistoricoTreino, registrarPeso, ehPR } from "./lib/treino.js";
 import { registrar as registrarEvento } from "./lib/eventos.js";
-import { eventosParaJSON, comparacaoRecaida } from "./lib/relatorios.js";
+import { eventosParaJSON, comparacaoRecaida, ultimosValoresCorrida } from "./lib/relatorios.js";
 import { validarAgendamento } from "./lib/agendamento.js";
 import { atualizarBadge } from "./lib/lembrete.js";
 import { color } from "./lib/tokens.js";
@@ -449,6 +449,7 @@ export default function App() {
     return <WorkoutScreen steps={sessaoAtual.steps} sessionLabel={sessaoAtual.label} cor={sessaoAtual.cor} grupoCarga={sessaoAtual.grupo}
       cargas={state.cargas} onRegistrarCarga={onRegistrarCarga} dorMedia7d={dorMedia7d()}
       isCorrida={["caminhada", "walkrun", "qualidade", "longao"].includes(sessaoAtual.tipo)}
+      tenis={state.tenis} ultimosValores={ultimosValoresCorrida(state.eventos)}
       resume={retomando ? resume : null} onProgress={guardarResume}
       onBack={() => { setRetomando(false); setResume(lerResume()); setScr("home"); }} onFinish={onFinishWorkout} />;
   }
