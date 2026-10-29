@@ -7,6 +7,7 @@ const label = { fontSize: ty.xs, color: color.textDim, fontWeight: 700, marginBo
 
 // Bloco 5.2 — teste funcional mensal: heel raise unilateral até falha, cada perna.
 export default function Relatorio15TesteFuncional({ historico, onRegistrar }) {
+  const [editando, setEditando] = useState(false);
   const [esq, setEsq] = useState("");
   const [dir, setDir] = useState("");
 
@@ -14,19 +15,25 @@ export default function Relatorio15TesteFuncional({ historico, onRegistrar }) {
     const e = Number(esq), d = Number(dir);
     if (!e || !d) return;
     onRegistrar(e, d);
-    setEsq(""); setDir("");
+    setEsq(""); setDir(""); setEditando(false);
   }
 
   return (
     <div style={{ background: color.surface, borderRadius: radius.lg, padding: space.md, marginBottom: space.lg }}>
-      <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm }}>15. Teste funcional — heel raise unilateral</div>
-      <div style={{ fontSize: ty.xs, color: color.textFaint, marginBottom: space.sm }}>Mensal: suba na ponta de um pé só até a falha (perder a forma). Repita no outro.</div>
-
-      <div style={{ display: "flex", gap: space.sm, alignItems: "flex-end", marginBottom: space.md }}>
-        <div><span style={label}>Esquerda</span><input type="number" min={0} value={esq} onChange={e => setEsq(e.target.value)} style={numInput} /></div>
-        <div><span style={label}>Direita</span><input type="number" min={0} value={dir} onChange={e => setDir(e.target.value)} style={numInput} /></div>
-        <button onClick={salvar} style={{ minHeight: touch.min * 0.6, padding: "0 14px", borderRadius: radius.sm, border: "none", background: color.musc, color: "#08120c", fontWeight: 700, cursor: "pointer" }}>Salvar</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: space.sm }}>
+        <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.textDim, textTransform: "uppercase", letterSpacing: 1 }}>15. Teste funcional — heel raise unilateral</div>
+        {!editando && <button onClick={() => setEditando(true)} style={{ background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer" }}>+ novo teste</button>}
       </div>
+      {editando && (
+        <>
+          <div style={{ fontSize: ty.xs, color: color.textFaint, marginBottom: space.sm }}>Mensal: suba na ponta de um pé só até a falha (perder a forma). Repita no outro.</div>
+          <div style={{ display: "flex", gap: space.sm, alignItems: "flex-end", marginBottom: space.md }}>
+            <div><span style={label}>Esquerda</span><input type="number" min={0} value={esq} onChange={e => setEsq(e.target.value)} style={numInput} /></div>
+            <div><span style={label}>Direita</span><input type="number" min={0} value={dir} onChange={e => setDir(e.target.value)} style={numInput} /></div>
+            <button onClick={salvar} style={{ minHeight: touch.min * 0.6, padding: "0 14px", borderRadius: radius.sm, border: "none", background: color.musc, color: "#08120c", fontWeight: 700, cursor: "pointer" }}>Salvar</button>
+          </div>
+        </>
+      )}
 
       {historico.length === 0 ? (
         <div style={{ fontSize: ty.xs, color: color.textFaint }}>Sem teste registrado ainda.</div>

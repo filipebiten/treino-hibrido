@@ -27,20 +27,30 @@ import { color, space, type as ty, touch, radius } from "../../lib/tokens.js";
 const backBtn = { background: "none", border: "none", color: color.textDim, fontSize: ty.base, cursor: "pointer", padding: 4, minHeight: touch.min, display: "flex", alignItems: "center", gap: 6 };
 const PERIODOS = [["7d", "7 dias"], ["30d", "30 dias"], ["90d", "90 dias"], ["tudo", "Tudo"]];
 
-// Bloco 1.2 — entrada manual da média de passos/dia que o app Saúde do iPhone já exibe.
-// Deliberadamente magro: sem parsing de export, campo semanal só.
+// Bloco 1.2 — entrada manual da média de passos/dia que o app Saúde do iPhone já exibe
+// (fallback: a captura do dia a dia virou pergunta da fila, Bloco 1). Bloco 4 — vira
+// exibição + "editar", não formulário sempre aberto.
 function PassosSemanaCard({ valorAtual, onRegistrar }) {
+  const [editando, setEditando] = useState(false);
   const [valor, setValor] = useState(valorAtual != null ? String(valorAtual) : "");
+  function salvar() { if (!valor) return; onRegistrar(Number(valor)); setEditando(false); }
   return (
     <div style={{ background: color.surface, borderRadius: radius.lg, padding: space.md, marginBottom: space.lg }}>
-      <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm }}>Passos/dia essa semana</div>
-      <div style={{ fontSize: ty.xs, color: color.textFaint, marginBottom: space.sm }}>Média que o app Saúde do iPhone já mostra — só copiar o número.</div>
-      <div style={{ display: "flex", gap: space.sm }}>
-        <input type="number" inputMode="numeric" value={valor} onChange={e => setValor(e.target.value)} placeholder="ex: 6500"
-          style={{ flex: 1, minHeight: touch.min, borderRadius: radius.md, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontSize: ty.md, padding: "0 12px" }} />
-        <button onClick={() => valor && onRegistrar(Number(valor))}
-          style={{ minHeight: touch.min, padding: "0 20px", borderRadius: radius.md, border: "none", background: color.success, color: "#0f1115", fontWeight: 700, cursor: "pointer" }}>Salvar</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: editando ? space.sm : 0 }}>
+        <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Passos/dia essa semana</div>
+        {!editando && <button onClick={() => setEditando(true)} style={{ background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer" }}>editar</button>}
       </div>
+      {!editando && <div style={{ fontSize: ty.sm, color: color.text }}>{valorAtual != null ? `${valorAtual} passos/dia` : "Sem registro essa semana."}</div>}
+      {editando && (
+        <>
+          <div style={{ fontSize: ty.xs, color: color.textFaint, marginBottom: space.sm }}>Média que o app Saúde do iPhone já mostra — só copiar o número.</div>
+          <div style={{ display: "flex", gap: space.sm }}>
+            <input type="number" inputMode="numeric" value={valor} onChange={e => setValor(e.target.value)} placeholder="ex: 6500"
+              style={{ flex: 1, minHeight: touch.min, borderRadius: radius.md, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontSize: ty.md, padding: "0 12px" }} />
+            <button onClick={salvar} style={{ minHeight: touch.min, padding: "0 20px", borderRadius: radius.md, border: "none", background: color.success, color: "#0f1115", fontWeight: 700, cursor: "pointer" }}>Salvar</button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -101,10 +111,22 @@ function segundasFuturas(hojeISO, n) {
   return out;
 }
 function SemanasFuturasCard({ hojeISO, semanasDeclaradas, onDeclarar }) {
+  const [editando, setEditando] = useState(false);
   const semanas = segundasFuturas(hojeISO, 6);
+  const declaradas = semanas.filter(iso => semanasDeclaradas[iso]);
   return (
     <div style={{ background: color.surface, borderRadius: radius.lg, padding: space.md, marginBottom: space.lg }}>
-      <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm }}>Planejar semanas</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: space.sm }}>
+        <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.textDim, textTransform: "uppercase", letterSpacing: 1 }}>Planejar semanas</div>
+        {!editando && <button onClick={() => setEditando(true)} style={{ background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer" }}>editar</button>}
+      </div>
+      {!editando && (
+        <div style={{ fontSize: ty.xs, color: color.textFaint }}>
+          {declaradas.length ? declaradas.map(iso => `${iso.split("-").reverse().join("/")} (${semanasDeclaradas[iso]})`).join(" · ") : "Nenhuma semana futura declarada."}
+        </div>
+      )}
+      {editando && (
+      <>
       <div style={{ fontSize: ty.xs, color: color.textFaint, marginBottom: space.sm }}>Marca de antemão uma semana apertada (viagem, evento) — vira modo manutenção, sem contar como falha.</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {semanas.map(iso => {
@@ -121,6 +143,8 @@ function SemanasFuturasCard({ hojeISO, semanasDeclaradas, onDeclarar }) {
           );
         })}
       </div>
+      </>
+      )}
     </div>
   );
 }
@@ -137,6 +161,21 @@ function PrioridadeCard({ valor, onMudar }) {
           <button key={key} onClick={() => onMudar(key)} style={{ flex: 1, minHeight: 40, borderRadius: radius.sm, border: "1px solid " + (valor === key ? color.musc : color.border), background: valor === key ? color.musc + "1a" : "transparent", color: color.text, fontWeight: 700, fontSize: ty.xs, cursor: "pointer" }}>{label}</button>
         ))}
       </div>
+    </div>
+  );
+}
+
+// Bloco 4 — agrupa os 15 relatórios em seções recolhidas por padrão (só a primeira abre
+// sozinha) pra parar de empilhar tudo num scroll único.
+function Secao({ titulo, abertaPadrao, children }) {
+  const [aberta, setAberta] = useState(!!abertaPadrao);
+  return (
+    <div style={{ marginBottom: space.lg }}>
+      <button onClick={() => setAberta(!aberta)} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: color.surfaceAlt, border: "1px solid " + color.border, borderRadius: radius.md, padding: space.md, cursor: "pointer", marginBottom: aberta ? space.sm : 0 }}>
+        <span style={{ fontSize: ty.sm, fontWeight: 700 }}>{titulo}</span>
+        <span style={{ color: color.textFaint, fontSize: ty.xs }}>{aberta ? "▴" : "▾"}</span>
+      </button>
+      {aberta && children}
     </div>
   );
 }
@@ -178,24 +217,39 @@ export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testes
         ))}
       </div>
 
-      <Relatorio1Aderencia dados={aderenciaRehab(eventos, desde, ate, semanasDeclaradas)} rathleff={aderenciaRathleff(eventos, desde, ate)} />
-      <Relatorio2Dor dados={dorAoLongoDoTempo(eventos, desde, ate)} />
-      <Relatorio3DorAderencia dados={dorPorAderencia(eventos, desde, ate)} />
-      <Relatorio4DorPorTipo dados={dorPorTipoTreino(eventos, desde, ate)} />
-      <Relatorio5Acwr dados={acwr(eventos, hojeISO)} />
-      <Relatorio6Progressao cargas={cargas} volumeGrupo={volumePorGrupo(eventos, desde, ate)} deload={sugerirDeload(cargas)} />
-      <Relatorio7VolumeCorrida dados={volumeCorrida(eventos, desde, ate)} srpe={srpeCorrida(eventos, desde, ate)} />
-      <Relatorio8Peso dados={pesoCorporal(eventos)} />
-      <Relatorio9Gate macrofase={macrofase} testesLog={testesLog} dorLog={dorLog} hojeISO={hojeISO} eventos={eventos} />
-      <Relatorio10Export eventos={eventos} />
-      <PassosSemanaCard valorAtual={passosSemanaAtual} onRegistrar={onRegistrarPassosSemana} />
-      <TenisCard tenis={tenis} onAdicionar={onAdicionarTenis} onRegistrarKm={onRegistrarKmTenis} onRemover={onRemoverTenis} />
+      <Secao titulo="Fascite" abertaPadrao>
+        <Relatorio1Aderencia dados={aderenciaRehab(eventos, desde, ate, semanasDeclaradas)} rathleff={aderenciaRathleff(eventos, desde, ate)} />
+        <Relatorio2Dor dados={dorAoLongoDoTempo(eventos, desde, ate)} />
+        <Relatorio3DorAderencia dados={dorPorAderencia(eventos, desde, ate)} />
+        <Relatorio11CargaPe dados={dorPorCargaPe(eventos, hojeISO)} />
+      </Secao>
+
+      <Secao titulo="Treino">
+        <Relatorio4DorPorTipo dados={dorPorTipoTreino(eventos, desde, ate)} />
+        <Relatorio6Progressao cargas={cargas} volumeGrupo={volumePorGrupo(eventos, desde, ate)} deload={sugerirDeload(cargas)} />
+        <Relatorio12Intensidade dados={distribuicaoIntensidade(eventos, desde, ate)} />
+        <Relatorio15TesteFuncional historico={historicoTesteFuncional(eventos)} onRegistrar={onRegistrarTesteFuncional} />
+      </Secao>
+
+      <Secao titulo="Corrida">
+        <Relatorio7VolumeCorrida dados={volumeCorrida(eventos, desde, ate)} srpe={srpeCorrida(eventos, desde, ate)} />
+        <Relatorio13Corrida testesCampo={testesCampo} onAdicionarTeste={onAdicionarTesteCampo} kmSemanaAtual={kmSemanaAtual} kmMedia4Semanas={kmMedia4Semanas} cadencias={cadencias} ultimaTemperatura={ultimaTemperatura} />
+        <Relatorio14Temporadas temporadas={temporadas} hojeISO={hojeISO} onAdicionar={onAdicionarTemporada} onRemover={onRemoverTemporada} />
+      </Secao>
+
+      <Secao titulo="Carga e progresso">
+        <Relatorio5Acwr dados={acwr(eventos, hojeISO)} />
+        <Relatorio8Peso dados={pesoCorporal(eventos)} />
+        <Relatorio9Gate macrofase={macrofase} testesLog={testesLog} dorLog={dorLog} hojeISO={hojeISO} eventos={eventos} />
+      </Secao>
+
+      <Secao titulo="Dados">
+        <Relatorio10Export eventos={eventos} />
+        <PassosSemanaCard valorAtual={passosSemanaAtual} onRegistrar={onRegistrarPassosSemana} />
+        <TenisCard tenis={tenis} onAdicionar={onAdicionarTenis} onRegistrarKm={onRegistrarKmTenis} onRemover={onRemoverTenis} />
+      </Secao>
+
       <SemanasFuturasCard hojeISO={hojeISO} semanasDeclaradas={semanasDeclaradas} onDeclarar={onDeclararSemana} />
-      <Relatorio11CargaPe dados={dorPorCargaPe(eventos, hojeISO)} />
-      <Relatorio12Intensidade dados={distribuicaoIntensidade(eventos, desde, ate)} />
-      <Relatorio13Corrida testesCampo={testesCampo} onAdicionarTeste={onAdicionarTesteCampo} kmSemanaAtual={kmSemanaAtual} kmMedia4Semanas={kmMedia4Semanas} cadencias={cadencias} ultimaTemperatura={ultimaTemperatura} />
-      <Relatorio14Temporadas temporadas={temporadas} hojeISO={hojeISO} onAdicionar={onAdicionarTemporada} onRemover={onRemoverTemporada} />
-      <Relatorio15TesteFuncional historico={historicoTesteFuncional(eventos)} onRegistrar={onRegistrarTesteFuncional} />
       <PrioridadeCard valor={prioridadeTemporada} onMudar={onMudarPrioridade} />
 
       <button onClick={onAbrirRelatorioMedico} style={{ width: "100%", minHeight: touch.min, borderRadius: 12, border: "1px solid " + color.border, background: color.surface, color: color.text, fontSize: ty.sm, fontWeight: 700, cursor: "pointer", marginBottom: space.lg }}>Relatório pra consulta médica</button>

@@ -9,6 +9,7 @@ const label = { fontSize: ty.xs, color: color.textDim, fontWeight: 700, marginBo
 // cadência. 4.4 — ajuste por calor usa o último registro de temperatura/umidade de
 // corrida disponível, se houver.
 export default function Relatorio13Corrida({ testesCampo, onAdicionarTeste, kmSemanaAtual, kmMedia4Semanas, cadencias, ultimaTemperatura }) {
+  const [editando, setEditando] = useState(false);
   const [distancia, setDistancia] = useState("");
   const [minutos, setMinutos] = useState("");
   const [segundos, setSegundos] = useState("");
@@ -25,20 +26,26 @@ export default function Relatorio13Corrida({ testesCampo, onAdicionarTeste, kmSe
     const d = Number(distancia), min = Number(minutos) || 0, seg = Number(segundos) || 0;
     if (!d || (!min && !seg)) return;
     onAdicionarTeste({ distanciaKm: d, tempoSeg: min * 60 + seg });
-    setDistancia(""); setMinutos(""); setSegundos("");
+    setDistancia(""); setMinutos(""); setSegundos(""); setEditando(false);
   }
 
   return (
     <div style={{ background: color.surface, borderRadius: radius.lg, padding: space.md, marginBottom: space.lg }}>
-      <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm }}>13. Teste de campo e zonas de ritmo</div>
-      <div style={{ fontSize: ty.xs, color: color.textFaint, marginBottom: space.sm }}>A cada 6-8 semanas: corre 1km, 3km ou 12min (Cooper) o mais rápido sustentável, registra aqui.</div>
-
-      <div style={{ display: "flex", gap: space.sm, alignItems: "flex-end", marginBottom: space.md }}>
-        <div><span style={label}>km</span><input type="number" step="0.1" value={distancia} onChange={e => setDistancia(e.target.value)} style={numInput} /></div>
-        <div><span style={label}>min</span><input type="number" value={minutos} onChange={e => setMinutos(e.target.value)} style={numInput} /></div>
-        <div><span style={label}>seg</span><input type="number" value={segundos} onChange={e => setSegundos(e.target.value)} style={numInput} /></div>
-        <button onClick={salvar} style={{ minHeight: touch.min * 0.6, padding: "0 14px", borderRadius: radius.sm, border: "none", background: color.corrida || color.success, color: "#0f1115", fontWeight: 700, cursor: "pointer" }}>Salvar</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: space.sm }}>
+        <div style={{ fontSize: ty.sm, fontWeight: 700, color: color.textDim, textTransform: "uppercase", letterSpacing: 1 }}>13. Teste de campo e zonas de ritmo</div>
+        {!editando && <button onClick={() => setEditando(true)} style={{ background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer" }}>+ novo teste</button>}
       </div>
+      {editando && (
+        <>
+          <div style={{ fontSize: ty.xs, color: color.textFaint, marginBottom: space.sm }}>A cada 6-8 semanas: corre 1km, 3km ou 12min (Cooper) o mais rápido sustentável, registra aqui.</div>
+          <div style={{ display: "flex", gap: space.sm, alignItems: "flex-end", marginBottom: space.md }}>
+            <div><span style={label}>km</span><input type="number" step="0.1" value={distancia} onChange={e => setDistancia(e.target.value)} style={numInput} /></div>
+            <div><span style={label}>min</span><input type="number" value={minutos} onChange={e => setMinutos(e.target.value)} style={numInput} /></div>
+            <div><span style={label}>seg</span><input type="number" value={segundos} onChange={e => setSegundos(e.target.value)} style={numInput} /></div>
+            <button onClick={salvar} style={{ minHeight: touch.min * 0.6, padding: "0 14px", borderRadius: radius.sm, border: "none", background: color.corrida || color.success, color: "#0f1115", fontWeight: 700, cursor: "pointer" }}>Salvar</button>
+          </div>
+        </>
+      )}
 
       {zonas ? (
         <div>
