@@ -21,6 +21,7 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
   const [showHow, setShowHow] = useState(false);
   const [showGif, setShowGif] = useState(false);
   const [kgInput, setKgInput] = useState("");
+  const [repsInput, setRepsInput] = useState("");
   const [concluidoPorIdx, setConcluidoPorIdx] = useState({});
   const [showLista, setShowLista] = useState(false);
   const [showTroca, setShowTroca] = useState(false);
@@ -66,6 +67,17 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
     if (step && step.type === "exercise") { const reg = cargas[step.name]; setKgInput(reg && reg.ultimaKg != null ? String(reg.ultimaKg) : step.startKg != null ? String(step.startKg) : ""); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sI, substituto]);
+  // Bloco 5.3 — reps realmente feitas, pré-preenchidas com o alvo prescrito dessa série
+  // específica (faixas tipo "8-10" variam por série). Campo opcional: usuário ajusta ou
+  // limpa; sem valor numérico, e1rm() não calcula nada (ver lib/treino.js).
+  useEffect(() => {
+    if (step && step.type === "exercise" && step.reps != null) {
+      const alvo = typeof step.reps === "string" ? (step.reps.split("-")[cS - 1] || step.reps) : step.reps;
+      const n = parseInt(alvo, 10);
+      setRepsInput(isNaN(n) ? "" : String(n));
+    } else setRepsInput("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sI, substituto, cS]);
 
   // baseado em timestamp — setInterval sozinho perde contagem com app em segundo plano
   function recalcularTmr() {
@@ -94,8 +106,9 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
     const kg = parseFloat(kgInput);
     if (isNaN(kg)) return;
     const atingiuTopo = typeof step.reps === "number";
+    const repsRealizadas = repsInput ? parseInt(repsInput, 10) : null;
     volumeRef.current += kg * (typeof step.reps === "number" ? step.reps : 0) * (step.sets || 1);
-    const pr = onRegistrarCarga(step.name, kg, atingiuTopo);
+    const pr = onRegistrarCarga(step.name, kg, atingiuTopo, isNaN(repsRealizadas) ? null : repsRealizadas);
     if (pr) { setPrAviso(step.name); setTimeout(() => setPrAviso(null), 3000); }
   }
 
@@ -271,6 +284,13 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
           <input type="number" inputMode="decimal" value={kgInput} onChange={e => setKgInput(e.target.value)} placeholder="kg" style={{ width: 80, minHeight: 48, textAlign: "center", fontSize: ty.lg, fontWeight: 700, fontVariantNumeric: "tabular-nums", background: color.surface, border: "1px solid " + color.border, borderRadius: radius.md, color: color.text }} />
           <button onClick={() => setKgInput(String((parseFloat(kgInput) || 0) + (grupoCarga === "inferior" ? 5 : 2.5)))} style={{ minHeight: 48, minWidth: 48, borderRadius: radius.md, border: "1px solid " + color.border, background: color.surface, color: color.text, fontSize: ty.lg, fontWeight: 700, cursor: "pointer" }}>+</button>
           <span style={{ fontSize: ty.sm, color: color.textFaint }}>kg</span>
+        </div>
+      )}
+      {step.type === "exercise" && !rst && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: space.sm }}>
+          <span style={{ fontSize: ty.xs, color: color.textFaint }}>reps feitas</span>
+          <input type="number" inputMode="numeric" value={repsInput} onChange={e => setRepsInput(e.target.value)} placeholder="—"
+            style={{ width: 56, minHeight: 36, textAlign: "center", fontSize: ty.sm, fontWeight: 700, background: color.surface, border: "1px solid " + color.border, borderRadius: radius.sm, color: color.text }} />
         </div>
       )}
       {sugestao && !rst && <div style={{ textAlign: "center", fontSize: ty.xs, color: color.success, marginBottom: space.sm }}>Bateu o topo 2x seguidas — sugestão: {sugestao.kg}kg (+{sugestao.incremento})</div>}

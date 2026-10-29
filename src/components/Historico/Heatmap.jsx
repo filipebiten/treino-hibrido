@@ -32,11 +32,11 @@ export default function Heatmap({ diasResumo, ano, mes, hojeISO, marcoZero, onMu
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: space.md }}>
-        <button onClick={() => podeVoltar && onMudarMes(-1)} disabled={!podeVoltar} style={{ background: "none", border: "none", padding: 8, cursor: podeVoltar ? "pointer" : "default", opacity: podeVoltar ? 1 : 0.3 }}>
+        <button onClick={() => podeVoltar && onMudarMes(-1)} disabled={!podeVoltar} aria-label="Mês anterior" style={{ background: "none", border: "none", padding: 8, cursor: podeVoltar ? "pointer" : "default", opacity: podeVoltar ? 1 : 0.3 }}>
           <Icon name="chevronLeft" size={18} color={color.textDim} />
         </button>
         <div style={{ fontSize: ty.md, fontWeight: 800, textTransform: "capitalize" }}>{nomeMes}</div>
-        <button onClick={() => podeAvancar && onMudarMes(1)} disabled={!podeAvancar} style={{ background: "none", border: "none", padding: 8, cursor: podeAvancar ? "pointer" : "default", opacity: podeAvancar ? 1 : 0.3 }}>
+        <button onClick={() => podeAvancar && onMudarMes(1)} disabled={!podeAvancar} aria-label="Próximo mês" style={{ background: "none", border: "none", padding: 8, cursor: podeAvancar ? "pointer" : "default", opacity: podeAvancar ? 1 : 0.3 }}>
           <Icon name="chevronRight" size={18} color={color.textDim} />
         </button>
       </div>

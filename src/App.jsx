@@ -367,9 +367,9 @@ export default function App() {
   // Bloco 5.2 — teste funcional mensal (heel raise unilateral até falha, cada perna).
   function registrarTesteFuncional(esq, dir) { patch({ eventos: registrarEvento(state.eventos, "teste_funcional", { esq, dir }, hojeISO) }); }
 
-  function onRegistrarCarga(exName, kg, atingiuTopo) {
+  function onRegistrarCarga(exName, kg, atingiuTopo, reps) {
     const pr = ehPR(state.cargas, exName, kg);
-    const patchObj = { cargas: registrarCarga(state.cargas, exName, kg, atingiuTopo, hojeISO) };
+    const patchObj = { cargas: registrarCarga(state.cargas, exName, kg, atingiuTopo, hojeISO, reps) };
     if (pr) patchObj.eventos = registrarEvento(state.eventos, "pr", { exercicio: exName, kg }, hojeISO);
     patch(patchObj);
     return pr;

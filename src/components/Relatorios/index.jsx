@@ -79,7 +79,7 @@ function TenisCard({ tenis, onAdicionar, onRegistrarKm, onRemover }) {
                   style={{ flex: 1, minHeight: 36, borderRadius: radius.sm, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontSize: ty.sm, padding: "0 8px" }} />
                 <button onClick={() => { const v = Number(kmAdicional[t.id]); if (v) { onRegistrarKm(t.id, v); setKmAdicional({ ...kmAdicional, [t.id]: "" }); } }}
                   style={{ minHeight: 36, padding: "0 14px", borderRadius: radius.sm, border: "none", background: color.surfaceAlt, color: color.text, fontWeight: 700, cursor: "pointer" }}>+</button>
-                <button onClick={() => onRemover(t.id)} style={{ minHeight: 36, padding: "0 10px", borderRadius: radius.sm, border: "1px solid " + color.border, background: "transparent", color: color.textFaint, cursor: "pointer" }}>✕</button>
+                <button onClick={() => onRemover(t.id)} aria-label={`Remover ${t.nome}`} style={{ minHeight: 36, padding: "0 10px", borderRadius: radius.sm, border: "1px solid " + color.border, background: "transparent", color: color.textFaint, cursor: "pointer" }}>✕</button>
               </div>
             </div>
           ))}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { progressaoCarga, exerciciosEstagnados } from "../../lib/relatorios.js";
+import { e1rm } from "../../lib/treino.js";
 import { color, space, type as ty, radius } from "../../lib/tokens.js";
 
 export default function Relatorio6Progressao({ cargas, volumeGrupo, deload }) {
@@ -7,6 +8,10 @@ export default function Relatorio6Progressao({ cargas, volumeGrupo, deload }) {
   const [selecionado, setSelecionado] = useState(nomes[0] || null);
   const historico = selecionado ? progressaoCarga(cargas, selecionado).historico : [];
   const estagnados = exerciciosEstagnados(cargas);
+  // Bloco 5.3 — e1RM (Epley) só com reps realmente feitas no registro mais recente, e só
+  // até 10 reps (acima disso a fórmula erra demais). Sem reps, não estima nada.
+  const ultimo = historico.length ? historico[historico.length - 1] : null;
+  const e1rmAtual = ultimo ? e1rm(ultimo.kg, ultimo.reps) : null;
 
   const largura = Math.max(historico.length * 24, 100), altura = 70;
   const kgs = historico.map(h => h.kg);
@@ -33,6 +38,7 @@ export default function Relatorio6Progressao({ cargas, volumeGrupo, deload }) {
               </svg>
             </div>
           ) : <div style={{ fontSize: ty.xs, color: color.textFaint }}>Sem histórico pra esse exercício.</div>}
+          {e1rmAtual != null && <div style={{ fontSize: ty.xs, color: color.success, marginTop: 4 }}>e1RM estimado (Epley, {ultimo.kg}kg × {ultimo.reps} reps): {e1rmAtual}kg</div>}
         </>
       )}
       {estagnados.length > 0 && (

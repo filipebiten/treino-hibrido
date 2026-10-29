@@ -45,7 +45,7 @@ export default function DiaEdit({ iso, resumoDia, onSalvar, onFechar, tenis = []
       <div style={{ background: color.surface, borderRadius: radius.lg + "px " + radius.lg + "px 0 0", padding: space.xl, width: "100%", maxWidth: 480, maxHeight: "88vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: space.lg }}>
           <h2 style={{ fontSize: ty.lg, fontWeight: 800 }}>{dataFmt}</h2>
-          <button onClick={onFechar} style={{ background: "none", border: "none", cursor: "pointer", padding: 8 }}><Icon name="close" size={18} color={color.textDim} /></button>
+          <button onClick={onFechar} aria-label="Fechar" style={{ background: "none", border: "none", cursor: "pointer", padding: 8 }}><Icon name="close" size={18} color={color.textDim} /></button>
         </div>
 
         <div style={field}>

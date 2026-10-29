@@ -43,7 +43,7 @@ export default function Relatorio14Temporadas({ temporadas, hojeISO, onAdicionar
                       {t.distanciaProvaKm && ` · ${t.distanciaProvaKm}km`}{t.volumePicoSemanalKm && ` · pico ${t.volumePicoSemanalKm}km/sem`} · {FASES.find(f => f[0] === t.fase)?.[1] || t.fase}
                     </div>
                   </div>
-                  <button onClick={() => onRemover(t.id)} style={{ background: "none", border: "none", color: color.textFaint, cursor: "pointer", fontSize: ty.sm }}>✕</button>
+                  <button onClick={() => onRemover(t.id)} aria-label={`Remover ${t.nome}`} style={{ background: "none", border: "none", color: color.textFaint, cursor: "pointer", fontSize: ty.sm }}>✕</button>
                 </div>
               </div>
             );
