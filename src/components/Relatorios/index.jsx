@@ -15,10 +15,11 @@ import Relatorio12Intensidade from "./Relatorio12Intensidade.jsx";
 import Relatorio13Corrida from "./Relatorio13Corrida.jsx";
 import Relatorio14Temporadas from "./Relatorio14Temporadas.jsx";
 import Relatorio15TesteFuncional from "./Relatorio15TesteFuncional.jsx";
+import Relatorio16Mobilidade from "./Relatorio16Mobilidade.jsx";
 import {
   periodoParaDatas, aderenciaRehab, aderenciaRathleff, dorAoLongoDoTempo, dorPorAderencia,
   dorPorTipoTreino, acwr, volumeCorrida, pesoCorporal, volumePorGrupo, sugerirDeload, srpeCorrida,
-  dorPorCargaPe, historicoTesteFuncional,
+  dorPorCargaPe, historicoTesteFuncional, historicoMobilidade,
 } from "../../lib/relatorios.js";
 import { distribuicaoIntensidade } from "../../lib/agendamento.js";
 import { listar } from "../../lib/eventos.js";
@@ -180,7 +181,7 @@ function Secao({ titulo, abertaPadrao, children }) {
   );
 }
 
-export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis, semanasDeclaradas, onDeclararSemana, onAbrirRelatorioMedico, prioridadeTemporada, onMudarPrioridade, testesCampo, onAdicionarTesteCampo, temporadas, onAdicionarTemporada, onRemoverTemporada, onRegistrarTesteFuncional, onAbrirImportacao }) {
+export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis, semanasDeclaradas, onDeclararSemana, onAbrirRelatorioMedico, prioridadeTemporada, onMudarPrioridade, testesCampo, onAdicionarTesteCampo, temporadas, onAdicionarTemporada, onRemoverTemporada, onRegistrarTesteFuncional, onRegistrarMobilidade, onAbrirImportacao }) {
   const [periodo, setPeriodo] = useState("30d");
   const { desde, ate } = periodoParaDatas(periodo, hojeISO);
 
@@ -229,6 +230,7 @@ export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testes
         <Relatorio6Progressao cargas={cargas} volumeGrupo={volumePorGrupo(eventos, desde, ate)} deload={sugerirDeload(cargas)} />
         <Relatorio12Intensidade dados={distribuicaoIntensidade(eventos, desde, ate)} />
         <Relatorio15TesteFuncional historico={historicoTesteFuncional(eventos)} onRegistrar={onRegistrarTesteFuncional} />
+        <Relatorio16Mobilidade historico={historicoMobilidade(eventos)} onRegistrar={onRegistrarMobilidade} />
       </Secao>
 
       <Secao titulo="Corrida">

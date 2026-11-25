@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { toISO, diffDias, MARCO_ZERO, MACRO_PHASES, getMacrofaseInfo, totalSemanas, META_OFICIAL } from "./data/plano.js";
 import { MA, MB, MC, buildMuscSession } from "./data/musculacao.js";
-import { getRehabForMacrofase, getRehabManutencaoVitalicia, precisaReativarManutencao } from "./data/rehab.js";
+import { getRehabForMacrofase, getRehabManutencaoVitalicia, precisaReativarManutencao, MOBILIDADE } from "./data/rehab.js";
 import { FORCA_PROTETIVA, PLIOMETRIA, gatePliometria } from "./data/forcaProtetiva.js";
 import { buildCaminhadaSession, buildWalkRunSession, buildContinuoSession, buildMetaSession } from "./data/corrida.js";
 import { loadState, saveState } from "./lib/storage.js";
@@ -146,6 +146,7 @@ export default function App() {
   // Bloco 5.1 — força protetiva / pliometria, feito-hoje + gate de pliometria.
   const forcaProtetivaFeitaHoje = state.eventos.some(e => e.tipo === "forca_protetiva" && e.data === hojeISO);
   const pliometriaFeitaHoje = state.eventos.some(e => e.tipo === "pliometria" && e.data === hojeISO);
+  const mobilidadeFeitaHoje = state.eventos.some(e => e.tipo === "mobilidade" && e.data === hojeISO);
   const gatePlio = gatePliometria(state.dorLog, hojeISO);
   const ultimoRathleffMs = Object.keys(state.rathleffLog).length ? Math.max(...Object.values(state.rathleffLog)) : 0;
   const rathleff = rathleffStatus(ultimoRathleffMs, Date.now());
@@ -364,6 +365,9 @@ export default function App() {
   // (não substitui dose manhã/noite/carga, é extra opcional).
   function marcarForcaProtetiva() { patch({ eventos: registrarEvento(state.eventos, "forca_protetiva", {}, hojeISO) }); }
   function marcarPliometria() { patch({ eventos: registrarEvento(state.eventos, "pliometria", {}, hojeISO) }); }
+  // Bloco 3 — mobilidade dirigida (opcional diário) + teste quinzenal joelho-à-parede (cm).
+  function marcarMobilidade() { patch({ eventos: registrarEvento(state.eventos, "mobilidade", {}, hojeISO) }); }
+  function registrarMobilidadeTeste(esqCm, dirCm) { patch({ eventos: registrarEvento(state.eventos, "mobilidade_teste", { joelhoParedeEsqCm: esqCm, joelhoParedeDirCm: dirCm }, hojeISO) }); }
   // Bloco 5.2 — teste funcional mensal (heel raise unilateral até falha, cada perna).
   function registrarTesteFuncional(esq, dir) { patch({ eventos: registrarEvento(state.eventos, "teste_funcional", { esq, dir }, hojeISO) }); }
 
@@ -426,6 +430,14 @@ export default function App() {
       onBack={() => setScr("home")}
       onRoutineComplete={() => marcarForcaProtetiva()} />;
   }
+  if (scr === "mobilidade") {
+    return <RehabScreen
+      rotinas={[{ key: "mob", rotina: MOBILIDADE }]}
+      rathleff={null} dorLog={state.dorLog} pesoLog={state.pesoLog} hojeISO={hojeISO}
+      feitaKeys={{ mob: mobilidadeFeitaHoje }}
+      onBack={() => setScr("home")}
+      onRoutineComplete={() => marcarMobilidade()} />;
+  }
   if (scr === "pliometria") {
     return <RehabScreen
       rotinas={[{ key: "plio", rotina: PLIOMETRIA }]}
@@ -464,7 +476,7 @@ export default function App() {
     prioridadeTemporada={state.prioridadeTemporada} onMudarPrioridade={(v) => patch({ prioridadeTemporada: v })}
     testesCampo={state.testesCampo} onAdicionarTesteCampo={adicionarTesteCampo}
     temporadas={state.temporadas} onAdicionarTemporada={adicionarTemporada} onRemoverTemporada={removerTemporada}
-    onRegistrarTesteFuncional={registrarTesteFuncional} onAbrirImportacao={() => setScr("importar")} />;
+    onRegistrarTesteFuncional={registrarTesteFuncional} onRegistrarMobilidade={registrarMobilidadeTeste} onAbrirImportacao={() => setScr("importar")} />;
 
   // ══════════════════════ RELATÓRIO MÉDICO (Bloco 6.2) ══════════════════════
   if (scr === "relatorioMedico") return <RelatorioMedico eventos={state.eventos} hojeISO={hojeISO} onboarding={state.onboarding} onBack={() => setScr("relatorios")} />;
@@ -555,6 +567,7 @@ export default function App() {
     recaida={comparacaoRecaida(state.eventos, hojeISO)}
     semanaDeclarada={semanaAtualDeclarada()}
     forcaProtetivaFeita={forcaProtetivaFeitaHoje} onAbrirForcaProtetiva={() => setScr("forcaProtetiva")}
+    mobilidadeFeita={mobilidadeFeitaHoje} onAbrirMobilidade={() => setScr("mobilidade")}
     pliometriaFeita={pliometriaFeitaHoje} pliometriaLiberada={gatePlio.liberado} pliometriaMotivoBloqueio={gatePlio.motivo} onAbrirPliometria={() => setScr("pliometria")}
   />;
 }

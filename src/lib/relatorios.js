@@ -355,3 +355,10 @@ export function historicoTesteFuncional(eventos) {
   return listar(eventos).filter(e => e.tipo === "teste_funcional").reverse()
     .map(e => ({ data: e.data, esq: e.payload.esq, dir: e.payload.dir }));
 }
+
+// 16. Bloco 3 — teste quinzenal de mobilidade: joelho-à-parede em cm (dedão→parede), por pé.
+// Só evolução relativa do próprio usuário — sem referência em graus (inconsistência do laudo 2021).
+export function historicoMobilidade(eventos) {
+  return listar(eventos).filter(e => e.tipo === "mobilidade_teste").reverse()
+    .map(e => ({ data: e.data, esq: e.payload.joelhoParedeEsqCm, dir: e.payload.joelhoParedeDirCm }));
+}

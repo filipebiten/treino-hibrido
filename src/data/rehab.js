@@ -109,3 +109,25 @@ export function getRehabManutencaoVitalicia(diaSemana, reativado) {
   const carga = diaRathleffManutencao(diaSemana) ? cargaComVolume(5, 8, true) : null;
   return { base: REHAB_MANUTENCAO_1X, carga, gelo: REHAB_GELO_POS_CORRIDA, reforcado: false };
 }
+
+// ══════════════════════ MOBILIDADE DIRIGIDA (Bloco 3 — avaliação Byofisio 19/08/2021) ══════════════════════
+// Prioridade nº1 do fisio (Bruno Matoso): limitação bilateral de dorsiflexão em cadeia fechada
+// (pior à direita) + assimetria de rotação de quadril. Alongamento passivo de panturrilha (rotina
+// base) não ganha dorsiflexão — mobilização em cadeia fechada sim. Opcional diário, mesmo padrão
+// de FORCA_PROTETIVA. NÃO há meta em graus: o relatório tem inconsistência (texto cita ref ≥42°,
+// imagens mostram 64°/66° — provavelmente ângulos diferentes). Progresso só em cm, relativo.
+export const MOBILIDADE = {
+  id: "mobilidade", title: "Mobilidade dirigida", subtitle: "Opcional diário — tornozelo e quadril", time: "~12 min", when: "Qualquer horário", color: "#8b5cf6",
+  exercises: [
+    { name: "Joelho-à-parede (dorsiflexão)", detail: "Cada pé", sets: 3, reps: 10, type: "exercise", rest: 20,
+      how: "Pé a alguns centímetros da parede. Avance o joelho por cima do 2º dedo até tocar a parede, sem o calcanhar sair do chão. Afaste o pé até o limite em que o calcanhar ainda não levanta. 3x10 em cada pé, direito primeiro. No teste quinzenal, meça a distância do dedão à parede em cm." },
+    { name: "Mobilização de tornozelo com banda (talar glide)", detail: "Cada pé", sets: 2, reps: 15, type: "exercise", rest: 20,
+      how: "Elástico preso baixo, laçado na frente do tornozelo (logo abaixo dos maléolos), puxando o tornozelo pra trás. Pé no chão (ou num degrau), avance o joelho sobre o 2º dedo sem levantar o calcanhar. 2x15 em cada pé." },
+    { name: "Clamshell (rotação externa de quadril)", detail: "Cada lado", sets: 3, reps: 12, type: "exercise", rest: 30,
+      how: "Deitado de lado, joelhos dobrados, pés juntos. Abra o joelho de cima sem girar o quadril pra trás. 3x12 cada lado. Avaliação de 2021: assimetria de quadril (33° esq / 45° dir) — trabalho pedido foi rotação externa." },
+    { name: "Rotação 90/90 de quadril", detail: "Cada lado", sets: 3, reps: 12, type: "exercise", rest: 30,
+      how: "Sentado no chão, perna da frente e de trás dobradas a 90°. Troque os joelhos de lado devagar, tronco alto, sem usar as mãos se conseguir. 3x12 trocas (cada lado conta 1)." },
+    { name: "Short Foot em pé (apoio unipodal)", detail: "Cada pé", sets: 3, duration: 30, type: "timer",
+      how: "Progressão do Short Foot sentado: em um pé só, levante a cúpula do arco sem encolher os dedos. 30s em cada pé, direito primeiro. Ativação de intrínsecos em apoio unipodal (pedido do fisio)." },
+  ],
+};

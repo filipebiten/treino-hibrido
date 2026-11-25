@@ -72,10 +72,15 @@ function RehabCard({ doses, doseFeitaFn, onAbrirDose, cargaDisponivel, cargaFeit
 }
 
 // Bloco 5.1 — força protetiva (opcional) e pliometria (gate de 4 semanas dor-baseline).
-function ForcaProtetivaCard({ feita, onAbrir, pliometriaFeita, pliometriaLiberada, pliometriaMotivoBloqueio, onAbrirPliometria }) {
+function ForcaProtetivaCard({ feita, onAbrir, mobilidadeFeita, onAbrirMobilidade, pliometriaFeita, pliometriaLiberada, pliometriaMotivoBloqueio, onAbrirPliometria }) {
   return (
     <div style={{ marginBottom: space.md }}>
-      <div style={{ fontSize: ty.xs, color: color.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm, display: "flex", alignItems: "center", gap: 6 }}><Icon name="dumbbell" size={14} />Força protetiva (opcional)</div>
+      <div style={{ fontSize: ty.xs, color: color.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm, display: "flex", alignItems: "center", gap: 6 }}><Icon name="dumbbell" size={14} />Mobilidade e força (opcional)</div>
+      {/* Bloco 3 — mobilidade dirigida: prioridade nº1 do fisio (dorsiflexão em cadeia fechada + rotação de quadril) */}
+      <button onClick={onAbrirMobilidade} style={{ ...cardBase, minHeight: touch.min, padding: space.md, marginBottom: space.sm, border: "1px solid " + (mobilidadeFeita ? color.success + "55" : color.border), background: mobilidadeFeita ? color.success + "12" : color.surfaceAlt, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: ty.md, fontWeight: 700 }}>Mobilidade: tornozelo e quadril</span>
+        {mobilidadeFeita ? <Icon name="check" size={18} color={color.success} /> : <Icon name="play" size={16} color={color.textDim} />}
+      </button>
       <button onClick={onAbrir} style={{ ...cardBase, minHeight: touch.min, padding: space.md, marginBottom: space.sm, border: "1px solid " + (feita ? color.success + "55" : color.border), background: feita ? color.success + "12" : color.surfaceAlt, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: ty.md, fontWeight: 700 }}>Panturrilha, glúteo, nórdico, core</span>
         {feita ? <Icon name="check" size={18} color={color.success} /> : <Icon name="play" size={16} color={color.textDim} />}
@@ -242,7 +247,7 @@ export default function Home({
   cargaPeHoje,
   fila, tenis = [], onResponderPergunta, onPularPergunta,
   doses, doseFeitaFn, onAbrirDose, cargaDisponivel, cargaFeita, cargaTitulo, cargaBloqueada, restanteRathleff,
-  forcaProtetivaFeita, onAbrirForcaProtetiva, pliometriaFeita, pliometriaLiberada, pliometriaMotivoBloqueio, onAbrirPliometria,
+  forcaProtetivaFeita, onAbrirForcaProtetiva, mobilidadeFeita, onAbrirMobilidade, pliometriaFeita, pliometriaLiberada, pliometriaMotivoBloqueio, onAbrirPliometria,
   proximaSessao, onIniciar, onPular,
   gateInfo,
   sessoes, onVerSessao,
@@ -274,7 +279,7 @@ export default function Home({
 
       {/* Bloco 1 — rehab pendente (inclui força protetiva/pliometria, mesma família de conteúdo diário) */}
       <RehabCard doses={doses} doseFeitaFn={doseFeitaFn} onAbrirDose={onAbrirDose} cargaDisponivel={cargaDisponivel} cargaFeita={cargaFeita} cargaTitulo={cargaTitulo} cargaBloqueada={cargaBloqueada} restanteRathleff={restanteRathleff} />
-      <ForcaProtetivaCard feita={forcaProtetivaFeita} onAbrir={onAbrirForcaProtetiva} pliometriaFeita={pliometriaFeita} pliometriaLiberada={pliometriaLiberada} pliometriaMotivoBloqueio={pliometriaMotivoBloqueio} onAbrirPliometria={onAbrirPliometria} />
+      <ForcaProtetivaCard feita={forcaProtetivaFeita} onAbrir={onAbrirForcaProtetiva} mobilidadeFeita={mobilidadeFeita} onAbrirMobilidade={onAbrirMobilidade} pliometriaFeita={pliometriaFeita} pliometriaLiberada={pliometriaLiberada} pliometriaMotivoBloqueio={pliometriaMotivoBloqueio} onAbrirPliometria={onAbrirPliometria} />
 
       {/* Bloco 2 — fila de perguntas (as confirmações de dor/carga de pé já respondidas ficam juntas, não contam como blocos à parte) */}
       <DorCard dorHoje={dorHoje} onRegistrar={onRegistrarDor} modoManutencao={modoManutencao} />
