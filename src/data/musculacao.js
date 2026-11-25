@@ -147,7 +147,7 @@ export const MC = [
 ];
 
 export const FEET_B = [
-  { name: "Elev. panturrilha UNILATERAL", sets: 3, reps: 12, type: "reps", how: "Um pé só, descer lento 3seg." },
+  { name: "Elev. panturrilha UNILATERAL", detail: "Cada pé", sets: 3, reps: 12, type: "reps", how: "Um pé só, descer lento 3seg. Repita no outro pé." },
   { name: "Tibial posterior elástico", detail: "Cada pé", sets: 3, reps: 12, type: "reps", how: "Puxe para dentro e para baixo." },
   { name: "Fibulares elástico", detail: "Cada pé", sets: 3, reps: 12, type: "reps", how: "Empurre para fora." },
   { name: "Massagem bolinha", detail: "Cada pé", duration: 180, type: "timer", how: "Role na sola." },

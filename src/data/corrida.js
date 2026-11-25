@@ -1,7 +1,7 @@
 // ══════════════════════ CORRIDA — 15 semanas, progressão por macrofase ══════════════════════
 export const FOOT_PRE = [
   { name: "Tibial anterior sentado", detail: "Ponta dos pés para cima", sets: 3, duration: 30, type: "timer", how: "Sentado, pés no chão. Levante a ponta dos pés mantendo calcanhares fixos. 30 segundos." },
-  { name: "Elev. panturrilha unilateral", detail: "Descer lento 3seg", sets: 3, reps: 12, type: "reps", how: "Em pé num pé só. Suba na ponta e desça contando 3 segundos." },
+  { name: "Elev. panturrilha unilateral", detail: "Cada pé · descer lento 3seg", sets: 3, reps: 12, type: "reps", how: "Em pé num pé só. Suba na ponta e desça contando 3 segundos. Repita no outro pé." },
   { name: "Tibial posterior elástico", detail: "Para dentro/baixo", sets: 3, reps: 12, type: "reps", how: "Elástico no pé, puxe para dentro e para baixo." },
   { name: "Fibulares elástico", detail: "Para fora", sets: 3, reps: 12, type: "reps", how: "Elástico no pé, empurre para fora." },
   { name: "Massagem bolinha", detail: "Rolar na sola", duration: 150, type: "timer", how: "Bolinha de tênis sob a sola, role com pressão média." },
