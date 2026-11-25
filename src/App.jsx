@@ -473,7 +473,7 @@ export default function App() {
   if (scr === "lembretes") return <LembreteScreen onBack={() => setScr("ajustes")} />;
 
   // ══════════════════════ AJUSTES (Bloco 5.2) ══════════════════════
-  if (scr === "ajustes") return <AjustesScreen onBack={() => setScr("home")} onAbrirLembretes={() => setScr("lembretes")} onRecalibrar={() => { setRecalibrando(true); setScr("onboarding"); }} onAbrirImportacao={() => setScr("importar")} />;
+  if (scr === "ajustes") return <AjustesScreen onBack={() => setScr("home")} onAbrirLembretes={() => setScr("lembretes")} onRecalibrar={() => { setRecalibrando(true); setScr("onboarding"); }} onAbrirImportacao={() => setScr("importar")} onFazerBackup={fazerBackup} ultimoBackupISO={state.ultimoBackupISO} />;
 
   // ══════════════════════ IMPORTAÇÃO (Bloco 3) ══════════════════════
   if (scr === "importar") return <ImportarScreen eventos={state.eventos} onBack={() => setScr("ajustes")} onImportar={importarDados} onMesclarTreino={mesclarTreino} />;

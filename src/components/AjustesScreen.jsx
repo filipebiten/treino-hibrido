@@ -6,7 +6,7 @@ const item = { width: "100%", minHeight: touch.min, padding: space.md, marginBot
 
 // Bloco 5.2 — Lembretes e Recalibrar saíram do rodapé de texto da Home e viraram itens
 // daqui, atrás da aba "Ajustes" da tab bar.
-export default function AjustesScreen({ onBack, onAbrirLembretes, onRecalibrar, onAbrirImportacao }) {
+export default function AjustesScreen({ onBack, onAbrirLembretes, onRecalibrar, onAbrirImportacao, onFazerBackup, ultimoBackupISO }) {
   return (
     <div style={{ background: color.bg, color: color.text, minHeight: "100vh", fontFamily: "system-ui", padding: space.xl + "px " + space.lg + "px", maxWidth: 480, margin: "0 auto" }}>
       <button onClick={onBack} style={backBtn}><Icon name="chevronLeft" size={16} /> Voltar</button>
@@ -23,6 +23,11 @@ export default function AjustesScreen({ onBack, onAbrirLembretes, onRecalibrar, 
       <button onClick={onAbrirImportacao} style={item}>
         <span>Importar do iPhone</span>
         <Icon name="chevronRight" size={16} color={color.textFaint} />
+      </button>
+      {/* Backup sempre acessível — o lembrete da Home (Mais) só aparece após 30 dias sem backup. */}
+      <button onClick={onFazerBackup} style={item}>
+        <span>Fazer backup agora</span>
+        <span style={{ fontSize: ty.xs, color: color.textFaint, fontWeight: 400 }}>{ultimoBackupISO ? "último " + ultimoBackupISO.split("-").reverse().join("/") : "nunca"}</span>
       </button>
     </div>
   );
