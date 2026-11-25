@@ -25,6 +25,7 @@ import Relatorios from "./components/Relatorios/index.jsx";
 import RelatorioMedico from "./components/RelatorioMedico.jsx";
 import LembreteScreen from "./components/LembreteScreen.jsx";
 import AjustesScreen from "./components/AjustesScreen.jsx";
+import AvaliacaoScreen from "./components/AvaliacaoScreen.jsx";
 import ImportarScreen from "./components/ImportarScreen.jsx";
 import { aplicarImportacao, mesclarTreinoImportado } from "./lib/importacao.js";
 import TesteScreen from "./components/TesteScreen.jsx";
@@ -79,6 +80,7 @@ function isoHojeReal() { return toISO(new Date()); }
 export default function App() {
   const [state, setState] = useState(null);
   const [scr, setScr] = useState("carregando");
+  const [voltarAvaliacao, setVoltarAvaliacao] = useState("ajustes");
   const [sessaoAtual, setSessaoAtual] = useState(null); // { tipo, steps, label, cor, icon, resumo, testeId, testeNome, grupo }
   const [activeDoseKey, setActiveDoseKey] = useState(null);
   const [recalibrando, setRecalibrando] = useState(false);
@@ -480,13 +482,14 @@ export default function App() {
     onRegistrarTesteFuncional={registrarTesteFuncional} onRegistrarMobilidade={registrarMobilidadeTeste} onDefinirAlvoCadencia={(ppm) => patch({ eventos: registrarEvento(state.eventos, "cadencia_alvo", { ppm }, hojeISO) })} onAbrirImportacao={() => setScr("importar")} />;
 
   // ══════════════════════ RELATÓRIO MÉDICO (Bloco 6.2) ══════════════════════
-  if (scr === "relatorioMedico") return <RelatorioMedico eventos={state.eventos} hojeISO={hojeISO} onboarding={state.onboarding} onBack={() => setScr("relatorios")} />;
+  if (scr === "relatorioMedico") return <RelatorioMedico eventos={state.eventos} hojeISO={hojeISO} onboarding={state.onboarding} onBack={() => setScr("relatorios")} onAbrirAvaliacao={() => { setVoltarAvaliacao("relatorioMedico"); setScr("avaliacao"); }} />;
 
   // ══════════════════════ LEMBRETES ══════════════════════
   if (scr === "lembretes") return <LembreteScreen onBack={() => setScr("ajustes")} />;
 
   // ══════════════════════ AJUSTES (Bloco 5.2) ══════════════════════
-  if (scr === "ajustes") return <AjustesScreen onBack={() => setScr("home")} onAbrirLembretes={() => setScr("lembretes")} onRecalibrar={() => { setRecalibrando(true); setScr("onboarding"); }} onAbrirImportacao={() => setScr("importar")} onFazerBackup={fazerBackup} ultimoBackupISO={state.ultimoBackupISO} />;
+  if (scr === "ajustes") return <AjustesScreen onBack={() => setScr("home")} onAbrirLembretes={() => setScr("lembretes")} onRecalibrar={() => { setRecalibrando(true); setScr("onboarding"); }} onAbrirImportacao={() => setScr("importar")} onFazerBackup={fazerBackup} ultimoBackupISO={state.ultimoBackupISO} onAbrirAvaliacao={() => { setVoltarAvaliacao("ajustes"); setScr("avaliacao"); }} />;
+  if (scr === "avaliacao") return <AvaliacaoScreen onBack={() => setScr(voltarAvaliacao)} />;
 
   // ══════════════════════ IMPORTAÇÃO (Bloco 3) ══════════════════════
   if (scr === "importar") return <ImportarScreen eventos={state.eventos} onBack={() => setScr("ajustes")} onImportar={importarDados} onMesclarTreino={mesclarTreino} />;
@@ -541,6 +544,7 @@ export default function App() {
       : [{ key: "unica", label: rehabDoses.base.title }];
 
   return <Home
+    mostrarReavaliacao={!state.reavaliacaoCardVisto} onFecharReavaliacao={() => patch({ reavaliacaoCardVisto: true })} onAbrirAvaliacao={() => { setVoltarAvaliacao("home"); setScr("avaliacao"); }}
     macrofaseNome={macInfo.nome} semanaIdx={progresso.semanaIdx} totalSemanas={totSem} hojeISO={hojeISO}
     dorHoje={planoAcabou ? dorDaSemanaAtual() : state.dorLog[hojeISO]} onRegistrarDor={registrarDor}
     modoManutencao={planoAcabou} reativadoManutencao={reativadoManutencao}

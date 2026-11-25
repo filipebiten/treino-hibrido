@@ -195,15 +195,27 @@ function TabBar({ onAbrirHistorico, onAbrirRelatorios, onAbrirAjustes }) {
 // Bloco 5.1 — avisos de baixa prioridade (instalar PWA, lembrete de backup, plano
 // se-então, bem-vindo de volta, nota de modo manutenção/semana apertada) saem do fluxo
 // principal e vão pra cá, atrás de um toggle — a Home não empilha mais de 5 blocos.
-function MaisCard({ instalarPwa, precisaBackup, onFazerBackup, diasSemUso, planoSeEntao, onSalvarPlano, isSegunda, modoManutencao, reativadoManutencao, semanaDeclarada }) {
+function MaisCard({ instalarPwa, precisaBackup, onFazerBackup, diasSemUso, planoSeEntao, onSalvarPlano, isSegunda, modoManutencao, reativadoManutencao, semanaDeclarada, mostrarReavaliacao, onFecharReavaliacao, onAbrirAvaliacao }) {
   const [aberto, setAberto] = useState(false);
-  const temAlgo = instalarPwa || precisaBackup || diasSemUso >= 3 || (modoManutencao && !reativadoManutencao) || semanaDeclarada === "apertada";
+  const temAlgo = instalarPwa || precisaBackup || mostrarReavaliacao || diasSemUso >= 3 || (modoManutencao && !reativadoManutencao) || semanaDeclarada === "apertada";
   if (!temAlgo) return null;
   return (
     <div style={{ marginBottom: space.md }}>
       <button onClick={() => setAberto(!aberto)} style={{ width: "100%", background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, fontWeight: 700, cursor: "pointer", minHeight: 36, textAlign: "left" }}>{aberto ? "▴ Menos" : "▾ Mais"}</button>
       {aberto && (
         <div style={{ marginTop: space.sm }}>
+          {/* Bloco 4 — card único: só a análise dinâmica de corrida envelheceu, não o pacote todo. */}
+          {mostrarReavaliacao && (
+            <div style={{ ...cardBase, cursor: "default", padding: space.md, marginBottom: space.md, border: "1px solid " + color.border }}>
+              <div style={{ fontSize: ty.xs, color: color.textDim, lineHeight: 1.5 }}>
+                Sua análise de corrida (cadência, contato, aterrissagem) é de 19/08/2021. Vale pedir ao fisio só uma reavaliação dinâmica de corrida — não o pacote completo — pra saber a linha de base atual.
+              </div>
+              <div style={{ display: "flex", gap: space.sm, marginTop: space.sm }}>
+                <button onClick={onAbrirAvaliacao} style={{ minHeight: 36, padding: "0 12px", borderRadius: radius.sm, border: "none", background: color.surfaceAlt, color: color.text, fontWeight: 700, fontSize: ty.xs, cursor: "pointer" }}>Ver avaliação</button>
+                <button onClick={onFecharReavaliacao} style={{ minHeight: 36, padding: "0 12px", borderRadius: radius.sm, border: "none", background: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer" }}>Ok, não mostrar de novo</button>
+              </div>
+            </div>
+          )}
           {diasSemUso >= 3 && (
             <div style={{ ...cardBase, cursor: "default", padding: space.lg, marginBottom: space.md, border: "1px solid " + color.success + "66", background: color.success + "0e" }}>
               <div style={{ fontSize: ty.md, fontWeight: 800, marginBottom: 2 }}>Bem-vindo de volta</div>
@@ -242,6 +254,7 @@ function MaisCard({ instalarPwa, precisaBackup, onFazerBackup, diasSemUso, plano
 }
 
 export default function Home({
+  mostrarReavaliacao, onFecharReavaliacao, onAbrirAvaliacao,
   macrofaseNome, semanaIdx, totalSemanas, hojeISO,
   dorHoje, onRegistrarDor,
   cargaPeHoje,
@@ -346,7 +359,8 @@ export default function Home({
 
       <MaisCard instalarPwa={instalarPwa} precisaBackup={precisaBackup} onFazerBackup={onFazerBackup} diasSemUso={diasSemUso}
         planoSeEntao={planoSeEntao} onSalvarPlano={onSalvarPlano} isSegunda={isSegunda}
-        modoManutencao={modoManutencao} reativadoManutencao={reativadoManutencao} semanaDeclarada={semanaDeclarada} />
+        modoManutencao={modoManutencao} reativadoManutencao={reativadoManutencao} semanaDeclarada={semanaDeclarada}
+        mostrarReavaliacao={mostrarReavaliacao} onFecharReavaliacao={onFecharReavaliacao} onAbrirAvaliacao={onAbrirAvaliacao} />
 
       <TabBar onAbrirHistorico={onAbrirHistorico} onAbrirRelatorios={onAbrirRelatorios} onAbrirAjustes={onAbrirAjustes} />
     </div>

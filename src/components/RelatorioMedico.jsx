@@ -1,6 +1,7 @@
 import Icon from "./Icon.jsx";
 import { dorAoLongoDoTempo, aderenciaRehab, pesoCorporal } from "../lib/relatorios.js";
 import { MARCO_ZERO } from "../data/plano.js";
+import { AVALIACAO_2021 } from "../data/avaliacao2021.js";
 import { color, space, type as ty, radius, touch } from "../lib/tokens.js";
 
 // Bloco 6.2 — uma página imprimível pra consulta médica. CSV não serve em consultório;
@@ -8,7 +9,7 @@ import { color, space, type as ty, radius, touch } from "../lib/tokens.js";
 const backBtn = { background: "none", border: "none", color: color.textDim, fontSize: ty.base, cursor: "pointer", padding: 4, minHeight: touch.min, display: "flex", alignItems: "center", gap: 6 };
 const linha = { display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #ddd", fontSize: 13 };
 
-export default function RelatorioMedico({ eventos, hojeISO, onboarding, onBack }) {
+export default function RelatorioMedico({ eventos, hojeISO, onboarding, onBack, onAbrirAvaliacao }) {
   const dor = dorAoLongoDoTempo(eventos, MARCO_ZERO, hojeISO);
   const aderencia = aderenciaRehab(eventos, MARCO_ZERO, hojeISO);
   const peso = pesoCorporal(eventos);
@@ -57,6 +58,14 @@ export default function RelatorioMedico({ eventos, hojeISO, onboarding, onBack }
         <h2 style={{ fontSize: 14, fontWeight: 800, marginTop: 20, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Peso corporal</h2>
         <div style={linha}><span>Registros</span><b>{peso.pontos.length}</b></div>
         {peso.tendencia != null && <div style={linha}><span>Variação no período</span><b>{peso.tendencia > 0 ? "+" : ""}{peso.tendencia}kg</b></div>}
+
+        {/* Bloco 4 — resumo pra levar na próxima consulta */}
+        <h2 style={{ fontSize: 14, fontWeight: 800, marginTop: 20, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Avaliação biomecânica prévia</h2>
+        <div style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>{AVALIACAO_2021.local}, {AVALIACAO_2021.data.split("-").reverse().join("/")} · {AVALIACAO_2021.profissional}. Dados dinâmicos de corrida têm 5 anos — podem estar desatualizados.</div>
+        {AVALIACAO_2021.secoes.map(s => (
+          <div key={s.titulo} style={{ fontSize: 12, marginBottom: 6, lineHeight: 1.5 }}><b>{s.titulo}:</b> {s.itens.join(" ")}</div>
+        ))}
+        {onAbrirAvaliacao && <button className="no-print" onClick={onAbrirAvaliacao} style={{ background: "none", border: "none", color: "#2563eb", fontSize: 12, cursor: "pointer", padding: 0 }}>Ver ficha completa</button>}
 
         <div style={{ fontSize: 11, color: "#999", marginTop: 24, lineHeight: 1.5 }}>
           Dado auto-registrado pelo paciente em app pessoal, sem validação clínica. Critério de progressão de fase: Silbernagel (2007).

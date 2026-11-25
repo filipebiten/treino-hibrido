@@ -24,7 +24,8 @@ export function defaultState() {
     planoSeEntao: null,        // { ancora, acao, barreira, atualizadoISO } — não é log, é configuração corrente
     tenis: [],                 // [{ id, nome, km }] — Bloco 1.4, inventário (não log). Sem auto-link a corridas.
     ultimoBackupISO: null,
-    metronomoAvisado: false,    // Bloco 2 — aviso de tela acesa mostrado uma vez no metrônomo.      // Bloco 2.6 — data do último backup feito (share/download).
+    metronomoAvisado: false,
+    reavaliacaoCardVisto: false, // Bloco 4 — card único sugerindo reavaliação de corrida (só a parte dinâmica).    // Bloco 2 — aviso de tela acesa mostrado uma vez no metrônomo.      // Bloco 2.6 — data do último backup feito (share/download).
     semanasDeclaradas: {},      // Bloco 2.5 — { segundaISO: "normal" | "apertada" }. Semana apertada = modo manutenção.
     prioridadeTemporada: "equilibrio", // Bloco 3.2 — "corrida" | "musculacao" | "equilibrio". Nunca zera a outra modalidade.
     temporadas: [],             // Bloco 4.1/4.8 — [{ id, nome, prova, dataProva, distanciaProvaKm, volumePicoSemanalKm, fase }]. Registro paralelo, não dirige a macrofase (plano.js continua intocado).
