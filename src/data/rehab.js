@@ -9,17 +9,17 @@ export const REHAB_BASE_2X = {
       how: "Deitado ou sentado na cama. Aponte a ponta do pé para baixo e depois puxe para cima. Alterne suavemente. NÃO levante antes de fazer isso — a fáscia está encurtada e fria." },
     { name: "Alongamento com toalha (panturrilha)", sets: 2, duration: 30, type: "timer",
       how: "Sentado, toalha na planta do pé. Joelho esticado, puxe a toalha trazendo a ponta do pé em direção à canela. 30s. 2x cada perna." },
-    { name: "Alongamento DiGiovanni (fáscia)", reps: 10, type: "reps",
-      how: "Sentado, cruze a perna afetada. Segure a BASE DOS DEDOS (não a ponta) e puxe para CIMA e para TRÁS. Palpe a fáscia com a outra mão para confirmar tensão. 10s x 10 repetições. O exercício com mais evidência." },
+    { name: "Alongamento DiGiovanni (fáscia)", detail: "Cada pé", reps: 10, type: "reps",
+      how: "Sentado, cruze uma perna sobre a outra. Segure a BASE DOS DEDOS (não a ponta) e puxe para CIMA e para TRÁS. Palpe a fáscia com a outra mão para confirmar tensão. 10s x 10 repetições, depois troque de pé (fascite bilateral — comece pelo direito, o mais sintomático). O exercício com mais evidência." },
     { name: "Bolinha de tênis na sola", detail: "Cada pé", duration: 180, type: "timer",
       how: "Sentado, role a bolinha do calcanhar à base dos dedos. Pressão moderada (≤3/10 de dor)." },
-    { name: "Short Foot (encurtamento do pé)", reps: 15, type: "reps",
+    { name: "Short Foot (encurtamento do pé)", detail: "Cada pé", reps: 15, type: "reps",
       how: "Pé apoiado, SEM encolher os dedos. Aproxime a base do dedão do calcanhar, 'levante a cúpula' do arco. Segure 5s. 15 repetições." },
-    { name: "Toe Yoga (piano com os dedos)", reps: 10, type: "reps",
+    { name: "Toe Yoga (piano com os dedos)", detail: "Cada pé", reps: 10, type: "reps",
       how: "3 movimentos, 10 reps cada: (1) só o dedão sobe. (2) dedão desce, outros sobem. (3) espalhe os dedos como leque." },
-    { name: "Catador de toalha", sets: 2, reps: 15, type: "reps",
+    { name: "Catador de toalha", detail: "Cada pé", sets: 2, reps: 15, type: "reps",
       how: "Toalha no chão, use apenas os dedos do pé para agarrar e puxar. 2 séries de 15." },
-    { name: "4-vias tornozelo c/ elástico", sets: 3, reps: 10, type: "reps",
+    { name: "4-vias tornozelo c/ elástico", detail: "Cada pé", sets: 3, reps: 10, type: "reps",
       how: "4 movimentos 3x10 cada: plantiflexão, dorsiflexão, INVERSÃO (mais importante — tibial posterior), eversão." },
     { name: "❄️ Gelo nos pés", detail: "Obrigatório", duration: 900, type: "timer", isIce: true,
       how: "Garrafa congelada com fronha, ou bolsa de gelo com toalha fina. 15 minutos." },
@@ -27,24 +27,29 @@ export const REHAB_BASE_2X = {
 };
 
 export const REHAB_CARGA_RATHLEFF = {
-  id: "carga-rathleff", title: "Rathleff — carga", subtitle: "Dias alternados", time: "~10 min", when: "Dias alternados", color: "#ef4444",
+  id: "carga-rathleff", title: "Rathleff — carga", subtitle: "Dias alternados", time: "~15 min", when: "Dias alternados", color: "#ef4444",
   exercises: [
-    { name: "Heel Raise Rathleff (PROTOCOLO PRINCIPAL)", sets: 3, reps: 12, type: "exercise", rest: 120,
-      how: "Toalha enrolada sob os dedos no degrau — ativa o mecanismo de Windlass. Antepé na borda, calcanhar no ar. SUBA em 3s, PAUSE 2s no topo, DESÇA em 3s abaixo do degrau. Unilateral, pé afetado. Se a dor no dia SEGUINTE estiver pior, reduza." },
-    { name: "Equilíbrio unilateral c/ Short Foot", sets: 3, duration: 60, type: "timer",
-      how: "Um pé só (o afetado), Short Foot ativo (arco levantado sem encolher os dedos). 60s. Progressão: olhos abertos → fechados." },
+    // Fascite BILATERAL, mais acentuada à direita (Byofisio 19/08/2021). Dose ASSIMÉTRICA de propósito:
+    // direito progride (é o alvo terapêutico), esquerdo fica em manutenção 3x12 sem carga, sempre.
+    // Não simetrizar — dobrar volume nos dois pés sem motivo cria lesão nova.
+    { name: "Heel Raise Rathleff (PROTOCOLO PRINCIPAL)", detail: "Pé DIREITO", sets: 3, reps: 12, type: "exercise", rest: 120,
+      how: "Toalha enrolada sob os dedos no degrau — ativa o mecanismo de Windlass. Antepé na borda, calcanhar no ar. SUBA em 3s, PAUSE 2s no topo, DESÇA em 3s abaixo do degrau. Unilateral, pé DIREITO (o mais sintomático — é ele que progride de carga). Se a dor no dia SEGUINTE estiver pior, reduza." },
+    { name: "Heel Raise Rathleff — pé esquerdo", detail: "Manutenção · sem carga extra", sets: 3, reps: 12, type: "exercise", rest: 120,
+      how: "Mesma execução, pé ESQUERDO. Sempre 3x12, sem mochila, sem progressão — a fascite é bilateral, mas o esquerdo é o lado menos afetado e recebe dose de manutenção." },
+    { name: "Equilíbrio unilateral c/ Short Foot", detail: "Cada pé", sets: 3, duration: 60, type: "timer",
+      how: "Um pé só, Short Foot ativo (arco levantado sem encolher os dedos). 60s em cada pé, direito primeiro. Progressão: olhos abertos → fechados." },
   ],
 };
 
 export const REHAB_MANUTENCAO_1X = {
   id: "manutencao-1x", title: "Manutenção fascite", subtitle: "1x/dia — ao acordar", time: "~8 min", when: "Todos os dias, 1x", color: "#f59e0b",
   exercises: [
-    { name: "Alongamento DiGiovanni (fáscia)", reps: 10, type: "reps",
-      how: "Sentado, cruze a perna afetada. Segure a base dos dedos, puxe para cima e para trás. Palpe a fáscia. 10s x 10 repetições." },
+    { name: "Alongamento DiGiovanni (fáscia)", detail: "Cada pé", reps: 10, type: "reps",
+      how: "Sentado, cruze uma perna sobre a outra. Segure a base dos dedos, puxe para cima e para trás. Palpe a fáscia. 10s x 10 repetições em cada pé, direito primeiro." },
     { name: "Along. panturrilha (joelho reto + dobrado)", sets: 2, duration: 30, type: "timer",
       how: "Mãos na parede. 2x30s joelho reto (gastrocnêmio) + 2x30s joelho dobrado (sóleo)." },
-    { name: "Bolinha de tênis na sola", duration: 120, type: "timer",
-      how: "Role a bolinha do calcanhar à base dos dedos. Pressão moderada (≤3/10 de dor). 2 minutos." },
+    { name: "Bolinha de tênis na sola", detail: "Cada pé", duration: 120, type: "timer",
+      how: "Role a bolinha do calcanhar à base dos dedos. Pressão moderada (≤3/10 de dor). 2 minutos em cada pé." },
   ],
 };
 
@@ -58,8 +63,10 @@ export const REHAB_GELO_POS_CORRIDA = {
 
 function cargaComVolume(sets, reps, mochila) {
   return { ...REHAB_CARGA_RATHLEFF, id: REHAB_CARGA_RATHLEFF.id + "-" + sets + "x" + reps, exercises: [
-    { ...REHAB_CARGA_RATHLEFF.exercises[0], sets, reps, detail: mochila ? "Com mochila" : undefined },
+    // Só o pé direito progride (sets/reps/mochila). Esquerdo e equilíbrio ficam fixos.
+    { ...REHAB_CARGA_RATHLEFF.exercises[0], sets, reps, detail: mochila ? "Pé DIREITO · com mochila" : "Pé DIREITO" },
     REHAB_CARGA_RATHLEFF.exercises[1],
+    REHAB_CARGA_RATHLEFF.exercises[2],
   ]};
 }
 
