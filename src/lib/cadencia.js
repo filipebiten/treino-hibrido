@@ -1,4 +1,4 @@
-// ══════════════════════ CADÊNCIA — retreinamento (Bloco 2, avaliação Byofisio 19/08/2021) ══════════════════════
+// ══════════════════════ CADÊNCIA — retreinamento (Bloco 2, avaliação biomecânica 19/08/2021) ══════════════════════
 // Linha de base 2021: 153 PPM a 9 km/h em esteira (marcado como alterado), com overstriding e fase
 // de voo aumentada. Fisio pediu +5-10% → 161-168 PPM. 153 é medida de 2021: a linha de base ATUAL
 // é desconhecida até nova avaliação — por isso a progressão parte da média real registrada no app.

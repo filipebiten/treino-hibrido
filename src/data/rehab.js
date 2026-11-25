@@ -29,7 +29,7 @@ export const REHAB_BASE_2X = {
 export const REHAB_CARGA_RATHLEFF = {
   id: "carga-rathleff", title: "Rathleff — carga", subtitle: "Dias alternados", time: "~15 min", when: "Dias alternados", color: "#ef4444",
   exercises: [
-    // Fascite BILATERAL, mais acentuada à direita (Byofisio 19/08/2021). Dose ASSIMÉTRICA de propósito:
+    // Fascite BILATERAL, mais acentuada à direita (avaliação biomecânica 19/08/2021). Dose ASSIMÉTRICA de propósito:
     // direito progride (é o alvo terapêutico), esquerdo fica em manutenção 3x12 sem carga, sempre.
     // Não simetrizar — dobrar volume nos dois pés sem motivo cria lesão nova.
     { name: "Heel Raise Rathleff (PROTOCOLO PRINCIPAL)", detail: "Pé DIREITO", sets: 3, reps: 12, type: "exercise", rest: 120,
@@ -110,8 +110,8 @@ export function getRehabManutencaoVitalicia(diaSemana, reativado) {
   return { base: REHAB_MANUTENCAO_1X, carga, gelo: REHAB_GELO_POS_CORRIDA, reforcado: false };
 }
 
-// ══════════════════════ MOBILIDADE DIRIGIDA (Bloco 3 — avaliação Byofisio 19/08/2021) ══════════════════════
-// Prioridade nº1 do fisio (Bruno Matoso): limitação bilateral de dorsiflexão em cadeia fechada
+// ══════════════════════ MOBILIDADE DIRIGIDA (Bloco 3 — avaliação biomecânica 19/08/2021) ══════════════════════
+// Prioridade nº1 do fisio: limitação bilateral de dorsiflexão em cadeia fechada
 // (pior à direita) + assimetria de rotação de quadril. Alongamento passivo de panturrilha (rotina
 // base) não ganha dorsiflexão — mobilização em cadeia fechada sim. Opcional diário, mesmo padrão
 // de FORCA_PROTETIVA. NÃO há meta em graus: o relatório tem inconsistência (texto cita ref ≥42°,

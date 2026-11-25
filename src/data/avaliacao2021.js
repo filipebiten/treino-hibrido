@@ -1,12 +1,13 @@
-// ══════════════════════ AVALIAÇÃO BIOMECÂNICA — BYOFISIO, 19/08/2021 (Bloco 4, só leitura) ══════════════════════
+// ══════════════════════ AVALIAÇÃO BIOMECÂNICA — 19/08/2021 (Bloco 4, só leitura) ══════════════════════
 // Fonte única dos achados. Dados DINÂMICOS de corrida (cadência, contato, voo, rigidez) têm 5 anos e
 // podem ter mudado (septoplastia, variação de peso, ciclo de parar/voltar) — linha de base histórica,
 // nunca medida atual. Estruturais (dorsiflexão, quadril) mudam pouco sem trabalho dirigido.
 export const AVALIACAO_2021 = {
   data: "2021-08-19",
-  local: "Byofisio",
-  profissional: "Bruno Paes de A. Matoso (fisioterapeuta, CREFITO 13-133.526-F)",
-  encaminhamento: "Ortopedista Renô Dória",
+  // Repo é público: sem nome de clínica/profissional/registro aqui. Esses dados ficam com o Filipe.
+  local: "Clínica de fisioterapia",
+  profissional: "Fisioterapeuta",
+  encaminhamento: "Ortopedista",
   tipo: "Relatório funcional de marcha, corrida e baropodometria",
   secoes: [
     { titulo: "Diagnóstico", itens: [
