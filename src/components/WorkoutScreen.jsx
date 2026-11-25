@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { CT, CU, TabataTimer } from "./Timers.jsx";
 import Icon from "./Icon.jsx";
+import Metronomo from "./Metronomo.jsx";
 import { avisar } from "../lib/audio.js";
 import { pedirWakeLock, liberarWakeLock, reativarWakeLockSeVisivel } from "../lib/wakelock.js";
 import { sugestaoCarga } from "../lib/treino.js";
@@ -9,7 +10,7 @@ import { color, space, type as ty, radius, touch } from "../lib/tokens.js";
 
 const backBtn = { background: "none", border: "none", color: color.textDim, fontSize: ty.base, cursor: "pointer", padding: 4, minHeight: touch.min, display: "flex", alignItems: "center", gap: 6 };
 
-export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, cargas, onRegistrarCarga, onBack, onFinish, resume, onProgress, dorMedia7d, isCorrida, tenis = [], ultimosValores = {} }) {
+export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, cargas, onRegistrarCarga, onBack, onFinish, resume, onProgress, dorMedia7d, isCorrida, tenis = [], ultimosValores = {}, metronomoPreset = 160, metronomoAvisado = true, onMetronomoAvisado }) {
   const all = steps, list = all.filter(s => !s.section);
   const i0 = resume ? Math.min(resume.sI, list.length - 1) : 0;
   const [sI, setSI] = useState(i0);
@@ -244,6 +245,7 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
         <span style={{ fontSize: ty.sm, color: color.textFaint }}>{sI + 1}/{tot}</span>
       </div>
       <div style={{ height: 4, background: color.surfaceAlt, borderRadius: 2, marginBottom: space.md, overflow: "hidden" }}><div style={{ height: 4, borderRadius: 2, background: pc, width: "100%", transform: "scaleX(" + ((sI + 1) / tot) + ")", transformOrigin: "left", transition: "transform 0.3s" }} /></div>
+      {isCorrida && <Metronomo preset={metronomoPreset} avisado={metronomoAvisado} onAvisado={onMetronomoAvisado} />}
       <div style={{ fontSize: ty.xs, color: pc, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm, textAlign: "center" }}>{sec}</div>
       <div style={{ textAlign: "center", marginBottom: space.sm }}>
         <h1 style={{ fontSize: ty.xl, fontWeight: 800, marginBottom: 4, lineHeight: 1.3, color: step.name && step.name.startsWith("↑") ? color.success : color.text }}>{step.name}</h1>

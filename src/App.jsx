@@ -3,6 +3,7 @@ import { toISO, diffDias, MARCO_ZERO, MACRO_PHASES, getMacrofaseInfo, totalSeman
 import { MA, MB, MC, buildMuscSession } from "./data/musculacao.js";
 import { getRehabForMacrofase, getRehabManutencaoVitalicia, precisaReativarManutencao, MOBILIDADE } from "./data/rehab.js";
 import { FORCA_PROTETIVA, PLIOMETRIA, gatePliometria } from "./data/forcaProtetiva.js";
+import { presetMetronomo } from "./lib/cadencia.js";
 import { buildCaminhadaSession, buildWalkRunSession, buildContinuoSession, buildMetaSession } from "./data/corrida.js";
 import { loadState, saveState } from "./lib/storage.js";
 import { calcularPosicao, verificarGate, checkRecuoAutomatico, rathleffStatus, formatarRestante } from "./lib/progressao.js";
@@ -476,7 +477,7 @@ export default function App() {
     prioridadeTemporada={state.prioridadeTemporada} onMudarPrioridade={(v) => patch({ prioridadeTemporada: v })}
     testesCampo={state.testesCampo} onAdicionarTesteCampo={adicionarTesteCampo}
     temporadas={state.temporadas} onAdicionarTemporada={adicionarTemporada} onRemoverTemporada={removerTemporada}
-    onRegistrarTesteFuncional={registrarTesteFuncional} onRegistrarMobilidade={registrarMobilidadeTeste} onAbrirImportacao={() => setScr("importar")} />;
+    onRegistrarTesteFuncional={registrarTesteFuncional} onRegistrarMobilidade={registrarMobilidadeTeste} onDefinirAlvoCadencia={(ppm) => patch({ eventos: registrarEvento(state.eventos, "cadencia_alvo", { ppm }, hojeISO) })} onAbrirImportacao={() => setScr("importar")} />;
 
   // ══════════════════════ RELATÓRIO MÉDICO (Bloco 6.2) ══════════════════════
   if (scr === "relatorioMedico") return <RelatorioMedico eventos={state.eventos} hojeISO={hojeISO} onboarding={state.onboarding} onBack={() => setScr("relatorios")} />;
@@ -503,6 +504,7 @@ export default function App() {
       cargas={state.cargas} onRegistrarCarga={onRegistrarCarga} dorMedia7d={dorMedia7d()}
       isCorrida={["caminhada", "walkrun", "qualidade", "longao"].includes(sessaoAtual.tipo)}
       tenis={state.tenis} ultimosValores={ultimosValoresCorrida(state.eventos)}
+      metronomoPreset={presetMetronomo(state.eventos)} metronomoAvisado={state.metronomoAvisado} onMetronomoAvisado={() => patch({ metronomoAvisado: true })}
       resume={retomando ? resume : null} onProgress={guardarResume}
       onBack={() => { setRetomando(false); setResume(lerResume()); setScr("home"); }} onFinish={onFinishWorkout} />;
   }

@@ -16,6 +16,8 @@ import Relatorio13Corrida from "./Relatorio13Corrida.jsx";
 import Relatorio14Temporadas from "./Relatorio14Temporadas.jsx";
 import Relatorio15TesteFuncional from "./Relatorio15TesteFuncional.jsx";
 import Relatorio16Mobilidade from "./Relatorio16Mobilidade.jsx";
+import Relatorio17Cadencia from "./Relatorio17Cadencia.jsx";
+import { serieCadencia, sugestaoCadencia, alvoAtual } from "../../lib/cadencia.js";
 import {
   periodoParaDatas, aderenciaRehab, aderenciaRathleff, dorAoLongoDoTempo, dorPorAderencia,
   dorPorTipoTreino, acwr, volumeCorrida, pesoCorporal, volumePorGrupo, sugerirDeload, srpeCorrida,
@@ -181,7 +183,7 @@ function Secao({ titulo, abertaPadrao, children }) {
   );
 }
 
-export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis, semanasDeclaradas, onDeclararSemana, onAbrirRelatorioMedico, prioridadeTemporada, onMudarPrioridade, testesCampo, onAdicionarTesteCampo, temporadas, onAdicionarTemporada, onRemoverTemporada, onRegistrarTesteFuncional, onRegistrarMobilidade, onAbrirImportacao }) {
+export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testesLog, dorLog, onBack, passosSemanaAtual, onRegistrarPassosSemana, tenis, onAdicionarTenis, onRegistrarKmTenis, onRemoverTenis, semanasDeclaradas, onDeclararSemana, onAbrirRelatorioMedico, prioridadeTemporada, onMudarPrioridade, testesCampo, onAdicionarTesteCampo, temporadas, onAdicionarTemporada, onRemoverTemporada, onRegistrarTesteFuncional, onRegistrarMobilidade, onDefinirAlvoCadencia, onAbrirImportacao }) {
   const [periodo, setPeriodo] = useState("30d");
   const { desde, ate } = periodoParaDatas(periodo, hojeISO);
 
@@ -236,6 +238,7 @@ export default function Relatorios({ eventos, hojeISO, cargas, macrofase, testes
       <Secao titulo="Corrida">
         <Relatorio7VolumeCorrida dados={volumeCorrida(eventos, desde, ate)} srpe={srpeCorrida(eventos, desde, ate)} />
         <Relatorio13Corrida testesCampo={testesCampo} onAdicionarTeste={onAdicionarTesteCampo} kmSemanaAtual={kmSemanaAtual} kmMedia4Semanas={kmMedia4Semanas} cadencias={cadencias} ultimaTemperatura={ultimaTemperatura} />
+        <Relatorio17Cadencia serie={serieCadencia(eventos)} sugestao={sugestaoCadencia(eventos, dorLog || {}, hojeISO)} alvo={alvoAtual(eventos)} onDefinirAlvo={onDefinirAlvoCadencia} />
         <Relatorio14Temporadas temporadas={temporadas} hojeISO={hojeISO} onAdicionar={onAdicionarTemporada} onRemover={onRemoverTemporada} />
       </Secao>
 

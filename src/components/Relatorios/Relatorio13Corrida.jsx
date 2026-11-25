@@ -78,7 +78,7 @@ export default function Relatorio13Corrida({ testesCampo, onAdicionarTeste, kmSe
         <div style={{ fontSize: ty.xs, color: color.textDim, marginBottom: 4 }}>Cadência</div>
         {cadenciaInfo.suficiente ? (
           <div style={{ fontSize: ty.xs, color: cadenciaInfo.abaixoDoAlvo ? color.alert : color.textDim }}>
-            Média: {cadenciaInfo.media} passos/min{cadenciaInfo.abaixoDoAlvo && ` — abaixo de 165. Subir pra ~${cadenciaInfo.alvoSugerido} é uma das intervenções de maior retorno pra pé plano com fascite.`}
+            Média: {cadenciaInfo.media} passos/min{cadenciaInfo.abaixoDoAlvo && " — abaixo da meta de 161-168. Alvo por degrau (máx. +5%) no relatório 17."}
           </div>
         ) : <div style={{ fontSize: ty.xs, color: color.textFaint }}>Sem 3+ registros de cadência ainda.</div>}
       </div>
