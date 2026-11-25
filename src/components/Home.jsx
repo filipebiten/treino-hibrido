@@ -107,10 +107,13 @@ function NumeroInline({ onConfirmar, placeholder }) {
 // e ordenada por prioridade (lib/perguntas.js) — aqui só decide COMO mostrar cada tipo.
 function FilaPerguntasCard({ fila, tenis, onResponder, onPular }) {
   const [resolvidasNestaVisita, setResolvidasNestaVisita] = useState(0);
+  // Fascite bilateral: pé esquerdo é secundário e opcional — "+" discreto, nunca 2ª pergunta obrigatória.
+  const [esqAberto, setEsqAberto] = useState(false);
+  const [dorEsq, setDorEsq] = useState(null);
   if (resolvidasNestaVisita >= 2 || !fila.length) return null;
   const atual = fila[0];
 
-  function responder(valor) { onResponder(atual.id, valor); setResolvidasNestaVisita(n => n + 1); }
+  function responder(valor) { onResponder(atual.id, valor, atual.id === "dor_matinal" && dorEsq != null ? { nivelEsq: dorEsq } : undefined); setResolvidasNestaVisita(n => n + 1); }
   function pular() { onPular(atual.id); setResolvidasNestaVisita(n => n + 1); }
 
   const opcoes = atual.tipo === "opcoes-tenis" ? tenis.map(t => [t.id, t.nome]) : atual.opcoes;
@@ -120,12 +123,28 @@ function FilaPerguntasCard({ fila, tenis, onResponder, onPular }) {
       <div style={{ fontSize: ty.xs, color: color.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: space.sm }}>Responder agora</div>
       <div style={{ fontSize: ty.md, fontWeight: 700, marginBottom: space.md }}>{atual.pergunta}</div>
 
+      {atual.tipo === "escala0a10" && atual.id === "dor_matinal" && esqAberto && (
+        <div style={{ marginBottom: space.md }}>
+          <div style={{ fontSize: ty.xs, color: color.textDim, marginBottom: 6 }}>Pé esquerdo (opcional) — marque antes do direito</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(11,1fr)", gap: 3 }}>
+            {Array.from({ length: 11 }, (_, i) => i).map(n => (
+              <button key={n} onClick={() => setDorEsq(dorEsq === n ? null : n)} aria-pressed={dorEsq === n} aria-label={"Pé esquerdo " + n} style={{ minHeight: 36, borderRadius: radius.sm, border: "1px solid " + (dorEsq === n ? color.text : color.border), background: dorEsq === n ? color.surfaceAlt : "none", color: color.textDim, fontWeight: 600, fontSize: ty.xs, cursor: "pointer", padding: 0 }}>{n}</button>
+            ))}
+          </div>
+          <div style={{ fontSize: ty.xs, color: color.textDim, margin: "10px 0 6px" }}>Pé direito</div>
+        </div>
+      )}
+
       {atual.tipo === "escala0a10" && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(6,1fr)", gap: 6 }}>
           {Array.from({ length: 11 }, (_, i) => i).map(n => (
             <button key={n} onClick={() => responder(n)} style={{ minHeight: 48, borderRadius: radius.sm, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontWeight: 700, fontSize: ty.sm, cursor: "pointer" }}>{n}</button>
           ))}
         </div>
+      )}
+
+      {atual.tipo === "escala0a10" && atual.id === "dor_matinal" && !esqAberto && (
+        <button onClick={() => setEsqAberto(true)} style={{ marginTop: space.sm, background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer", minHeight: 44, padding: 0 }}>+ pé esquerdo</button>
       )}
 
       {(atual.tipo === "opcoes" || atual.tipo === "opcoes-tenis") && (

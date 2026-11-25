@@ -67,11 +67,12 @@ export function migrarParaEventos(state) {
 // já devolve em ordem cronológica, então o forEach naturalmente aplica "mais recente ganha").
 export function agruparPorDia(eventos) {
   const dias = {};
-  function dia(iso) { return dias[iso] || (dias[iso] = { periodos: [], pesoPeriodo: {}, treino: null, pulado: false, dor: null, cargaPe: null, testes: [], recuo: null, rehabMinutos: null, nota: null, forcaProtetivaFeita: false, pliometriaFeita: false, testeFuncional: null }); }
+  function dia(iso) { return dias[iso] || (dias[iso] = { periodos: [], pesoPeriodo: {}, treino: null, pulado: false, dor: null, dorEsq: null, cargaPe: null, testes: [], recuo: null, rehabMinutos: null, nota: null, forcaProtetivaFeita: false, pliometriaFeita: false, testeFuncional: null }); }
   listar(eventos).forEach(e => {
     const d = dia(e.data);
     switch (e.tipo) {
-      case "dor_checkin": d.dor = e.payload.nivel; break;
+      // nivel = pé direito (sintomático). nivelEsq opcional (fascite bilateral) — eventos antigos sem ele = só direito registrado.
+      case "dor_checkin": d.dor = e.payload.nivel; d.dorEsq = e.payload.nivelEsq ?? null; break;
       case "carga_pe": d.cargaPe = e.payload.nivel; break;
       case "nota_dia": d.nota = e.payload.texto; break;
       case "forca_protetiva": d.forcaProtetivaFeita = true; break;
@@ -118,7 +119,12 @@ export function aplicarEdicaoDia(eventos, iso, edicao, retroativo) {
   const opts = retroativo ? { retroativo: true } : {};
 
   if (edicao.dor !== null && edicao.dor !== undefined) {
-    ev = registrar(substituir(ev, "dor_checkin", iso), "dor_checkin", { nivel: edicao.dor }, iso, opts);
+    // Merge com o payload anterior — substituir por { nivel } sozinho apagaria nivelEsq.
+    const anterior = ev.filter(e => e.tipo === "dor_checkin" && e.data === iso).pop();
+    const payload = { ...(anterior ? anterior.payload : {}), nivel: edicao.dor };
+    if (edicao.dorEsq === null) delete payload.nivelEsq;
+    else if (edicao.dorEsq !== undefined) payload.nivelEsq = edicao.dorEsq;
+    ev = registrar(substituir(ev, "dor_checkin", iso), "dor_checkin", payload, iso, opts);
   }
   if (edicao.nota !== undefined) {
     ev = substituir(ev, "nota_dia", iso);

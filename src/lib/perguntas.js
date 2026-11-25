@@ -21,7 +21,7 @@ function treinoCorridaHoje(eventos, hojeISO) {
 // pra saber se um pulo antigo já foi "superado" por uma resposta depois dele. Item sem
 // evento próprio (semana_declarada, teste_campo — vivem em state, não em eventos) usa [].
 export const CATALOGO = [
-  { id: "dor_matinal", pergunta: "Dor no calcanhar hoje?", tipo: "escala0a10", prioridade: 100, respondePor: ["dor_checkin"],
+  { id: "dor_matinal", pergunta: "Dor no pé direito hoje?", tipo: "escala0a10", prioridade: 100, respondePor: ["dor_checkin"],
     // Bloco 6 (manutenção vitalícia) já tem check-in semanal próprio na Home, fora da fila —
     // não duplicar aqui enquanto esse modo não for também migrado pra fila.
     deveriaPerguntar: ({ eventos, hojeISO, modoManutencao }) => !modoManutencao && !eventos.some(e => e.tipo === "dor_checkin" && e.data === hojeISO) },

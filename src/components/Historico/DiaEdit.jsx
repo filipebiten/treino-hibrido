@@ -21,6 +21,7 @@ const numInputSm = { ...numInput, width: 70, fontSize: ty.md };
 
 export default function DiaEdit({ iso, resumoDia, onSalvar, onFechar, tenis = [] }) {
   const [dor, setDor] = useState(resumoDia && resumoDia.dor != null ? resumoDia.dor : null);
+  const [dorEsq, setDorEsq] = useState(resumoDia && resumoDia.dorEsq != null ? resumoDia.dorEsq : null);
   const [manha, setManha] = useState(!!(resumoDia && resumoDia.periodos.includes("manha")));
   const [noite, setNoite] = useState(!!(resumoDia && resumoDia.periodos.includes("noite")));
   const [treinoStatus, setTreinoStatus] = useState(resumoDia && resumoDia.treino ? "feito" : resumoDia && resumoDia.pulado ? "pulado" : null);
@@ -49,11 +50,14 @@ export default function DiaEdit({ iso, resumoDia, onSalvar, onFechar, tenis = []
         </div>
 
         <div style={field}>
-          <span style={label}>Dor matinal (0–10)</span>
+          <span style={label}>Dor matinal (0–10) — pé direito</span>
           <div style={{ display: "flex", alignItems: "center", gap: space.sm }}>
             <input type="number" min={0} max={10} value={dor === null ? "" : dor} placeholder="—"
               onChange={(e) => setDor(e.target.value === "" ? null : Math.max(0, Math.min(10, Number(e.target.value))))} style={numInput} />
             {dor !== null && <button onClick={() => setDor(null)} style={{ background: "none", border: "none", color: color.textFaint, fontSize: ty.xs, cursor: "pointer" }}>limpar</button>}
+            <span style={{ fontSize: ty.xs, color: color.textFaint, marginLeft: space.sm }}>Esq.</span>
+            <input type="number" min={0} max={10} value={dorEsq === null ? "" : dorEsq} placeholder="—" aria-label="Dor pé esquerdo (opcional)"
+              onChange={(e) => setDorEsq(e.target.value === "" ? null : Math.max(0, Math.min(10, Number(e.target.value))))} style={numInput} />
           </div>
         </div>
 
@@ -144,7 +148,7 @@ export default function DiaEdit({ iso, resumoDia, onSalvar, onFechar, tenis = []
             style={{ width: "100%", minHeight: touch.min * 0.7, borderRadius: radius.md, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontSize: ty.sm, padding: "0 12px" }} />
         </div>
 
-        <button onClick={() => onSalvar({ dor, manha, noite, duracaoRehabMin, treinoStatus, treinoTipo, distanciaKm, tempoMin, nota, fcMedia, temperaturaC, umidadePct, superficie, tenisId, cadencia })}
+        <button onClick={() => onSalvar({ dor, dorEsq, manha, noite, duracaoRehabMin, treinoStatus, treinoTipo, distanciaKm, tempoMin, nota, fcMedia, temperaturaC, umidadePct, superficie, tenisId, cadencia })}
           style={{ width: "100%", minHeight: touch.min, borderRadius: radius.md, border: "none", background: color.musc, color: "#08120c", fontSize: ty.md, fontWeight: 800, cursor: "pointer" }}>
           Salvar
         </button>

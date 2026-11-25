@@ -195,7 +195,7 @@ export default function App() {
     setScr("workout");
   }
 
-  function registrarDor(nota) { patch({ dorLog: { ...state.dorLog, [hojeISO]: nota }, eventos: registrarEvento(state.eventos, "dor_checkin", { nivel: nota }, hojeISO) }); }
+  function registrarDor(nota, notaEsq) { patch({ dorLog: { ...state.dorLog, [hojeISO]: nota }, eventos: registrarEvento(state.eventos, "dor_checkin", notaEsq != null ? { nivel: nota, nivelEsq: notaEsq } : { nivel: nota }, hojeISO) }); }
   // Bloco 6.1 — em modo manutenção o check-in de dor é semanal, não diário: procura
   // qualquer registro desde a segunda-feira da semana atual, não só hoje.
   function dorDaSemanaAtual() {
@@ -246,9 +246,9 @@ export default function App() {
     const semEsse = state.eventos.filter(e => e.id !== existente.id);
     patch({ eventos: registrarEvento(semEsse, "treino_concluido", { ...existente.payload, ...campos }, hojeISO) });
   }
-  function responderPergunta(perguntaId, valor) {
+  function responderPergunta(perguntaId, valor, extra) {
     switch (perguntaId) {
-      case "dor_matinal": registrarDor(valor); break;
+      case "dor_matinal": registrarDor(valor, extra && extra.nivelEsq); break;
       case "carga_pe": registrarCargaPe(valor); break;
       case "semana_declarada": declararSemana(segundaFeiraDaSemana(hojeISO), valor); break;
       case "peso_corporal": patch({ pesoLog: registrarPeso(state.pesoLog, hojeISO, valor), eventos: registrarEvento(state.eventos, "peso", { kg: valor }, hojeISO) }); break;
