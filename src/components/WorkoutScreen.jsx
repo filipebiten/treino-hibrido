@@ -35,6 +35,7 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
   const [temperaturaC, setTemperaturaC] = useState("");
   const [umidadePct, setUmidadePct] = useState("");
   const [superficie, setSuperficie] = useState(null);
+  const [palmilha, setPalmilha] = useState(null);
   const [tenisId, setTenisId] = useState(null);
   const entryPendenteRef = useRef(null);
   const iR = useRef(null), cR = useRef(null);
@@ -134,6 +135,7 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
     if (temperaturaC) entry.temperaturaC = parseFloat(temperaturaC);
     if (umidadePct) entry.umidadePct = parseFloat(umidadePct);
     if (superficie) entry.superficie = superficie;
+    if (palmilha) entry.palmilha = palmilha;
     if (tenisId) entry.tenisId = tenisId;
     onFinish(entry);
   }
@@ -207,6 +209,14 @@ export default function WorkoutScreen({ steps, sessionLabel, cor, grupoCarga, ca
         <div style={{ display: "flex", gap: 6, marginBottom: space.md }}>
           {[["asfalto", "Asfalto"], ["esteira", "Esteira"], ["terra", "Terra"]].map(([v, l]) => (
             <button key={v} onClick={() => setSuperficie(v)} style={optBtn(superficie === v)}>{l}</button>
+          ))}
+        </div>
+
+        {/* Bloco 5.3 — só registro. Postural (histórico) ≠ biomecânica (indicação do fisio 2021). App não prescreve. */}
+        <div style={{ fontSize: ty.xs, color: color.textDim, marginBottom: 6 }}>Palmilha (opcional)</div>
+        <div style={{ display: "flex", gap: 6, marginBottom: space.md, flexWrap: "wrap" }}>
+          {[["nenhuma", "Sem palmilha"], ["postural", "Postural"], ["biomecanica", "Biomecânica"], ["outra", "Outra"]].map(([v, l]) => (
+            <button key={v} onClick={() => setPalmilha(palmilha === v ? null : v)} style={optBtn(palmilha === v)}>{l}</button>
           ))}
         </div>
 

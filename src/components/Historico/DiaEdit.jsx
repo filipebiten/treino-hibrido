@@ -9,6 +9,7 @@ const TIPOS = [
 ];
 const TIPOS_CORRIDA = ["caminhada", "walkrun", "qualidade", "longao"];
 const SUPERFICIES = [["asfalto", "Asfalto"], ["esteira", "Esteira"], ["terra", "Terra"]];
+const PALMILHAS = [["nenhuma", "Sem palmilha"], ["postural", "Postural"], ["biomecanica", "Biomecânica"], ["outra", "Outra"]];
 
 const label = { fontSize: ty.xs, color: color.textDim, fontWeight: 700, marginBottom: space.xs, display: "block" };
 const field = { marginBottom: space.lg };
@@ -35,6 +36,7 @@ export default function DiaEdit({ iso, resumoDia, onSalvar, onFechar, tenis = []
   const [temperaturaC, setTemperaturaC] = useState((resumoDia && resumoDia.treino && resumoDia.treino.temperaturaC) ?? null);
   const [umidadePct, setUmidadePct] = useState((resumoDia && resumoDia.treino && resumoDia.treino.umidadePct) ?? null);
   const [superficie, setSuperficie] = useState((resumoDia && resumoDia.treino && resumoDia.treino.superficie) || null);
+  const [palmilha, setPalmilha] = useState((resumoDia && resumoDia.treino && resumoDia.treino.palmilha) || null);
   const [tenisId, setTenisId] = useState((resumoDia && resumoDia.treino && resumoDia.treino.tenisId) || null);
   const [cadencia, setCadencia] = useState((resumoDia && resumoDia.treino && resumoDia.treino.cadencia) || null);
   const ritmoSegPorKm = distanciaKm && tempoMin ? Math.round((tempoMin * 60) / distanciaKm) : null;
@@ -130,6 +132,12 @@ export default function DiaEdit({ iso, resumoDia, onSalvar, onFechar, tenis = []
                   {SUPERFICIES.map(([v, l]) => <div key={v} onClick={() => setSuperficie(superficie === v ? null : v)} style={{ ...chip(superficie === v), fontSize: 11 }}>{l}</div>)}
                 </div>
               </div>
+              <div style={{ marginTop: space.sm }}>
+                <span style={{ ...label, marginBottom: 4 }}>Palmilha</span>
+                <div style={{ display: "flex", gap: space.xs, flexWrap: "wrap" }}>
+                  {PALMILHAS.map(([v, l]) => <div key={v} onClick={() => setPalmilha(palmilha === v ? null : v)} style={{ ...chip(palmilha === v), fontSize: 11 }}>{l}</div>)}
+                </div>
+              </div>
               {tenis.length > 0 && (
                 <div style={{ marginTop: space.sm }}>
                   <span style={{ ...label, marginBottom: 4 }}>Tênis</span>
@@ -148,7 +156,7 @@ export default function DiaEdit({ iso, resumoDia, onSalvar, onFechar, tenis = []
             style={{ width: "100%", minHeight: touch.min * 0.7, borderRadius: radius.md, border: "1px solid " + color.border, background: color.surfaceAlt, color: color.text, fontSize: ty.sm, padding: "0 12px" }} />
         </div>
 
-        <button onClick={() => onSalvar({ dor, dorEsq, manha, noite, duracaoRehabMin, treinoStatus, treinoTipo, distanciaKm, tempoMin, nota, fcMedia, temperaturaC, umidadePct, superficie, tenisId, cadencia })}
+        <button onClick={() => onSalvar({ dor, dorEsq, manha, noite, duracaoRehabMin, treinoStatus, treinoTipo, distanciaKm, tempoMin, nota, fcMedia, temperaturaC, umidadePct, superficie, palmilha, tenisId, cadencia })}
           style={{ width: "100%", minHeight: touch.min, borderRadius: radius.md, border: "none", background: color.musc, color: "#08120c", fontSize: ty.md, fontWeight: 800, cursor: "pointer" }}>
           Salvar
         </button>

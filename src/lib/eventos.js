@@ -95,6 +95,7 @@ export function agruparPorDia(eventos) {
           distanciaKm: e.payload.distanciaKm, tempoTotalMin: e.payload.tempoTotalMin, pse: e.payload.pse,
           fcMedia: e.payload.fcMedia, temperaturaC: e.payload.temperaturaC, umidadePct: e.payload.umidadePct,
           superficie: e.payload.superficie, tenisId: e.payload.tenisId, cadencia: e.payload.cadencia,
+          palmilha: e.payload.palmilha, // Bloco 5.3 — nenhuma|postural|biomecanica|outra, opcional
         };
         d.pulado = false;
         break;
@@ -150,6 +151,7 @@ export function aplicarEdicaoDia(eventos, iso, edicao, retroativo) {
     if (edicao.temperaturaC != null) payload.temperaturaC = edicao.temperaturaC;
     if (edicao.umidadePct != null) payload.umidadePct = edicao.umidadePct;
     if (edicao.superficie) payload.superficie = edicao.superficie;
+    if (edicao.palmilha) payload.palmilha = edicao.palmilha;
     if (edicao.tenisId) payload.tenisId = edicao.tenisId;
     if (edicao.cadencia) payload.cadencia = edicao.cadencia;
     ev = registrar(substituir(substituir(ev, "treino_concluido", iso), "treino_pulado", iso), "treino_concluido", payload, iso, opts);
