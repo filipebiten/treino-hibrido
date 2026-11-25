@@ -48,6 +48,45 @@ intensivo (`getRehabManutencaoVitalicia(diaSemana, reativado)`) se a dor ficar a
 da baseline 3 dias seguidos — a recaída clássica é parar assim que melhora, então
 isso nunca deve depender de decisão manual.
 
+## Fascite BILATERAL + avaliação biomecânica 2021 (Blocos 1-5 de 24-25/11/2026)
+
+Fonte: avaliação biomecânica de 19/08/2021 (fisioterapeuta, encaminhado pelo
+ortopedista). **Repo é público:** nomes de clínica/profissionais/registro NÃO
+entram no código nem aqui (decisão do Filipe, 25/11/2026). Fonte única no código:
+`src/data/avaliacao2021.js` (tela `AvaliacaoScreen`, seção no Relatório Médico).
+
+- **Fascite é BILATERAL, mais acentuada à DIREITA.** Não é unilateral direita.
+- **Dose ASSIMÉTRICA de propósito — não "simetrizar":** Rathleff no pé DIREITO
+  progride (3x12 → 4x10 c/ mochila → 5x8); pé ESQUERDO fica em 3x12 sem carga,
+  sempre (`REHAB_CARGA_RATHLEFF`, `cargaComVolume` em `data/rehab.js`). Dobrar
+  volume igual nos dois pés cria lesão nova. Alongamento/bolinha/Short Foot/Toe
+  Yoga/4-vias/equilíbrio são "cada pé". Gelo nos dois pés (decisão do Filipe).
+- Check-in de dor: `nivel` = pé direito (principal). `nivelEsq` é opcional,
+  atrás de um "+ pé esquerdo" discreto — nunca 2 perguntas obrigatórias.
+- **Achados estruturais** (mudam pouco sem trabalho dirigido): limitação
+  bilateral de dorsiflexão em cadeia fechada (pior à direita); assimetria de
+  quadril 33° esq / 45° dir (ref 40-45°, trabalho pedido: rotação externa);
+  drop pélvico bilateral pior à esquerda (déficit póstero-lateral); valgo
+  dinâmico no agachamento unipodal. Daí: rotina `MOBILIDADE` (opcional diária),
+  rotação externa na força protetiva, aviso em búlgaro/passada/avanço/step-down.
+- **Dados dinâmicos de corrida de 2021 (cadência 153, contato, voo, rigidez,
+  overstriding) são linha de base HISTÓRICA, nunca medida atual** — toda
+  exibição vem com a data. Card único sugere reavaliar só a parte dinâmica.
+- **Inconsistência NÃO resolvida — não virar meta:** texto do laudo cita
+  dorsiflexão com referência ≥42°, imagens mostram 64° (esq) / 66° (dir).
+  Provavelmente ângulos diferentes (tíbia-solo × tíbia-pé). Não existe meta em
+  graus no app; mobilidade é medida em cm (joelho-à-parede, `mobilidade_teste`),
+  só evolução relativa. Só mudar depois do Filipe confirmar com o fisio.
+- **Cadência** (`lib/cadencia.js`, Relatório 17, metrônomo): meta 161-168 PPM
+  (+5-10% sobre 153 de 2021). Degrau nunca sobe >5%, teto 168, parte da média
+  REAL registrada (sem caminhada). Sem 3 registros: só metrônomo livre + medir.
+  Próximo degrau só após 14 dias no alvo, na faixa, sem piora da dor matinal
+  (sem dado de dor = não confirma). Self-check: `node scripts/check-cadencia.mjs`.
+  Metrônomo (`criarMetronomo` em `lib/audio.js`): 150-180, não toca com tela
+  bloqueada no iOS — depende de Wake Lock, aviso mostrado uma vez.
+- **Palmilha:** o app só REGISTRA (`palmilha` em `treino_concluido`), nunca
+  prescreve. Postural (histórico) ≠ biomecânica (indicação de 2021).
+
 ## Gates (nunca pular)
 
 - **Pliometria** (`data/forcaProtetiva.js`, `gatePliometria`): só libera com 28 dias
@@ -62,9 +101,19 @@ isso nunca deve depender de decisão manual.
 
 `dor_checkin, carga_pe, nota_dia, rehab_dose, rathleff, treino_concluido,
 treino_pulado, teste, recuo_automatico, passos_semana, forca_protetiva,
-pliometria, teste_funcional, pergunta_pulada, passos_dia, treino_importado`
+pliometria, teste_funcional, pergunta_pulada, passos_dia, treino_importado,
+mobilidade, mobilidade_teste, cadencia_alvo`
 — mais os campos ricos de `treino_concluido` pra corrida: `fcMedia,
-temperaturaC, umidadePct, superficie, tenisId, cadencia`.
+temperaturaC, umidadePct, superficie, tenisId, cadencia, palmilha`.
+
+- `dor_checkin { nivel, nivelEsq? }` — `nivel` = pé direito. `nivelEsq`
+  opcional (fascite bilateral); evento antigo sem ele = só direito registrado.
+  Edição do dia (`aplicarEdicaoDia`) faz merge — não apaga `nivelEsq`.
+- `mobilidade {}` — rotina de mobilidade feita no dia.
+- `mobilidade_teste { joelhoParedeEsqCm, joelhoParedeDirCm }` — quinzenal,
+  distância dedão→parede em cm (Relatório 16). Sem referência em graus.
+- `cadencia_alvo { ppm }` — degrau de cadência aceito; alvo atual = último.
+- `treino_concluido.palmilha` — `nenhuma|postural|biomecanica|outra`, opcional.
 
 - `pergunta_pulada { perguntaId }` — Bloco 1, usuário tocou "pular" na fila.
 - `passos_dia { total }` — Bloco 3, um por dia, vem da importação do Atalho.
@@ -145,7 +194,28 @@ Sem API de clima — entrada manual de temperatura/umidade no `DiaEdit`. Acima d
 - Integrar API de clima, Strava, Darebee, MuscleWiki ou qualquer fonte externa.
 - Streak que reseta, badge de culpa, alarme de dia perdido (Lally 2010).
 - ACWR como alerta de risco.
+- Simetrizar o Rathleff (mesma carga nos dois pés) ou tratar a fascite como
+  unilateral — é bilateral, dose assimétrica (ver seção acima).
+- Tratar dado de corrida de 2021 como medida atual, ou inventar meta de
+  dorsiflexão em graus (inconsistência do laudo não resolvida).
+- Prescrever palmilha — o app registra, quem indica é ortopedista/fisio.
+- Check-in matinal com os dois pés obrigatórios.
 - Deletar, renomear ou descartar qualquer evento do log.
+
+## Backup
+
+Dados vivem no localStorage do iPhone — Claude não tem acesso. Backup:
+Ajustes → "Fazer backup agora" (botão fixo; o lembrete no "Mais" só aparece
+após 30 dias). JSON vai pra `backups/treino-eventos-AAAA-MM-DD.json` —
+**só local, no `.gitignore`** (repo público; dado de saúde não sobe mais, desde
+25/11/2026). Backups antigos continuam no histórico do git.
+
+## Deploy
+
+GitHub Actions (`.github/workflows/deploy.yml`): job `build` + job `deploy`
+separadas (modelo oficial do Pages). Numa job só, `deploy-pages` não achava
+o artefato. Push precisa da conta `filipebiten` ativa no gh
+(`gh auth switch -u filipebiten`).
 
 ## Workflow de mudança
 
