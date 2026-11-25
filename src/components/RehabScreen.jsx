@@ -11,7 +11,6 @@ const backBtn = { background: "none", border: "none", color: color.textDim, font
 
 export default function RehabScreen({ onBack, rotinas, onRoutineComplete, rathleff, dorLog, pesoLog, hojeISO, feitaKeys = {} }) {
   const [activeRoutine, setActiveRoutine] = useState(null);
-  const [activeKey, setActiveKey] = useState(null);
   const [tab, setTab] = useState("rotinas");
   const [sI, setSI] = useState(0);
   const [tmr, setTmr] = useState(0);
@@ -49,7 +48,7 @@ export default function RehabScreen({ onBack, rotinas, onRoutineComplete, rathle
     return () => liberarWakeLock();
   }, [activeRoutine]);
 
-  function abrir(key, rotina) { setActiveKey(key); setActiveRoutine(rotina); setSI(0); setCS(1); setTmr(0); setTmrOn(false); setRst(false); const ex = rotina.exercises[0]; if (ex && ex.duration && ex.type === "timer") setTmr(ex.duration); }
+  function abrir(key, rotina) { setActiveRoutine(rotina); setSI(0); setCS(1); setTmr(0); setTmrOn(false); setRst(false); const ex = rotina.exercises[0]; if (ex && ex.duration && ex.type === "timer") setTmr(ex.duration); }
 
   if (!activeRoutine) {
     return (
